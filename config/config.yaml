@@ -1,0 +1,16 @@
+world:
+  size: 50
+  seed: 42
+
+terrain:
+  water_bodies: 3
+  water_radius_min: 3
+  water_radius_max: 5
+  bush_clusters: 7
+  bush_per_cluster: 5
+
+population:
+  rabbits: 30
+  wolves: 3
+  rabbit_group_size: 3
+  min_wolf_distance: 20
