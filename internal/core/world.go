@@ -2,8 +2,7 @@ package core
 
 import (
 	"math/rand"
-	"time"
-	
+
 	"github.com/aiseeq/savanna/internal/physics"
 )
 
@@ -12,7 +11,7 @@ import (
 type World struct {
 	// Управление сущностями
 	entities EntityManager
-	
+
 	// Компоненты - индексируются по EntityID
 	positions  [MAX_ENTITIES]Position
 	velocities [MAX_ENTITIES]Velocity
@@ -22,33 +21,33 @@ type World struct {
 	types      [MAX_ENTITIES]AnimalType
 	sizes      [MAX_ENTITIES]Size
 	speeds     [MAX_ENTITIES]Speed
-	
+
 	// Битовые маски для быстрой проверки наличия компонентов
 	// Каждый uint64 хранит 64 бита, поэтому нужно MAX_ENTITIES/64 элементов
-	hasPosition  [MAX_ENTITIES/64 + 1]uint64
-	hasVelocity  [MAX_ENTITIES/64 + 1]uint64
-	hasHealth    [MAX_ENTITIES/64 + 1]uint64
-	hasHunger    [MAX_ENTITIES/64 + 1]uint64
-	hasAge       [MAX_ENTITIES/64 + 1]uint64
-	hasType      [MAX_ENTITIES/64 + 1]uint64
-	hasSize      [MAX_ENTITIES/64 + 1]uint64
-	hasSpeed     [MAX_ENTITIES/64 + 1]uint64
-	
+	hasPosition [MAX_ENTITIES/64 + 1]uint64
+	hasVelocity [MAX_ENTITIES/64 + 1]uint64
+	hasHealth   [MAX_ENTITIES/64 + 1]uint64
+	hasHunger   [MAX_ENTITIES/64 + 1]uint64
+	hasAge      [MAX_ENTITIES/64 + 1]uint64
+	hasType     [MAX_ENTITIES/64 + 1]uint64
+	hasSize     [MAX_ENTITIES/64 + 1]uint64
+	hasSpeed    [MAX_ENTITIES/64 + 1]uint64
+
 	// Физическая система
 	spatialGrid *physics.SpatialGrid
-	
+
 	// Время симуляции
-	time       float32     // Общее время симуляции в секундах
-	deltaTime  float32     // Время с последнего обновления
-	timeScale  float32     // Масштаб времени (1.0 = нормальная скорость)
-	
+	time      float32 // Общее время симуляции в секундах
+	deltaTime float32 // Время с последнего обновления
+	timeScale float32 // Масштаб времени (1.0 = нормальная скорость)
+
 	// Детерминированный генератор случайных чисел
 	rng *rand.Rand
-	
+
 	// Размеры мира
 	worldWidth  float32
 	worldHeight float32
-	
+
 	// Буферы для переиспользования (предотвращение аллокаций)
 	queryBuffer    []EntityID
 	entitiesBuffer []EntityID
@@ -57,18 +56,18 @@ type World struct {
 // NewWorld создаёт новый мир симуляции
 func NewWorld(worldWidth, worldHeight float32, seed int64) *World {
 	world := &World{
-		entities:    *NewEntityManager(),
-		spatialGrid: physics.NewSpatialGrid(worldWidth, worldHeight, 32.0), // 32 пикселя на ячейку
-		time:        0,
-		deltaTime:   0,
-		timeScale:   1.0,
-		rng:         rand.New(rand.NewSource(seed)),
-		worldWidth:  worldWidth,
-		worldHeight: worldHeight,
+		entities:       *NewEntityManager(),
+		spatialGrid:    physics.NewSpatialGrid(worldWidth, worldHeight, 32.0), // 32 пикселя на ячейку
+		time:           0,
+		deltaTime:      0,
+		timeScale:      1.0,
+		rng:            rand.New(rand.NewSource(seed)),
+		worldWidth:     worldWidth,
+		worldHeight:    worldHeight,
 		queryBuffer:    make([]EntityID, 0, 100),
 		entitiesBuffer: make([]EntityID, 0, MAX_ENTITIES),
 	}
-	
+
 	return world
 }
 
@@ -110,15 +109,15 @@ func (w *World) DestroyEntity(entity EntityID) bool {
 	if !w.entities.IsAlive(entity) {
 		return false
 	}
-	
+
 	// Удаляем из пространственной сетки если есть позиция
 	if w.HasComponent(entity, MaskPosition) {
 		w.spatialGrid.Remove(physics.EntityID(entity))
 	}
-	
+
 	// Очищаем все компоненты
 	w.removeAllComponents(entity)
-	
+
 	// Уничтожаем сущность
 	return w.entities.DestroyEntity(entity)
 }
@@ -154,7 +153,7 @@ func (w *World) Clear() {
 	w.spatialGrid.Clear()
 	w.time = 0
 	w.deltaTime = 0
-	
+
 	// Очищаем все битовые маски
 	for i := range w.hasPosition {
 		w.hasPosition[i] = 0
@@ -174,7 +173,7 @@ func (w *World) Clear() {
 func setBitMask(mask []uint64, entity EntityID) {
 	wordIndex := entity / 64
 	bitIndex := entity % 64
-	if wordIndex < uint16(len(mask)) {
+	if int(wordIndex) < len(mask) {
 		mask[wordIndex] |= 1 << bitIndex
 	}
 }
@@ -183,7 +182,7 @@ func setBitMask(mask []uint64, entity EntityID) {
 func clearBitMask(mask []uint64, entity EntityID) {
 	wordIndex := entity / 64
 	bitIndex := entity % 64
-	if wordIndex < uint16(len(mask)) {
+	if int(wordIndex) < len(mask) {
 		mask[wordIndex] &^= 1 << bitIndex
 	}
 }
@@ -192,7 +191,7 @@ func clearBitMask(mask []uint64, entity EntityID) {
 func testBitMask(mask []uint64, entity EntityID) bool {
 	wordIndex := entity / 64
 	bitIndex := entity % 64
-	if wordIndex < uint16(len(mask)) {
+	if int(wordIndex) < len(mask) {
 		return mask[wordIndex]&(1<<bitIndex) != 0
 	}
 	return false

@@ -9,7 +9,7 @@ func (w *World) HasComponent(entity EntityID, component ComponentMask) bool {
 	if !w.entities.IsAlive(entity) {
 		return false
 	}
-	
+
 	switch component {
 	case MaskPosition:
 		return testBitMask(w.hasPosition[:], entity)
@@ -36,7 +36,7 @@ func (w *World) HasComponents(entity EntityID, mask ComponentMask) bool {
 	if !w.entities.IsAlive(entity) {
 		return false
 	}
-	
+
 	// Проверяем каждый бит в маске
 	if mask&MaskPosition != 0 && !testBitMask(w.hasPosition[:], entity) {
 		return false
@@ -62,7 +62,7 @@ func (w *World) HasComponents(entity EntityID, mask ComponentMask) bool {
 	if mask&MaskSpeed != 0 && !testBitMask(w.hasSpeed[:], entity) {
 		return false
 	}
-	
+
 	return true
 }
 
@@ -73,17 +73,17 @@ func (w *World) AddPosition(entity EntityID, position Position) bool {
 	if !w.entities.IsAlive(entity) {
 		return false
 	}
-	
+
 	w.positions[entity] = position
 	setBitMask(w.hasPosition[:], entity)
-	
+
 	// Обновляем пространственную сетку если есть размер
 	if w.HasComponent(entity, MaskSize) {
 		size := w.sizes[entity]
-		w.spatialGrid.Update(physics.EntityID(entity), 
+		w.spatialGrid.Update(physics.EntityID(entity),
 			physics.Vec2{X: position.X, Y: position.Y}, size.Radius)
 	}
-	
+
 	return true
 }
 
@@ -100,16 +100,16 @@ func (w *World) SetPosition(entity EntityID, position Position) bool {
 	if !w.entities.IsAlive(entity) || !testBitMask(w.hasPosition[:], entity) {
 		return false
 	}
-	
+
 	w.positions[entity] = position
-	
+
 	// Обновляем пространственную сетку если есть размер
 	if w.HasComponent(entity, MaskSize) {
 		size := w.sizes[entity]
-		w.spatialGrid.Update(physics.EntityID(entity), 
+		w.spatialGrid.Update(physics.EntityID(entity),
 			physics.Vec2{X: position.X, Y: position.Y}, size.Radius)
 	}
-	
+
 	return true
 }
 
@@ -118,7 +118,7 @@ func (w *World) RemovePosition(entity EntityID) bool {
 	if !w.entities.IsAlive(entity) || !testBitMask(w.hasPosition[:], entity) {
 		return false
 	}
-	
+
 	clearBitMask(w.hasPosition[:], entity)
 	w.spatialGrid.Remove(physics.EntityID(entity))
 	return true
@@ -131,7 +131,7 @@ func (w *World) AddVelocity(entity EntityID, velocity Velocity) bool {
 	if !w.entities.IsAlive(entity) {
 		return false
 	}
-	
+
 	w.velocities[entity] = velocity
 	setBitMask(w.hasVelocity[:], entity)
 	return true
@@ -150,7 +150,7 @@ func (w *World) SetVelocity(entity EntityID, velocity Velocity) bool {
 	if !w.entities.IsAlive(entity) || !testBitMask(w.hasVelocity[:], entity) {
 		return false
 	}
-	
+
 	w.velocities[entity] = velocity
 	return true
 }
@@ -160,7 +160,7 @@ func (w *World) RemoveVelocity(entity EntityID) bool {
 	if !w.entities.IsAlive(entity) || !testBitMask(w.hasVelocity[:], entity) {
 		return false
 	}
-	
+
 	clearBitMask(w.hasVelocity[:], entity)
 	return true
 }
@@ -172,7 +172,7 @@ func (w *World) AddHealth(entity EntityID, health Health) bool {
 	if !w.entities.IsAlive(entity) {
 		return false
 	}
-	
+
 	w.healths[entity] = health
 	setBitMask(w.hasHealth[:], entity)
 	return true
@@ -191,7 +191,7 @@ func (w *World) SetHealth(entity EntityID, health Health) bool {
 	if !w.entities.IsAlive(entity) || !testBitMask(w.hasHealth[:], entity) {
 		return false
 	}
-	
+
 	w.healths[entity] = health
 	return true
 }
@@ -201,7 +201,7 @@ func (w *World) RemoveHealth(entity EntityID) bool {
 	if !w.entities.IsAlive(entity) || !testBitMask(w.hasHealth[:], entity) {
 		return false
 	}
-	
+
 	clearBitMask(w.hasHealth[:], entity)
 	return true
 }
@@ -213,7 +213,7 @@ func (w *World) AddHunger(entity EntityID, hunger Hunger) bool {
 	if !w.entities.IsAlive(entity) {
 		return false
 	}
-	
+
 	w.hungers[entity] = hunger
 	setBitMask(w.hasHunger[:], entity)
 	return true
@@ -232,7 +232,7 @@ func (w *World) SetHunger(entity EntityID, hunger Hunger) bool {
 	if !w.entities.IsAlive(entity) || !testBitMask(w.hasHunger[:], entity) {
 		return false
 	}
-	
+
 	w.hungers[entity] = hunger
 	return true
 }
@@ -242,7 +242,7 @@ func (w *World) RemoveHunger(entity EntityID) bool {
 	if !w.entities.IsAlive(entity) || !testBitMask(w.hasHunger[:], entity) {
 		return false
 	}
-	
+
 	clearBitMask(w.hasHunger[:], entity)
 	return true
 }
@@ -254,7 +254,7 @@ func (w *World) AddAge(entity EntityID, age Age) bool {
 	if !w.entities.IsAlive(entity) {
 		return false
 	}
-	
+
 	w.ages[entity] = age
 	setBitMask(w.hasAge[:], entity)
 	return true
@@ -273,7 +273,7 @@ func (w *World) SetAge(entity EntityID, age Age) bool {
 	if !w.entities.IsAlive(entity) || !testBitMask(w.hasAge[:], entity) {
 		return false
 	}
-	
+
 	w.ages[entity] = age
 	return true
 }
@@ -283,7 +283,7 @@ func (w *World) RemoveAge(entity EntityID) bool {
 	if !w.entities.IsAlive(entity) || !testBitMask(w.hasAge[:], entity) {
 		return false
 	}
-	
+
 	clearBitMask(w.hasAge[:], entity)
 	return true
 }
@@ -295,7 +295,7 @@ func (w *World) AddAnimalType(entity EntityID, animalType AnimalType) bool {
 	if !w.entities.IsAlive(entity) {
 		return false
 	}
-	
+
 	w.types[entity] = animalType
 	setBitMask(w.hasType[:], entity)
 	return true
@@ -314,7 +314,7 @@ func (w *World) SetAnimalType(entity EntityID, animalType AnimalType) bool {
 	if !w.entities.IsAlive(entity) || !testBitMask(w.hasType[:], entity) {
 		return false
 	}
-	
+
 	w.types[entity] = animalType
 	return true
 }
@@ -324,7 +324,7 @@ func (w *World) RemoveAnimalType(entity EntityID) bool {
 	if !w.entities.IsAlive(entity) || !testBitMask(w.hasType[:], entity) {
 		return false
 	}
-	
+
 	clearBitMask(w.hasType[:], entity)
 	return true
 }
@@ -336,17 +336,17 @@ func (w *World) AddSize(entity EntityID, size Size) bool {
 	if !w.entities.IsAlive(entity) {
 		return false
 	}
-	
+
 	w.sizes[entity] = size
 	setBitMask(w.hasSize[:], entity)
-	
+
 	// Обновляем пространственную сетку если есть позиция
 	if w.HasComponent(entity, MaskPosition) {
 		position := w.positions[entity]
-		w.spatialGrid.Update(physics.EntityID(entity), 
+		w.spatialGrid.Update(physics.EntityID(entity),
 			physics.Vec2{X: position.X, Y: position.Y}, size.Radius)
 	}
-	
+
 	return true
 }
 
@@ -363,16 +363,16 @@ func (w *World) SetSize(entity EntityID, size Size) bool {
 	if !w.entities.IsAlive(entity) || !testBitMask(w.hasSize[:], entity) {
 		return false
 	}
-	
+
 	w.sizes[entity] = size
-	
+
 	// Обновляем пространственную сетку если есть позиция
 	if w.HasComponent(entity, MaskPosition) {
 		position := w.positions[entity]
-		w.spatialGrid.Update(physics.EntityID(entity), 
+		w.spatialGrid.Update(physics.EntityID(entity),
 			physics.Vec2{X: position.X, Y: position.Y}, size.Radius)
 	}
-	
+
 	return true
 }
 
@@ -381,7 +381,7 @@ func (w *World) RemoveSize(entity EntityID) bool {
 	if !w.entities.IsAlive(entity) || !testBitMask(w.hasSize[:], entity) {
 		return false
 	}
-	
+
 	clearBitMask(w.hasSize[:], entity)
 	return true
 }
@@ -393,7 +393,7 @@ func (w *World) AddSpeed(entity EntityID, speed Speed) bool {
 	if !w.entities.IsAlive(entity) {
 		return false
 	}
-	
+
 	w.speeds[entity] = speed
 	setBitMask(w.hasSpeed[:], entity)
 	return true
@@ -412,7 +412,7 @@ func (w *World) SetSpeed(entity EntityID, speed Speed) bool {
 	if !w.entities.IsAlive(entity) || !testBitMask(w.hasSpeed[:], entity) {
 		return false
 	}
-	
+
 	w.speeds[entity] = speed
 	return true
 }
@@ -422,7 +422,7 @@ func (w *World) RemoveSpeed(entity EntityID) bool {
 	if !w.entities.IsAlive(entity) || !testBitMask(w.hasSpeed[:], entity) {
 		return false
 	}
-	
+
 	clearBitMask(w.hasSpeed[:], entity)
 	return true
 }

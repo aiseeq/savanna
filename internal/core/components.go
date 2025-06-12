@@ -141,10 +141,10 @@ func (cs *ComponentSet) Clear() {
 var (
 	// MovingEntities сущности которые могут двигаться
 	MovingEntities = NewComponentSet(MaskPosition, MaskVelocity)
-	
+
 	// LivingEntities живые сущности
 	LivingEntities = NewComponentSet(MaskPosition, MaskHealth, MaskHunger, MaskAge, MaskAnimalType, MaskSize)
-	
+
 	// AnimalsEntities животные (для рендеринга и логики)
 	AnimalsEntities = NewComponentSet(MaskPosition, MaskVelocity, MaskHealth, MaskHunger, MaskAnimalType, MaskSize, MaskSpeed)
 )
