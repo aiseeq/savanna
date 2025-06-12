@@ -12,16 +12,16 @@ const INVALID_ENTITY EntityID = 0
 
 // EntityManager управляет созданием, удалением и переиспользованием ID сущностей
 type EntityManager struct {
-	nextID  EntityID     // Следующий доступный ID
-	freeIDs []EntityID   // Освобождённые ID для переиспользования
+	nextID  EntityID           // Следующий доступный ID
+	freeIDs []EntityID         // Освобождённые ID для переиспользования
 	alive   [MAX_ENTITIES]bool // Битовая маска живых сущностей
-	count   int          // Количество живых сущностей
+	count   int                // Количество живых сущностей
 }
 
 // NewEntityManager создаёт новый менеджер сущностей
 func NewEntityManager() *EntityManager {
 	return &EntityManager{
-		nextID:  1, // Начинаем с 1, т.к. 0 это INVALID_ENTITY
+		nextID:  1,                                   // Начинаем с 1, т.к. 0 это INVALID_ENTITY
 		freeIDs: make([]EntityID, 0, MAX_ENTITIES/4), // Предварительно выделяем память
 		count:   0,
 	}
@@ -30,7 +30,7 @@ func NewEntityManager() *EntityManager {
 // CreateEntity создаёт новую сущность и возвращает её ID
 func (em *EntityManager) CreateEntity() EntityID {
 	var id EntityID
-	
+
 	// Если есть освобождённые ID, переиспользуем их
 	if len(em.freeIDs) > 0 {
 		id = em.freeIDs[len(em.freeIDs)-1]
@@ -43,7 +43,7 @@ func (em *EntityManager) CreateEntity() EntityID {
 		id = em.nextID
 		em.nextID++
 	}
-	
+
 	em.alive[id] = true
 	em.count++
 	return id
@@ -54,13 +54,13 @@ func (em *EntityManager) DestroyEntity(id EntityID) bool {
 	if id == INVALID_ENTITY || id >= MAX_ENTITIES || !em.alive[id] {
 		return false // Сущность не существует
 	}
-	
+
 	em.alive[id] = false
 	em.count--
-	
+
 	// Добавляем ID в список свободных для переиспользования
 	em.freeIDs = append(em.freeIDs, id)
-	
+
 	return true
 }
 
@@ -84,13 +84,13 @@ func (em *EntityManager) GetAliveEntities(buffer []EntityID) []EntityID {
 		buffer = make([]EntityID, 0, em.count)
 	}
 	buffer = buffer[:0] // Сбрасываем длину, но сохраняем capacity
-	
+
 	for id := EntityID(1); id < EntityID(len(em.alive)) && len(buffer) < em.count; id++ {
 		if em.alive[id] {
 			buffer = append(buffer, id)
 		}
 	}
-	
+
 	return buffer
 }
 
