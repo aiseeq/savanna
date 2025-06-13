@@ -3,7 +3,9 @@ package integration
 import (
 	"testing"
 
+	"github.com/aiseeq/savanna/config"
 	"github.com/aiseeq/savanna/internal/core"
+	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
 )
 
@@ -12,15 +14,32 @@ const (
 	TEST_TPS        = 60
 )
 
+// createTestVegetationSystem создаёт vegetation систему для тестов
+func createTestVegetationSystem() *simulation.VegetationSystem {
+	cfg := config.LoadDefaultConfig()
+	cfg.World.Size = int(TEST_WORLD_SIZE / 32)
+	terrainGen := generator.NewTerrainGenerator(cfg)
+	terrain := terrainGen.Generate()
+	return simulation.NewVegetationSystem(terrain)
+}
+
 // TestBasicSimulation проверяет базовую работу симуляции
 func TestBasicSimulation(t *testing.T) {
 	world := core.NewWorld(TEST_WORLD_SIZE, TEST_WORLD_SIZE, 42)
 	systemManager := core.NewSystemManager()
 
+	// Создаём минимальную vegetation систему для тестов
+	cfg := config.LoadDefaultConfig()
+	cfg.World.Size = int(TEST_WORLD_SIZE / 32)
+	terrainGen := generator.NewTerrainGenerator(cfg)
+	terrain := terrainGen.Generate()
+	vegetationSystem := simulation.NewVegetationSystem(terrain)
+
 	// Добавляем системы
-	systemManager.AddSystem(simulation.NewAnimalBehaviorSystem())
+	systemManager.AddSystem(vegetationSystem)
+	systemManager.AddSystem(simulation.NewAnimalBehaviorSystem(vegetationSystem))
 	systemManager.AddSystem(simulation.NewMovementSystem(TEST_WORLD_SIZE, TEST_WORLD_SIZE))
-	systemManager.AddSystem(simulation.NewFeedingSystem())
+	systemManager.AddSystem(simulation.NewFeedingSystem(vegetationSystem))
 
 	// Создаем несколько животных
 	rabbit1 := simulation.CreateRabbit(world, 100, 100)
@@ -66,9 +85,12 @@ func TestDeterministicSimulation(t *testing.T) {
 		world := core.NewWorld(TEST_WORLD_SIZE, TEST_WORLD_SIZE, seed)
 		systemManager := core.NewSystemManager()
 
-		systemManager.AddSystem(simulation.NewAnimalBehaviorSystem())
+		// Создаём vegetation систему для детерминированного теста
+		vegetationSystem := createTestVegetationSystem()
+		systemManager.AddSystem(vegetationSystem)
+		systemManager.AddSystem(simulation.NewAnimalBehaviorSystem(vegetationSystem))
 		systemManager.AddSystem(simulation.NewMovementSystem(TEST_WORLD_SIZE, TEST_WORLD_SIZE))
-		systemManager.AddSystem(simulation.NewFeedingSystem())
+		systemManager.AddSystem(simulation.NewFeedingSystem(vegetationSystem))
 
 		// Создаем 10 зайцев и 2 волков
 		rng := world.GetRNG()
@@ -122,7 +144,8 @@ func TestDeterministicSimulation(t *testing.T) {
 // TestHungerSystem проверяет систему голода
 func TestHungerSystem(t *testing.T) {
 	world := core.NewWorld(TEST_WORLD_SIZE, TEST_WORLD_SIZE, 42)
-	feedingSystem := simulation.NewFeedingSystem()
+	vegetationSystem := createTestVegetationSystem()
+	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 
 	// Создаем зайца с низким голодом
 	rabbit := simulation.CreateRabbit(world, 100, 100)
@@ -159,9 +182,12 @@ func TestAnimalInteraction(t *testing.T) {
 	world := core.NewWorld(TEST_WORLD_SIZE, TEST_WORLD_SIZE, 42)
 	systemManager := core.NewSystemManager()
 
-	systemManager.AddSystem(simulation.NewAnimalBehaviorSystem())
+	// Создаём vegetation систему для взаимодействия
+	vegetationSystem := createTestVegetationSystem()
+	systemManager.AddSystem(vegetationSystem)
+	systemManager.AddSystem(simulation.NewAnimalBehaviorSystem(vegetationSystem))
 	systemManager.AddSystem(simulation.NewMovementSystem(TEST_WORLD_SIZE, TEST_WORLD_SIZE))
-	systemManager.AddSystem(simulation.NewFeedingSystem())
+	systemManager.AddSystem(simulation.NewFeedingSystem(vegetationSystem))
 
 	// Создаем зайца и волка на дистанции видимости
 	rabbit := simulation.CreateRabbit(world, 200, 200)
@@ -260,7 +286,8 @@ func TestBoundaryConstraints(t *testing.T) {
 // TestStarvationDeath проверяет что животные умирают от голода
 func TestStarvationDeath(t *testing.T) {
 	world := core.NewWorld(TEST_WORLD_SIZE, TEST_WORLD_SIZE, 42)
-	feedingSystem := simulation.NewFeedingSystem()
+	vegetationSystem := createTestVegetationSystem()
+	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 
 	// Создаем зайца с минимальным здоровьем и голодом
 	rabbit := simulation.CreateRabbit(world, 100, 100)

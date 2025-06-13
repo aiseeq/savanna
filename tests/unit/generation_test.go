@@ -103,12 +103,9 @@ func TestPopulationGeneration(t *testing.T) {
 	terrainGen := generator.NewTerrainGenerator(cfg)
 	terrain := terrainGen.Generate()
 
-	// Создаём мир
-	world := core.NewWorld(float32(cfg.World.Size*32), float32(cfg.World.Size*32), cfg.World.Seed)
-
 	// Генерируем популяцию
 	popGen := generator.NewPopulationGenerator(cfg, terrain)
-	placements := popGen.Generate(world)
+	placements := popGen.Generate()
 
 	// Проверяем количество животных
 	rabbits := 0
@@ -150,12 +147,9 @@ func TestAnimalPlacementValidation(t *testing.T) {
 	terrainGen := generator.NewTerrainGenerator(cfg)
 	terrain := terrainGen.Generate()
 
-	// Создаём мир
-	world := core.NewWorld(float32(cfg.World.Size*32), float32(cfg.World.Size*32), cfg.World.Seed)
-
 	// Генерируем популяцию
 	popGen := generator.NewPopulationGenerator(cfg, terrain)
-	placements := popGen.Generate(world)
+	placements := popGen.Generate()
 
 	// Проверяем что все животные на проходимых тайлах
 	for _, placement := range placements {
@@ -181,12 +175,9 @@ func TestWolfMinimumDistance(t *testing.T) {
 	terrainGen := generator.NewTerrainGenerator(cfg)
 	terrain := terrainGen.Generate()
 
-	// Создаём мир
-	world := core.NewWorld(float32(cfg.World.Size*32), float32(cfg.World.Size*32), cfg.World.Seed)
-
 	// Генерируем популяцию
 	popGen := generator.NewPopulationGenerator(cfg, terrain)
-	placements := popGen.Generate(world)
+	placements := popGen.Generate()
 
 	// Находим всех волков
 	var wolfPlacements []generator.AnimalPlacement

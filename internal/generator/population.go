@@ -6,7 +6,6 @@ import (
 
 	"github.com/aiseeq/savanna/config"
 	"github.com/aiseeq/savanna/internal/core"
-	"github.com/aiseeq/savanna/internal/simulation"
 )
 
 // PopulationGenerator генерирует размещение животных на карте
@@ -18,9 +17,8 @@ type PopulationGenerator struct {
 
 // AnimalPlacement содержит информацию о размещённом животном
 type AnimalPlacement struct {
-	EntityID core.EntityID
-	Type     core.AnimalType
-	X, Y     float32
+	Type core.AnimalType
+	X, Y float32
 }
 
 // NewPopulationGenerator создаёт новый генератор популяций
@@ -37,23 +35,23 @@ func NewPopulationGenerator(cfg *config.Config, terrain *Terrain) *PopulationGen
 	}
 }
 
-// Generate размещает животных на карте согласно конфигурации
-func (pg *PopulationGenerator) Generate(world *core.World) []AnimalPlacement {
+// Generate генерирует позиции для размещения животных согласно конфигурации
+func (pg *PopulationGenerator) Generate() []AnimalPlacement {
 	var placements []AnimalPlacement
 
 	// Размещаем зайцев группами
-	rabbitPlacements := pg.placeRabbits(world)
+	rabbitPlacements := pg.placeRabbits()
 	placements = append(placements, rabbitPlacements...)
 
 	// Размещаем волков поодиночке
-	wolfPlacements := pg.placeWolves(world)
+	wolfPlacements := pg.placeWolves()
 	placements = append(placements, wolfPlacements...)
 
 	return placements
 }
 
 // placeRabbits размещает зайцев группами по 2-4 особи
-func (pg *PopulationGenerator) placeRabbits(world *core.World) []AnimalPlacement {
+func (pg *PopulationGenerator) placeRabbits() []AnimalPlacement {
 	var placements []AnimalPlacement
 
 	totalRabbits := pg.config.Population.Rabbits
@@ -93,13 +91,11 @@ func (pg *PopulationGenerator) placeRabbits(world *core.World) []AnimalPlacement
 				y = groupCenterY
 			}
 
-			// Создаём зайца
-			rabbit := simulation.CreateRabbit(world, x, y)
+			// Добавляем позицию зайца
 			placements = append(placements, AnimalPlacement{
-				EntityID: rabbit,
-				Type:     core.TypeRabbit,
-				X:        x,
-				Y:        y,
+				Type: core.TypeRabbit,
+				X:    x,
+				Y:    y,
 			})
 			placedRabbits++
 		}
@@ -109,7 +105,7 @@ func (pg *PopulationGenerator) placeRabbits(world *core.World) []AnimalPlacement
 }
 
 // placeWolves размещает волков поодиночке с минимальной дистанцией
-func (pg *PopulationGenerator) placeWolves(world *core.World) []AnimalPlacement {
+func (pg *PopulationGenerator) placeWolves() []AnimalPlacement {
 	var placements []AnimalPlacement
 	var wolfPositions []struct{ x, y float32 }
 
@@ -123,13 +119,11 @@ func (pg *PopulationGenerator) placeWolves(world *core.World) []AnimalPlacement 
 			break // Не удалось найти подходящее место
 		}
 
-		// Создаём волка
-		wolf := simulation.CreateWolf(world, x, y)
+		// Добавляем позицию волка
 		placements = append(placements, AnimalPlacement{
-			EntityID: wolf,
-			Type:     core.TypeWolf,
-			X:        x,
-			Y:        y,
+			Type: core.TypeWolf,
+			X:    x,
+			Y:    y,
 		})
 
 		// Запоминаем позицию волка

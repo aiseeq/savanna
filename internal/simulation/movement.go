@@ -1,6 +1,8 @@
 package simulation
 
 import (
+	"math"
+
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/physics"
 )
@@ -63,8 +65,15 @@ func (ms *MovementSystem) constrainToBounds(world *core.World) {
 			if world.HasComponent(entity, core.MaskVelocity) {
 				vel, _ := world.GetVelocity(entity)
 				if vel.X < 0 {
-					vel.X = -vel.X * 0.8 // Немного гасим скорость
-					world.SetVelocity(entity, vel)
+					// Не отражаем скорость если животное пытается остановиться
+					if math.Abs(float64(vel.X)) > 1.0 {
+						vel.X = -vel.X * 0.8 // Немного гасим скорость
+						world.SetVelocity(entity, vel)
+					} else {
+						// Животное медленно двигается - просто останавливаем его
+						vel.X = 0
+						world.SetVelocity(entity, vel)
+					}
 				}
 			}
 		}
@@ -77,8 +86,15 @@ func (ms *MovementSystem) constrainToBounds(world *core.World) {
 			if world.HasComponent(entity, core.MaskVelocity) {
 				vel, _ := world.GetVelocity(entity)
 				if vel.X > 0 {
-					vel.X = -vel.X * 0.8
-					world.SetVelocity(entity, vel)
+					// Не отражаем скорость если животное пытается остановиться (скорость < 5)
+					if math.Abs(float64(vel.X)) > 1.0 {
+						vel.X = -vel.X * 0.8
+						world.SetVelocity(entity, vel)
+					} else {
+						// Животное медленно двигается или останавливается - просто останавливаем его
+						vel.X = 0
+						world.SetVelocity(entity, vel)
+					}
 				}
 			}
 		}
@@ -91,8 +107,13 @@ func (ms *MovementSystem) constrainToBounds(world *core.World) {
 			if world.HasComponent(entity, core.MaskVelocity) {
 				vel, _ := world.GetVelocity(entity)
 				if vel.Y < 0 {
-					vel.Y = -vel.Y * 0.8
-					world.SetVelocity(entity, vel)
+					if math.Abs(float64(vel.Y)) > 1.0 {
+						vel.Y = -vel.Y * 0.8
+						world.SetVelocity(entity, vel)
+					} else {
+						vel.Y = 0
+						world.SetVelocity(entity, vel)
+					}
 				}
 			}
 		}
@@ -105,8 +126,13 @@ func (ms *MovementSystem) constrainToBounds(world *core.World) {
 			if world.HasComponent(entity, core.MaskVelocity) {
 				vel, _ := world.GetVelocity(entity)
 				if vel.Y > 0 {
-					vel.Y = -vel.Y * 0.8
-					world.SetVelocity(entity, vel)
+					if math.Abs(float64(vel.Y)) > 1.0 {
+						vel.Y = -vel.Y * 0.8
+						world.SetVelocity(entity, vel)
+					} else {
+						vel.Y = 0
+						world.SetVelocity(entity, vel)
+					}
 				}
 			}
 		}
@@ -154,35 +180,89 @@ func (ms *MovementSystem) handleCollisions(world *core.World) {
 
 // separateEntities мягко расталкивает две сущности при коллизии
 func (ms *MovementSystem) separateEntities(world *core.World, entity1, entity2 core.EntityID, collision physics.CollisionDetails) {
-	// Разделяем сущности пополам
-	separationForce := collision.Penetration * 0.5
+	// Проверяем, является ли это коллизией волк-заяц
+	isWolfRabbitCollision := false
+	if world.HasComponent(entity1, core.MaskAnimalType) && world.HasComponent(entity2, core.MaskAnimalType) {
+		animal1, _ := world.GetAnimalType(entity1)
+		animal2, _ := world.GetAnimalType(entity2)
 
-	pos1, _ := world.GetPosition(entity1)
-	pos2, _ := world.GetPosition(entity2)
+		// Если это волк и заяц - не разделяем их (волк должен остаться рядом для атаки)
+		if (animal1 == core.TypeWolf && animal2 == core.TypeRabbit) ||
+			(animal1 == core.TypeRabbit && animal2 == core.TypeWolf) {
+			isWolfRabbitCollision = true
+		}
+	}
 
-	// Применяем разделение
-	pos1.X += collision.Normal.X * separationForce
-	pos1.Y += collision.Normal.Y * separationForce
+	// Разделяем позиции только если это не волк-заяц коллизия
+	if !isWolfRabbitCollision {
+		// Разделяем сущности пополам
+		separationForce := collision.Penetration * 0.5
 
-	pos2.X -= collision.Normal.X * separationForce
-	pos2.Y -= collision.Normal.Y * separationForce
+		pos1, _ := world.GetPosition(entity1)
+		pos2, _ := world.GetPosition(entity2)
 
-	world.SetPosition(entity1, pos1)
-	world.SetPosition(entity2, pos2)
+		// Применяем разделение
+		pos1.X += collision.Normal.X * separationForce
+		pos1.Y += collision.Normal.Y * separationForce
 
-	// Если у сущностей есть скорости, корректируем их
+		pos2.X -= collision.Normal.X * separationForce
+		pos2.Y -= collision.Normal.Y * separationForce
+
+		world.SetPosition(entity1, pos1)
+		world.SetPosition(entity2, pos2)
+	}
+
+	// Мягкое расталкивание как в StarCraft 2
 	if world.HasComponent(entity1, core.MaskVelocity) && world.HasComponent(entity2, core.MaskVelocity) {
 		vel1, _ := world.GetVelocity(entity1)
 		vel2, _ := world.GetVelocity(entity2)
 
-		// Добавляем небольшое отталкивание
-		pushForce := float32(20.0) // единиц в секунду
+		// Проверяем есть ли волк-заяц коллизия (для охоты)
+		isWolfRabbitCollision := false
+		if world.HasComponent(entity1, core.MaskAnimalType) && world.HasComponent(entity2, core.MaskAnimalType) {
+			animal1, _ := world.GetAnimalType(entity1)
+			animal2, _ := world.GetAnimalType(entity2)
 
-		vel1.X += collision.Normal.X * pushForce
-		vel1.Y += collision.Normal.Y * pushForce
+			if (animal1 == core.TypeWolf && animal2 == core.TypeRabbit) ||
+				(animal1 == core.TypeRabbit && animal2 == core.TypeWolf) {
+				isWolfRabbitCollision = true
+			}
+		}
 
-		vel2.X -= collision.Normal.X * pushForce
-		vel2.Y -= collision.Normal.Y * pushForce
+		// Для волк-заяц коллизий: только останавливаем движение
+		if isWolfRabbitCollision {
+			// Останавливаем оба объекта чтобы волк мог атаковать
+			vel1.X *= 0.5
+			vel1.Y *= 0.5
+			vel2.X *= 0.5
+			vel2.Y *= 0.5
+		} else {
+			// Для остальных коллизий: мягкое расталкивание как в SC2
+			// Сначала останавливаем движение в сторону коллизии
+			dotProduct1 := vel1.X*collision.Normal.X + vel1.Y*collision.Normal.Y
+			dotProduct2 := vel2.X*(-collision.Normal.X) + vel2.Y*(-collision.Normal.Y)
+
+			if dotProduct1 > 0 { // entity1 движется в сторону коллизии
+				vel1.X -= collision.Normal.X * dotProduct1
+				vel1.Y -= collision.Normal.Y * dotProduct1
+			}
+
+			if dotProduct2 > 0 { // entity2 движется в сторону коллизии
+				vel2.X += collision.Normal.X * dotProduct2
+				vel2.Y += collision.Normal.Y * dotProduct2
+			}
+
+			// Добавляем очень мягкое расталкивание только если пересекаются
+			if collision.Penetration > 0.5 {
+				softPushForce := float32(3.0) // Очень мягкое расталкивание
+
+				vel1.X += collision.Normal.X * softPushForce
+				vel1.Y += collision.Normal.Y * softPushForce
+
+				vel2.X -= collision.Normal.X * softPushForce
+				vel2.Y -= collision.Normal.Y * softPushForce
+			}
+		}
 
 		world.SetVelocity(entity1, vel1)
 		world.SetVelocity(entity2, vel2)

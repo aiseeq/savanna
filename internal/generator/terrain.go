@@ -315,3 +315,19 @@ func (t *Terrain) GetStats() map[string]interface{} {
 
 	return stats
 }
+
+// GetSize возвращает размер мира в тайлах (для совместимости с TerrainInterface)
+func (t *Terrain) GetSize() int {
+	return t.Size
+}
+
+// TerrainInterface интерфейс для доступа к ландшафту
+type TerrainInterface interface {
+	GetTileType(x, y int) TileType
+	GetGrassAmount(x, y int) float32
+	SetGrassAmount(x, y int, amount float32)
+	GetSize() int
+}
+
+// Проверяем что Terrain реализует TerrainInterface
+var _ TerrainInterface = (*Terrain)(nil)
