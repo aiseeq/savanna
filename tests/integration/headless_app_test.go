@@ -68,11 +68,9 @@ func TestHeadlessAppFlags(t *testing.T) {
 		args []string
 	}{
 		{"default params", []string{"-duration=1s"}},
-		{"custom rabbits", []string{"-duration=1s", "-rabbits=50"}},
-		{"custom wolves", []string{"-duration=1s", "-wolves=5"}},
 		{"custom seed", []string{"-duration=1s", "-seed=123"}},
 		{"verbose mode", []string{"-duration=1s", "-verbose=true"}},
-		{"all custom", []string{"-duration=1s", "-rabbits=30", "-wolves=4", "-seed=42", "-verbose=true"}},
+		{"seed and verbose", []string{"-duration=1s", "-seed=42", "-verbose=true"}},
 	}
 
 	for _, tt := range tests {

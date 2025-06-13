@@ -21,8 +21,8 @@ const (
 	WOLF_MAX_HEALTH   = 100
 
 	// Дальность видения
-	VISION_RANGE_RABBIT = 50.0
-	VISION_RANGE_WOLF   = 100.0
+	VISION_RANGE_RABBIT = 100.0 // Увеличено в 2 раза
+	VISION_RANGE_WOLF   = 200.0 // Увеличено в 2 раза
 
 	// Параметры поведения
 	WOLF_HUNGER_THRESHOLD = 60.0 // Волк начинает охотиться если голод < 60%
@@ -34,12 +34,15 @@ const (
 type AnimalBehaviorSystem struct {
 	// Время до смены направления для каждого животного
 	directionChangeTimers map[core.EntityID]float32
+	// Ссылка на систему растительности для поиска травы
+	vegetation *VegetationSystem
 }
 
 // NewAnimalBehaviorSystem создаёт новую систему поведения животных
-func NewAnimalBehaviorSystem() *AnimalBehaviorSystem {
+func NewAnimalBehaviorSystem(vegetation *VegetationSystem) *AnimalBehaviorSystem {
 	return &AnimalBehaviorSystem{
 		directionChangeTimers: make(map[core.EntityID]float32),
+		vegetation:            vegetation,
 	}
 }
 
@@ -65,50 +68,62 @@ func (abs *AnimalBehaviorSystem) updateDirectionTimers(deltaTime float32) {
 	}
 }
 
-// updateRabbitBehavior обновляет поведение зайцев
+// updateRabbitBehavior обновляет поведение зайцев с новыми приоритетами
 func (abs *AnimalBehaviorSystem) updateRabbitBehavior(world *core.World, deltaTime float32) {
 	rabbits := world.QueryByType(core.TypeRabbit)
 
 	for _, rabbit := range rabbits {
-		if !world.HasComponents(rabbit, core.MaskPosition|core.MaskVelocity|core.MaskSpeed) {
+		if !world.HasComponents(rabbit, core.MaskPosition|core.MaskVelocity|core.MaskSpeed|core.MaskHunger) {
 			continue
 		}
 
 		pos, _ := world.GetPosition(rabbit)
 		speed, _ := world.GetSpeed(rabbit)
-
-		// Ищем ближайшего волка
-		nearestWolf, foundWolf := world.FindNearestByType(pos.X, pos.Y, VISION_RANGE_RABBIT, core.TypeWolf)
+		hunger, _ := world.GetHunger(rabbit)
 
 		var targetVel core.Velocity
 
+		// ПРИОРИТЕТ 1: Если видит волка - убегать (всегда)
+		nearestWolf, foundWolf := world.FindNearestByType(pos.X, pos.Y, VISION_RANGE_RABBIT, core.TypeWolf)
 		if foundWolf {
-			// ПАНИКА! Убегаем от волка
 			wolfPos, _ := world.GetPosition(nearestWolf)
-
-			// Направление от волка к зайцу
 			escapeDir := physics.Vec2{X: pos.X - wolfPos.X, Y: pos.Y - wolfPos.Y}
 			escapeDir = escapeDir.Normalize()
 
-			// Максимальная скорость убегания
 			targetVel = core.Velocity{
 				X: escapeDir.X * speed.Current,
 				Y: escapeDir.Y * speed.Current,
 			}
-
-			// Сбрасываем таймер - в панике не меняем направление
 			abs.directionChangeTimers[rabbit] = RANDOM_WALK_MIN_TIME
 
+		} else if hunger.Value < 70.0 && abs.vegetation != nil {
+			// ПРИОРИТЕТ 2: Если голоден - идти к ближайшей траве
+			grassX, grassY, foundGrass := abs.vegetation.FindNearestGrass(pos.X, pos.Y, VISION_RANGE_RABBIT, 10.0)
+			if foundGrass {
+				// Идём к траве
+				grassDir := physics.Vec2{X: grassX - pos.X, Y: grassY - pos.Y}
+				grassDir = grassDir.Normalize()
+
+				targetVel = core.Velocity{
+					X: grassDir.X * speed.Current * 0.8, // Немного медленнее при поиске еды
+					Y: grassDir.Y * speed.Current * 0.8,
+				}
+				abs.directionChangeTimers[rabbit] = RANDOM_WALK_MIN_TIME
+			} else {
+				// Трава не найдена - продолжаем случайное движение в поисках
+				targetVel = abs.getRandomWalkVelocity(world, rabbit, speed.Current*0.7)
+			}
+
 		} else {
-			// Спокойное состояние - случайное блуждание
-			targetVel = abs.getRandomWalkVelocity(world, rabbit, speed.Current*0.5) // Медленнее когда спокоен
+			// ПРИОРИТЕТ 3: Если сыт - спокойное движение или отдых
+			targetVel = abs.getRandomWalkVelocity(world, rabbit, speed.Current*0.3) // Медленно когда сыт
 		}
 
 		world.SetVelocity(rabbit, targetVel)
 	}
 }
 
-// updateWolfBehavior обновляет поведение волков
+// updateWolfBehavior обновляет поведение волков с приоритетами охоты
 func (abs *AnimalBehaviorSystem) updateWolfBehavior(world *core.World, deltaTime float32) {
 	wolves := world.QueryByType(core.TypeWolf)
 
@@ -131,14 +146,30 @@ func (abs *AnimalBehaviorSystem) updateWolfBehavior(world *core.World, deltaTime
 				// Преследуем зайца
 				rabbitPos, _ := world.GetPosition(nearestRabbit)
 
+				// Вычисляем расстояние до зайца
+				distance := physics.Vec2{X: rabbitPos.X - pos.X, Y: rabbitPos.Y - pos.Y}.Length()
+
 				// Направление к зайцу
 				huntDir := physics.Vec2{X: rabbitPos.X - pos.X, Y: rabbitPos.Y - pos.Y}
 				huntDir = huntDir.Normalize()
 
-				// Максимальная скорость охоты
+				// Простое и надежное правило против перепрыгивания
+				huntSpeed := speed.Current
+
+				if distance <= 12.0 { // WOLF_ATTACK_DISTANCE
+					rabbitSpeed, hasRabbitSpeed := world.GetSpeed(nearestRabbit)
+					if hasRabbitSpeed && rabbitSpeed.Current <= 1.0 {
+						// Цель почти неподвижна - полная остановка
+						huntSpeed = 0
+					} else if hasRabbitSpeed && speed.Current > rabbitSpeed.Current {
+						// Обычное правило - снижаем до скорости цели
+						huntSpeed = rabbitSpeed.Current
+					}
+				}
+
 				targetVel = core.Velocity{
-					X: huntDir.X * speed.Current,
-					Y: huntDir.Y * speed.Current,
+					X: huntDir.X * huntSpeed,
+					Y: huntDir.Y * huntSpeed,
 				}
 
 				// Сбрасываем таймер - во время охоты не блуждаем
@@ -225,7 +256,7 @@ func CreateWolf(world *core.World, x, y float32) core.EntityID {
 	world.AddPosition(entity, core.Position{X: x, Y: y})
 	world.AddVelocity(entity, core.Velocity{X: 0, Y: 0})
 	world.AddHealth(entity, core.Health{Current: WOLF_MAX_HEALTH, Max: WOLF_MAX_HEALTH})
-	world.AddHunger(entity, core.Hunger{Value: 60.0}) // Начинаем немного голодным
+	world.AddHunger(entity, core.Hunger{Value: 50.0}) // Начинаем голодным для охоты
 	world.AddAge(entity, core.Age{Seconds: 0})
 	world.AddAnimalType(entity, core.TypeWolf)
 	world.AddSize(entity, core.Size{Radius: WOLF_RADIUS})

@@ -74,15 +74,31 @@ func main() {
 	world := core.NewWorld(worldSizePixels, worldSizePixels, cfg.World.Seed)
 	systemManager := core.NewSystemManager()
 
+	// Создаём системы с зависимостями
+	vegetationSystem := simulation.NewVegetationSystem(terrain)
+	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
+	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
+
 	// Добавляем системы в правильном порядке
-	systemManager.AddSystem(simulation.NewAnimalBehaviorSystem())
+	systemManager.AddSystem(vegetationSystem)
+	systemManager.AddSystem(animalBehaviorSystem)
 	systemManager.AddSystem(simulation.NewMovementSystem(worldSizePixels, worldSizePixels))
-	systemManager.AddSystem(simulation.NewFeedingSystem())
+	systemManager.AddSystem(feedingSystem)
 
 	// Размещаем животных с помощью генератора
 	fmt.Println("Размещение животных...")
 	popGen := generator.NewPopulationGenerator(cfg, terrain)
-	placements := popGen.Generate(world)
+	placements := popGen.Generate()
+
+	// Создаём животных на основе сгенерированных позиций
+	for _, placement := range placements {
+		switch placement.Type {
+		case core.TypeRabbit:
+			simulation.CreateRabbit(world, placement.X, placement.Y)
+		case core.TypeWolf:
+			simulation.CreateWolf(world, placement.X, placement.Y)
+		}
+	}
 
 	// Проверяем корректность размещения
 	errors := popGen.ValidatePlacement(placements)

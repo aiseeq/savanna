@@ -58,4 +58,4 @@ config/local.yml
 
 # Build artifacts
 build/
-dist/
+dist/cmd/game/DejaVuSansMono.ttf

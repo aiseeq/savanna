@@ -10,9 +10,15 @@ build: ## Собрать обе версии
 	go build -o bin/savanna-headless ./cmd/headless
 	@echo "Сборка завершена"
 
+build-windows: ## Собрать для Windows с отключенным DPI awareness
+	@echo "Сборка для Windows с отключенным DPI awareness..."
+	cd cmd/game && x86_64-w64-mingw32-windres resource.rc -o resource.syso 2>/dev/null || echo "windres не найден, пропускаем manifest"
+	GOOS=windows GOARCH=amd64 go build -o bin/savanna-game.exe ./cmd/game
+	@echo "Windows сборка завершена"
+
 run: build ## Запустить GUI версию
-	@echo "Запуск GUI версии (с оптимизациями для WSL)..."
-	MIT_SHM=0 LIBGL_ALWAYS_SOFTWARE=1 ./bin/savanna-game
+	@echo "Запуск GUI версии (с оптимизациями для WSL и отключением DPI scaling)..."
+	DISPLAY=:0 MIT_SHM=0 LIBGL_ALWAYS_SOFTWARE=1 GDK_SCALE=1 GDK_DPI_SCALE=1 QT_AUTO_SCREEN_SCALE_FACTOR=0 QT_SCALE_FACTOR=1 QT_SCREEN_SCALE_FACTORS=1 XCURSOR_SIZE=16 EBITEN_GRAPHICS_LIBRARY=opengl XFORCEDPI=96 ./bin/savanna-game
 
 run-headless: build ## Запустить headless версию
 	./bin/savanna-headless
