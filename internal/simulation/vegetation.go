@@ -7,9 +7,14 @@ import (
 
 // Константы системы растительности
 const (
-	GRASS_GROWTH_RATE = 0.5   // Рост травы за один Update (при 60 TPS = 30 за секунду)
-	GRASS_MAX_AMOUNT  = 100.0 // Максимальное количество травы на тайле
-	TILE_SIZE         = 32    // Размер тайла в пикселях
+	// Базовые параметры роста (выводятся от логики игры)
+	TileSizeVegetation = 32    // Размер тайла в пикселях
+	GrassMaxAmount     = 100.0 // Максимальное количество травы на тайле
+	GrassGrowthRate    = 0.5   // Рост травы за секунду (0.5 единиц/сек)
+
+	// Множители скорости роста для разных типов почвы
+	WetlandGrowthMultiplier = 1.5 // Влажная земля - трава растёт в 1.5 раза быстрее
+	NearWaterGrowthPenalty  = 0.3 // Замедленный рост рядом с водой (30% от нормального)
 )
 
 // VegetationSystem управляет ростом и распределением травы
@@ -60,27 +65,27 @@ func (vs *VegetationSystem) updateGrassTile(x, y int, deltaTime float32) {
 	}
 
 	currentGrass := vs.terrain.GetGrassAmount(x, y)
-	if currentGrass >= GRASS_MAX_AMOUNT {
+	if currentGrass >= GrassMaxAmount {
 		return // Уже максимум
 	}
 
 	// Вычисляем скорость роста
-	growthRate := GRASS_GROWTH_RATE * deltaTime
+	growthRate := GrassGrowthRate * deltaTime
 
-	// На влажной земле трава растёт в 1.5 раза быстрее
+	// На влажной земле трава растёт быстрее
 	if tileType == generator.TileWetland {
-		growthRate *= 1.5
+		growthRate *= WetlandGrowthMultiplier
 	}
 
 	// Не растёт рядом с водой (кроме влажной земли)
 	if tileType == generator.TileGrass && vs.isNearWater(x, y) {
-		growthRate *= 0.3 // Замедленный рост рядом с водой
+		growthRate *= NearWaterGrowthPenalty
 	}
 
 	// Увеличиваем количество травы
 	newAmount := currentGrass + growthRate
-	if newAmount > GRASS_MAX_AMOUNT {
-		newAmount = GRASS_MAX_AMOUNT
+	if newAmount > GrassMaxAmount {
+		newAmount = GrassMaxAmount
 	}
 
 	vs.terrain.SetGrassAmount(x, y, newAmount)
@@ -110,8 +115,8 @@ func (vs *VegetationSystem) isNearWater(x, y int) bool {
 
 // GetGrassAt возвращает количество травы в указанной позиции в пикселях
 func (vs *VegetationSystem) GetGrassAt(worldX, worldY float32) float32 {
-	tileX := int(worldX / TILE_SIZE)
-	tileY := int(worldY / TILE_SIZE)
+	tileX := int(worldX / TileSizeVegetation)
+	tileY := int(worldY / TileSizeVegetation)
 
 	if tileX < 0 || tileX >= vs.worldSize || tileY < 0 || tileY >= vs.worldSize {
 		return 0
@@ -122,8 +127,8 @@ func (vs *VegetationSystem) GetGrassAt(worldX, worldY float32) float32 {
 
 // ConsumeGrassAt поедает траву в указанной позиции и возвращает сколько было съедено
 func (vs *VegetationSystem) ConsumeGrassAt(worldX, worldY, amount float32) float32 {
-	tileX := int(worldX / TILE_SIZE)
-	tileY := int(worldY / TILE_SIZE)
+	tileX := int(worldX / TileSizeVegetation)
+	tileY := int(worldY / TileSizeVegetation)
 
 	if tileX < 0 || tileX >= vs.worldSize || tileY < 0 || tileY >= vs.worldSize {
 		return 0
@@ -149,8 +154,8 @@ func (vs *VegetationSystem) ConsumeGrassAt(worldX, worldY, amount float32) float
 
 // CanGrassGrowAt проверяет может ли трава расти в указанной позиции
 func (vs *VegetationSystem) CanGrassGrowAt(worldX, worldY float32) bool {
-	tileX := int(worldX / TILE_SIZE)
-	tileY := int(worldY / TILE_SIZE)
+	tileX := int(worldX / TileSizeVegetation)
+	tileY := int(worldY / TileSizeVegetation)
 
 	if tileX < 0 || tileX >= vs.worldSize || tileY < 0 || tileY >= vs.worldSize {
 		return false
@@ -161,55 +166,37 @@ func (vs *VegetationSystem) CanGrassGrowAt(worldX, worldY float32) bool {
 }
 
 // FindNearestGrass ищет ближайший тайл с травой (количество > minAmount)
-func (vs *VegetationSystem) FindNearestGrass(worldX, worldY, searchRadius, minAmount float32) (float32, float32, bool) {
-	centerTileX := int(worldX / TILE_SIZE)
-	centerTileY := int(worldY / TILE_SIZE)
-	searchRadiusTiles := int(searchRadius / TILE_SIZE)
+// Рефакторинг: разбито на вспомогательные функции для снижения когнитивной сложности
+func (vs *VegetationSystem) FindNearestGrass(worldX, worldY, searchRadius, minAmount float32) (grassX, grassY float32, found bool) {
+	centerTileX := int(worldX / TileSizeVegetation)
+	centerTileY := int(worldY / TileSizeVegetation)
+	searchRadiusTiles := int(searchRadius / TileSizeVegetation)
 
-	bestDistance := float32(1e9)
+	bestDistance := float32(1e9) // Большое число для поиска минимума
 	var bestX, bestY float32
-	found := false
+	found = false
 
-	// Ищем по спирали от центра
-	for radius := 1; radius <= searchRadiusTiles; radius++ {
-		for dy := -radius; dy <= radius; dy++ {
-			for dx := -radius; dx <= radius; dx++ {
-				// Проверяем только границу текущего радиуса для оптимизации
-				if abs(dx) != radius && abs(dy) != radius {
-					continue
-				}
+	// Ищем по спирали от центра, включая сам центральный тайл (radius = 0)
+	for radius := 0; radius <= searchRadiusTiles; radius++ {
+		tiles := vs.getSpiralRingTiles(centerTileX, centerTileY, radius)
 
-				tileX := centerTileX + dx
-				tileY := centerTileY + dy
+		for _, tile := range tiles {
+			if !vs.isValidTile(tile.x, tile.y) {
+				continue
+			}
 
-				if tileX < 0 || tileX >= vs.worldSize || tileY < 0 || tileY >= vs.worldSize {
-					continue
-				}
+			if !vs.checkGrassTile(tile.x, tile.y, minAmount) {
+				continue
+			}
 
-				grassAmount := vs.terrain.GetGrassAmount(tileX, tileY)
-				if grassAmount < minAmount {
-					continue
-				}
+			grassWorldX, grassWorldY := vs.tileToWorldCenter(tile.x, tile.y)
+			distanceSquared := vs.calculateDistanceSquared(grassWorldX, grassWorldY, worldX, worldY)
 
-				// Проверяем что тип тайла подходит для роста травы
-				if !vs.CanGrassGrowAt(float32(tileX*TILE_SIZE), float32(tileY*TILE_SIZE)) {
-					continue
-				}
-
-				// Вычисляем расстояние до центра тайла
-				grassWorldX := float32(tileX*TILE_SIZE + TILE_SIZE/2)
-				grassWorldY := float32(tileY*TILE_SIZE + TILE_SIZE/2)
-
-				dx_world := grassWorldX - worldX
-				dy_world := grassWorldY - worldY
-				distance := dx_world*dx_world + dy_world*dy_world // Квадрат расстояния для скорости
-
-				if distance < bestDistance {
-					bestDistance = distance
-					bestX = grassWorldX
-					bestY = grassWorldY
-					found = true
-				}
+			if distanceSquared < bestDistance {
+				bestDistance = distanceSquared
+				bestX = grassWorldX
+				bestY = grassWorldY
+				found = true
 			}
 		}
 
@@ -222,44 +209,125 @@ func (vs *VegetationSystem) FindNearestGrass(worldX, worldY, searchRadius, minAm
 	return 0, 0, false
 }
 
-// GetStats возвращает статистику растительности
+// GetStats возвращает статистику растительности (рефакторинг: снижена когнитивная сложность)
 func (vs *VegetationSystem) GetStats() map[string]interface{} {
-	stats := make(map[string]interface{})
+	grassData := vs.collectGrassData()
+	totalTiles := vs.worldSize * vs.worldSize
 
-	totalGrass := float32(0)
-	tilesWithGrass := 0
-	maxGrass := float32(0)
-	minGrass := float32(1000)
+	return vs.buildStatsMap(grassData, totalTiles)
+}
+
+// grassStatistics содержит агрегированные данные о траве (helper-структура)
+type grassStatistics struct {
+	totalGrass     float32
+	tilesWithGrass int
+	maxGrass       float32
+	minGrass       float32
+}
+
+// collectGrassData собирает данные о траве по всем тайлам (helper-функция)
+func (vs *VegetationSystem) collectGrassData() grassStatistics {
+	data := grassStatistics{
+		totalGrass:     0,
+		tilesWithGrass: 0,
+		maxGrass:       0,
+		minGrass:       GrassMaxAmount,
+	}
 
 	for y := 0; y < vs.worldSize; y++ {
 		for x := 0; x < vs.worldSize; x++ {
-			if vs.CanGrassGrowAt(float32(x*TILE_SIZE), float32(y*TILE_SIZE)) {
-				grass := vs.terrain.GetGrassAmount(x, y)
-				totalGrass += grass
-
-				if grass > 0 {
-					tilesWithGrass++
-					if grass > maxGrass {
-						maxGrass = grass
-					}
-					if grass < minGrass {
-						minGrass = grass
-					}
-				}
-			}
+			vs.processTileGrassData(x, y, &data)
 		}
 	}
 
-	totalTiles := vs.worldSize * vs.worldSize
+	return data
+}
 
-	stats["total_grass"] = totalGrass
-	stats["average_grass"] = totalGrass / float32(totalTiles)
-	stats["tiles_with_grass"] = tilesWithGrass
-	stats["max_grass"] = maxGrass
-	stats["min_grass"] = minGrass
-	stats["grass_coverage"] = float32(tilesWithGrass) / float32(totalTiles) * 100
+// processTileGrassData обрабатывает данные одного тайла (helper-функция)
+func (vs *VegetationSystem) processTileGrassData(x, y int, data *grassStatistics) {
+	if !vs.CanGrassGrowAt(float32(x*TileSizeVegetation), float32(y*TileSizeVegetation)) {
+		return
+	}
+
+	grass := vs.terrain.GetGrassAmount(x, y)
+	data.totalGrass += grass
+
+	if grass > 0 {
+		data.tilesWithGrass++
+		if grass > data.maxGrass {
+			data.maxGrass = grass
+		}
+		if grass < data.minGrass {
+			data.minGrass = grass
+		}
+	}
+}
+
+// buildStatsMap создаёт карту статистики из собранных данных (helper-функция)
+func (vs *VegetationSystem) buildStatsMap(data grassStatistics, totalTiles int) map[string]interface{} {
+	stats := make(map[string]interface{})
+
+	stats["total_grass"] = data.totalGrass
+	stats["average_grass"] = data.totalGrass / float32(totalTiles)
+	stats["tiles_with_grass"] = data.tilesWithGrass
+	stats["max_grass"] = data.maxGrass
+	stats["min_grass"] = data.minGrass
+	stats["grass_coverage"] = float32(data.tilesWithGrass) / float32(totalTiles) * 100
 
 	return stats
+}
+
+// tileCoord представляет координаты тайла
+type tileCoord struct {
+	x, y int
+}
+
+// getSpiralRingTiles возвращает тайлы на границе кольца указанного радиуса
+func (vs *VegetationSystem) getSpiralRingTiles(centerX, centerY, radius int) []tileCoord {
+	tiles := make([]tileCoord, 0, radius*8)
+
+	for dy := -radius; dy <= radius; dy++ {
+		for dx := -radius; dx <= radius; dx++ {
+			// Проверяем только границу текущего радиуса для оптимизации
+			if abs(dx) != radius && abs(dy) != radius {
+				continue
+			}
+
+			tiles = append(tiles, tileCoord{x: centerX + dx, y: centerY + dy})
+		}
+	}
+
+	return tiles
+}
+
+// isValidTile проверяет находится ли тайл в границах мира
+func (vs *VegetationSystem) isValidTile(tileX, tileY int) bool {
+	return tileX >= 0 && tileX < vs.worldSize && tileY >= 0 && tileY < vs.worldSize
+}
+
+// checkGrassTile проверяет подходит ли тайл (достаточно травы и может расти)
+func (vs *VegetationSystem) checkGrassTile(tileX, tileY int, minAmount float32) bool {
+	grassAmount := vs.terrain.GetGrassAmount(tileX, tileY)
+	if grassAmount < minAmount {
+		return false
+	}
+
+	// Проверяем что тип тайла подходит для роста травы
+	return vs.CanGrassGrowAt(float32(tileX*TileSizeVegetation), float32(tileY*TileSizeVegetation))
+}
+
+// tileToWorldCenter конвертирует координаты тайла в мировые координаты центра тайла
+func (vs *VegetationSystem) tileToWorldCenter(tileX, tileY int) (worldX, worldY float32) {
+	worldX = float32(tileX*TileSizeVegetation + TileSizeVegetation/2)
+	worldY = float32(tileY*TileSizeVegetation + TileSizeVegetation/2)
+	return worldX, worldY
+}
+
+// calculateDistanceSquared вычисляет квадрат расстояния между двумя точками
+func (vs *VegetationSystem) calculateDistanceSquared(x1, y1, x2, y2 float32) float32 {
+	dx := x1 - x2
+	dy := y1 - y2
+	return dx*dx + dy*dy
 }
 
 // abs возвращает абсолютное значение integer

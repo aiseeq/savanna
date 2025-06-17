@@ -1,0 +1,165 @@
+# Конфигурация golangci-lint для проекта Savanna
+# Помогает находить проблемы кода, включая магические числа
+
+run:
+  timeout: 5m
+  issues-exit-code: 1
+  tests: true
+  build-tags: []
+  skip-dirs:
+    - vendor
+    - assets
+  skip-files: []
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters-settings:
+  # Проверка на магические числа (именно то что нам нужно!)
+  gomnd:
+    settings:
+      mnd:
+        # Проверять магические числа в:
+        checks: argument,case,condition,operation,return,assign
+        # Игнорировать стандартные значения
+        ignored-numbers: 0,1,2,3,100
+        # Игнорировать файлы
+        ignored-files: []
+        # Игнорировать функции
+        ignored-functions: make,len,cap,copy,append,math.*,time.*,strconv.*
+
+  # Длина строки
+  lll:
+    line-length: 120
+
+  # Сложность функций  
+  gocyclo:
+    min-complexity: 15
+
+  # Когнитивная сложность
+  gocognit:
+    min-complexity: 15
+
+  # Количество параметров функции
+  funlen:
+    lines: 100
+    statements: 50
+
+  # Дублирование кода
+  dupl:
+    threshold: 100
+
+  # Неиспользуемые параметры
+  unparam:
+    check-exported: false
+
+  # Проверка имен
+  revive:
+    min-confidence: 0
+    rules:
+      - name: var-naming
+      - name: package-comments
+      - name: function-result-limit
+        arguments: [3]
+      - name: argument-limit
+        arguments: [5]
+      - name: function-length
+        arguments: [50, 100]
+
+  # Настройки безопасности - отключаем crypto/rand для игровой логики
+  gosec:
+    excludes:
+      - G404  # Использование math/rand допустимо для игровой детерминированной логики
+
+  # Неэффективные регулярки
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - dupImport # https://github.com/go-critic/go-critic/issues/845
+      - ifElseChain
+      - octalLiteral
+      - whyNoLint
+      - wrapperFunc
+
+linters:
+  disable-all: true
+  enable:
+    # Обязательные базовые линтеры
+    - errcheck        # Проверяет необработанные ошибки
+    - gosimple        # Упрощение кода
+    - govet           # Стандартный vet
+    - ineffassign     # Неэффективные присваивания
+    - staticcheck     # Статический анализ
+    - typecheck       # Проверка типов
+    - unused          # Неиспользуемый код
+    
+    # Стиль и качество кода
+    - gofmt           # Форматирование
+    - goimports       # Импорты
+    - revive          # Замена golint
+    - gosec           # Безопасность
+    - gocritic        # Продвинутые проверки
+    
+    # САМЫЙ ВАЖНЫЙ для нашей задачи - поиск магических чисел!
+    - gomnd           # Magic numbers detector
+    
+    # Сложность и читаемость
+    - gocyclo         # Цикломатическая сложность
+    - gocognit        # Когнитивная сложность
+    - funlen          # Длина функций
+    - lll             # Длина строки
+    - dupl            # Дублирование кода
+    
+    # Производительность
+    - prealloc        # Предварительное выделение памяти
+    - unparam         # Неиспользуемые параметры
+    
+    # Мертвый код
+    - unused          # Неиспользуемый код (заменяет deadcode, varcheck, structcheck)
+
+issues:
+  # Исключить из проверок
+  exclude-rules:
+    # Исключить вендоров
+    - path: vendor/
+      linters:
+        - gomnd
+        
+    # Исключить тесты от некоторых проверок
+    - path: _test\.go
+      linters:
+        - gomnd
+        - funlen
+        - gocyclo
+        - dupl
+        
+    # Исключить main.go от проверки магических чисел (там могут быть флаги)
+    - path: cmd/.*/main\.go
+      linters:
+        - gomnd
+        
+    # Исключить константы из проверки магических чисел
+    - source: "const \\("
+      linters:
+        - gomnd
+
+  # Максимальное количество проблем (0 = все)
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  
+  # Новый код (с git)
+  new: false
+  
+  # Показывать весь путь к файлу
+  new-from-rev: ""
+  new-from-patch: ""
+  
+  # Исправляемые проблемы
+  fix: false

@@ -11,6 +11,7 @@ import (
 
 // TestHungerRate проверяет скорость голода без еды
 func TestHungerRate(t *testing.T) {
+	t.Parallel()
 	cfg := config.LoadDefaultConfig()
 	cfg.World.Size = 20
 

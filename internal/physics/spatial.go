@@ -4,6 +4,12 @@ import (
 	"math"
 )
 
+// Константы размеров
+const (
+	TileSize   = 32  // Размер тайла в пикселях
+	EdgeOffset = 0.1 // Небольшой отступ от границы мира для предотвращения выхода за пределы
+)
+
 // EntityID представляет уникальный идентификатор сущности
 type EntityID uint16
 
@@ -51,8 +57,8 @@ func NewSpatialGrid(worldWidth, worldHeight, cellSize float32) *SpatialGrid {
 // getCellIndex возвращает индекс ячейки для данной позиции
 func (sg *SpatialGrid) getCellIndex(x, y float32) int {
 	// Ограничиваем координаты границами мира
-	x = float32(math.Max(0, math.Min(float64(x), float64(sg.worldWidth-0.1))))
-	y = float32(math.Max(0, math.Min(float64(y), float64(sg.worldHeight-0.1))))
+	x = float32(math.Max(0, math.Min(float64(x), float64(sg.worldWidth-EdgeOffset))))
+	y = float32(math.Max(0, math.Min(float64(y), float64(sg.worldHeight-EdgeOffset))))
 
 	cellX := int(x / sg.cellSize)
 	cellY := int(y / sg.cellSize)
@@ -65,17 +71,17 @@ func (sg *SpatialGrid) getCellIndex(x, y float32) int {
 }
 
 // getCellCoords возвращает координаты ячейки для данной позиции
-func (sg *SpatialGrid) getCellCoords(x, y float32) (int, int) {
-	x = float32(math.Max(0, math.Min(float64(x), float64(sg.worldWidth-0.1))))
-	y = float32(math.Max(0, math.Min(float64(y), float64(sg.worldHeight-0.1))))
+func (sg *SpatialGrid) getCellCoords(x, y float32) (cellX, cellY int) {
+	x = float32(math.Max(0, math.Min(float64(x), float64(sg.worldWidth-EdgeOffset))))
+	y = float32(math.Max(0, math.Min(float64(y), float64(sg.worldHeight-EdgeOffset))))
 
-	cellX := int(x / sg.cellSize)
-	cellY := int(y / sg.cellSize)
+	cellX = int(x / sg.cellSize)
+	cellY = int(y / sg.cellSize)
 
 	cellX = int(math.Max(0, math.Min(float64(cellX), float64(sg.gridWidth-1))))
 	cellY = int(math.Max(0, math.Min(float64(cellY), float64(sg.gridHeight-1))))
 
-	return cellX, cellY
+	return
 }
 
 // Insert добавляет сущность в пространственную сетку
@@ -148,7 +154,7 @@ func (sg *SpatialGrid) Update(id EntityID, newPosition Vec2, newRadius float32) 
 	}
 }
 
-// QueryRange возвращает все сущности в указанной области
+// QueryRange возвращает все сущности в указанной области (рефакторинг: снижена когнитивная сложность)
 func (sg *SpatialGrid) QueryRange(minX, minY, maxX, maxY float32) []SpatialEntry {
 	result := make([]SpatialEntry, 0, 32)
 
@@ -156,22 +162,44 @@ func (sg *SpatialGrid) QueryRange(minX, minY, maxX, maxY float32) []SpatialEntry
 	startCellX, startCellY := sg.getCellCoords(minX, minY)
 	endCellX, endCellY := sg.getCellCoords(maxX, maxY)
 
+	query := RangeQuery{MinX: minX, MinY: minY, MaxX: maxX, MaxY: maxY}
 	for cellY := startCellY; cellY <= endCellY; cellY++ {
 		for cellX := startCellX; cellX <= endCellX; cellX++ {
-			cellIndex := cellY*sg.gridWidth + cellX
-			if cellIndex >= 0 && cellIndex < len(sg.cells) {
-				for _, entry := range sg.cells[cellIndex] {
-					// Проверяем что сущность действительно в диапазоне
-					if entry.Position.X >= minX && entry.Position.X <= maxX &&
-						entry.Position.Y >= minY && entry.Position.Y <= maxY {
-						result = append(result, entry)
-					}
-				}
-			}
+			sg.processGridCell(cellX, cellY, query, &result)
 		}
 	}
 
 	return result
+}
+
+// RangeQuery представляет параметры запроса по диапазону (устранение нарушения argument-limit)
+type RangeQuery struct {
+	MinX, MinY, MaxX, MaxY float32
+}
+
+// processGridCell обрабатывает одну ячейку сетки для QueryRange (helper-функция для снижения сложности)
+func (sg *SpatialGrid) processGridCell(cellX, cellY int, query RangeQuery, result *[]SpatialEntry) {
+	cellIndex := cellY*sg.gridWidth + cellX
+	if !sg.isValidCellIndex(cellIndex) {
+		return
+	}
+
+	for _, entry := range sg.cells[cellIndex] {
+		if sg.isEntryInRange(entry, query.MinX, query.MinY, query.MaxX, query.MaxY) {
+			*result = append(*result, entry)
+		}
+	}
+}
+
+// isValidCellIndex проверяет валидность индекса ячейки
+func (sg *SpatialGrid) isValidCellIndex(cellIndex int) bool {
+	return cellIndex >= 0 && cellIndex < len(sg.cells)
+}
+
+// isEntryInRange проверяет находится ли сущность в указанном диапазоне
+func (sg *SpatialGrid) isEntryInRange(entry SpatialEntry, minX, minY, maxX, maxY float32) bool {
+	return entry.Position.X >= minX && entry.Position.X <= maxX &&
+		entry.Position.Y >= minY && entry.Position.Y <= maxY
 }
 
 // QueryRadius возвращает все сущности в радиусе от указанной точки
@@ -256,11 +284,11 @@ func (sg *SpatialGrid) GetCellSize() float32 {
 }
 
 // GetWorldDimensions возвращает размеры мира
-func (sg *SpatialGrid) GetWorldDimensions() (float32, float32) {
+func (sg *SpatialGrid) GetWorldDimensions() (width, height float32) {
 	return sg.worldWidth, sg.worldHeight
 }
 
 // GetGridDimensions возвращает размеры сетки в ячейках
-func (sg *SpatialGrid) GetGridDimensions() (int, int) {
+func (sg *SpatialGrid) GetGridDimensions() (width, height int) {
 	return sg.gridWidth, sg.gridHeight
 }

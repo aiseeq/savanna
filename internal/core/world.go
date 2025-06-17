@@ -13,28 +13,44 @@ type World struct {
 	entities EntityManager
 
 	// Компоненты - индексируются по EntityID
-	positions  [MAX_ENTITIES]Position
-	velocities [MAX_ENTITIES]Velocity
-	healths    [MAX_ENTITIES]Health
-	hungers    [MAX_ENTITIES]Hunger
-	ages       [MAX_ENTITIES]Age
-	types      [MAX_ENTITIES]AnimalType
-	sizes      [MAX_ENTITIES]Size
-	speeds     [MAX_ENTITIES]Speed
+	positions     [MaxEntities]Position
+	velocities    [MaxEntities]Velocity
+	healths       [MaxEntities]Health
+	hungers       [MaxEntities]Hunger
+	ages          [MaxEntities]Age
+	types         [MaxEntities]AnimalType
+	sizes         [MaxEntities]Size
+	speeds        [MaxEntities]Speed
+	animations    [MaxEntities]Animation
+	damageFlashes [MaxEntities]DamageFlash
+	corpses       [MaxEntities]Corpse
+	carrions      [MaxEntities]Carrion
+	eatingStates  [MaxEntities]EatingState
+	attackStates  [MaxEntities]AttackState
+	behaviors     [MaxEntities]Behavior
+	animalConfigs [MaxEntities]AnimalConfig
 
 	// Битовые маски для быстрой проверки наличия компонентов
-	// Каждый uint64 хранит 64 бита, поэтому нужно MAX_ENTITIES/64 элементов
-	hasPosition [MAX_ENTITIES/64 + 1]uint64
-	hasVelocity [MAX_ENTITIES/64 + 1]uint64
-	hasHealth   [MAX_ENTITIES/64 + 1]uint64
-	hasHunger   [MAX_ENTITIES/64 + 1]uint64
-	hasAge      [MAX_ENTITIES/64 + 1]uint64
-	hasType     [MAX_ENTITIES/64 + 1]uint64
-	hasSize     [MAX_ENTITIES/64 + 1]uint64
-	hasSpeed    [MAX_ENTITIES/64 + 1]uint64
+	// Каждый uint64 хранит 64 бита, поэтому нужно MaxEntities/64 элементов
+	hasPosition     [MaxEntities/64 + 1]uint64
+	hasVelocity     [MaxEntities/64 + 1]uint64
+	hasHealth       [MaxEntities/64 + 1]uint64
+	hasHunger       [MaxEntities/64 + 1]uint64
+	hasAge          [MaxEntities/64 + 1]uint64
+	hasType         [MaxEntities/64 + 1]uint64
+	hasSize         [MaxEntities/64 + 1]uint64
+	hasSpeed        [MaxEntities/64 + 1]uint64
+	hasAnimation    [MaxEntities/64 + 1]uint64
+	hasDamageFlash  [MaxEntities/64 + 1]uint64
+	hasCorpse       [MaxEntities/64 + 1]uint64
+	hasCarrion      [MaxEntities/64 + 1]uint64
+	hasEatingState  [MaxEntities/64 + 1]uint64
+	hasAttackState  [MaxEntities/64 + 1]uint64
+	hasBehavior     [MaxEntities/64 + 1]uint64
+	hasAnimalConfig [MaxEntities/64 + 1]uint64
 
-	// Физическая система
-	spatialGrid *physics.SpatialGrid
+	// Пространственная система запросов (абстракция через интерфейс - соблюдает DIP)
+	spatialProvider SpatialQueryProvider
 
 	// Время симуляции
 	time      float32 // Общее время симуляции в секундах
@@ -56,16 +72,17 @@ type World struct {
 // NewWorld создаёт новый мир симуляции
 func NewWorld(worldWidth, worldHeight float32, seed int64) *World {
 	world := &World{
-		entities:       *NewEntityManager(),
-		spatialGrid:    physics.NewSpatialGrid(worldWidth, worldHeight, 32.0), // 32 пикселя на ячейку
-		time:           0,
-		deltaTime:      0,
-		timeScale:      1.0,
-		rng:            rand.New(rand.NewSource(seed)),
-		worldWidth:     worldWidth,
-		worldHeight:    worldHeight,
-		queryBuffer:    make([]EntityID, 0, 100),
-		entitiesBuffer: make([]EntityID, 0, MAX_ENTITIES),
+		entities: *NewEntityManager(),
+		// Используем адаптер для SpatialGrid (соблюдает DIP)
+		spatialProvider: NewSpatialGridAdapter(worldWidth, worldHeight),
+		time:            0,
+		deltaTime:       0,
+		timeScale:       1.0,
+		rng:             rand.New(rand.NewSource(seed)),
+		worldWidth:      worldWidth,
+		worldHeight:     worldHeight,
+		queryBuffer:     make([]EntityID, 0, 100),
+		entitiesBuffer:  make([]EntityID, 0, MaxEntities),
 	}
 
 	return world
@@ -112,7 +129,7 @@ func (w *World) DestroyEntity(entity EntityID) bool {
 
 	// Удаляем из пространственной сетки если есть позиция
 	if w.HasComponent(entity, MaskPosition) {
-		w.spatialGrid.Remove(physics.EntityID(entity))
+		w.spatialProvider.RemoveEntity(uint32(entity))
 	}
 
 	// Очищаем все компоненты
@@ -133,13 +150,18 @@ func (w *World) GetEntityCount() int {
 }
 
 // GetWorldDimensions возвращает размеры мира
-func (w *World) GetWorldDimensions() (float32, float32) {
+func (w *World) GetWorldDimensions() (width, height float32) {
 	return w.worldWidth, w.worldHeight
 }
 
 // GetSpatialGrid возвращает пространственную сетку для прямого доступа
+// DEPRECATED: нарушает DIP, будет удалена в будущем
 func (w *World) GetSpatialGrid() *physics.SpatialGrid {
-	return w.spatialGrid
+	// Приведение к конкретному типу через адаптер
+	if adapter, ok := w.spatialProvider.(*SpatialGridAdapter); ok {
+		return adapter.grid
+	}
+	return nil
 }
 
 // GetRNG возвращает генератор случайных чисел
@@ -150,29 +172,36 @@ func (w *World) GetRNG() *rand.Rand {
 // Clear очищает весь мир (для тестов и перезапуска)
 func (w *World) Clear() {
 	w.entities.Clear()
-	w.spatialGrid.Clear()
+	w.spatialProvider.Clear()
 	w.time = 0
 	w.deltaTime = 0
 
-	// Очищаем все битовые маски
-	for i := range w.hasPosition {
-		w.hasPosition[i] = 0
-		w.hasVelocity[i] = 0
-		w.hasHealth[i] = 0
-		w.hasHunger[i] = 0
-		w.hasAge[i] = 0
-		w.hasType[i] = 0
-		w.hasSize[i] = 0
-		w.hasSpeed[i] = 0
+	// Очищаем все битовые маски через слайс указателей (устраняет дублирование)
+	allMasks := []*[MaxEntities/64 + 1]uint64{
+		&w.hasPosition, &w.hasVelocity, &w.hasHealth, &w.hasHunger,
+		&w.hasAge, &w.hasType, &w.hasSize, &w.hasSpeed,
+		&w.hasAnimation, &w.hasDamageFlash, &w.hasCorpse, &w.hasEatingState,
+		&w.hasAttackState, &w.hasBehavior, &w.hasAnimalConfig,
+	}
+
+	for _, mask := range allMasks {
+		for i := range mask {
+			mask[i] = 0
+		}
 	}
 }
+
+// Константы для битовых операций
+const (
+	BitsPerWord = 64 // Количество бит в uint64 слове
+)
 
 // Вспомогательные методы для работы с битовыми масками
 
 // setBitMask устанавливает бит в маске
 func setBitMask(mask []uint64, entity EntityID) {
-	wordIndex := entity / 64
-	bitIndex := entity % 64
+	wordIndex := entity / BitsPerWord
+	bitIndex := entity % BitsPerWord
 	if int(wordIndex) < len(mask) {
 		mask[wordIndex] |= 1 << bitIndex
 	}
@@ -180,8 +209,8 @@ func setBitMask(mask []uint64, entity EntityID) {
 
 // clearBitMask очищает бит в маске
 func clearBitMask(mask []uint64, entity EntityID) {
-	wordIndex := entity / 64
-	bitIndex := entity % 64
+	wordIndex := entity / BitsPerWord
+	bitIndex := entity % BitsPerWord
 	if int(wordIndex) < len(mask) {
 		mask[wordIndex] &^= 1 << bitIndex
 	}
@@ -189,8 +218,8 @@ func clearBitMask(mask []uint64, entity EntityID) {
 
 // testBitMask проверяет бит в маске
 func testBitMask(mask []uint64, entity EntityID) bool {
-	wordIndex := entity / 64
-	bitIndex := entity % 64
+	wordIndex := entity / BitsPerWord
+	bitIndex := entity % BitsPerWord
 	if int(wordIndex) < len(mask) {
 		return mask[wordIndex]&(1<<bitIndex) != 0
 	}
@@ -207,4 +236,11 @@ func (w *World) removeAllComponents(entity EntityID) {
 	clearBitMask(w.hasType[:], entity)
 	clearBitMask(w.hasSize[:], entity)
 	clearBitMask(w.hasSpeed[:], entity)
+	clearBitMask(w.hasAnimation[:], entity)
+	clearBitMask(w.hasDamageFlash[:], entity)
+	clearBitMask(w.hasCorpse[:], entity)
+	clearBitMask(w.hasEatingState[:], entity)
+	clearBitMask(w.hasAttackState[:], entity)
+	clearBitMask(w.hasBehavior[:], entity)
+	clearBitMask(w.hasAnimalConfig[:], entity)
 }

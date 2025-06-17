@@ -1,0 +1,184 @@
+package main
+
+import (
+	"fmt"
+	"image"
+	"image/color"
+	"path/filepath"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+
+	"github.com/aiseeq/savanna/internal/animation"
+	"github.com/aiseeq/savanna/internal/core"
+)
+
+// SpriteRenderer отвечает за загрузку и отрисовку спрайтов животных
+type SpriteRenderer struct {
+	// Загруженные спрайты для каждого типа животного
+	animalSprites map[core.AnimalType]AnimalSprites
+}
+
+// AnimalSprites содержит все спрайты для одного типа животного
+type AnimalSprites struct {
+	// Спрайты по типам анимации (каждый содержит все кадры)
+	animations map[animation.AnimationType][]*ebiten.Image
+}
+
+// NewSpriteRenderer создаёт новый рендерер спрайтов
+func NewSpriteRenderer() *SpriteRenderer {
+	sr := &SpriteRenderer{
+		animalSprites: make(map[core.AnimalType]AnimalSprites),
+	}
+
+	// Загружаем спрайты для всех типов животных
+	sr.loadAnimalSprites(core.TypeRabbit, "hare")
+	sr.loadAnimalSprites(core.TypeWolf, "wolf")
+
+	return sr
+}
+
+// loadAnimalSprites загружает все спрайты для указанного типа животного
+func (sr *SpriteRenderer) loadAnimalSprites(animalType core.AnimalType, prefix string) {
+	fmt.Printf("Загружаем спрайты для %v (префикс: %s)...\n", animalType, prefix)
+
+	sprites := AnimalSprites{
+		animations: make(map[animation.AnimationType][]*ebiten.Image),
+	}
+
+	// Определяем какие анимации загружать
+	animationTypes := []struct {
+		animType animation.AnimationType
+		name     string
+		frames   int
+	}{
+		{animation.AnimIdle, "idle", 2},
+		{animation.AnimWalk, "walk", 2},
+		{animation.AnimRun, "run", 2},
+		{animation.AnimAttack, "attack", 2},
+		{animation.AnimEat, "eat", 2},
+		{animation.AnimSleepLoop, "sleep", 2},
+		{animation.AnimDeathDying, "dead", 2},
+	}
+
+	// Загружаем каждую анимацию
+	for _, anim := range animationTypes {
+		sprites.animations[anim.animType] = sr.loadAnimationFrames(prefix, anim.name, anim.frames)
+	}
+
+	sr.animalSprites[animalType] = sprites
+	fmt.Printf("✅ Спрайты для %v загружены\n", animalType)
+}
+
+// loadAnimationFrames загружает кадры одной анимации
+func (sr *SpriteRenderer) loadAnimationFrames(prefix, animName string, frameCount int) []*ebiten.Image {
+	var frames []*ebiten.Image
+
+	for i := 1; i <= frameCount; i++ {
+		filename := fmt.Sprintf("%s_%s_%d.png", prefix, animName, i)
+		filepath := filepath.Join("assets", "animations", filename)
+
+		img, _, err := ebitenutil.NewImageFromFile(filepath)
+		if err != nil {
+			fmt.Printf("⚠️  Не удалось загрузить %s: %v\n", filepath, err)
+			// Создаём fallback спрайт (цветной квадрат)
+			img = sr.createFallbackSprite(32, 32)
+		}
+
+		frames = append(frames, img)
+	}
+
+	return frames
+}
+
+// createFallbackSprite создаёт простой цветной спрайт как fallback
+func (sr *SpriteRenderer) createFallbackSprite(width, height int) *ebiten.Image {
+	img := ebiten.NewImage(width, height)
+	img.Fill(color.RGBA{255, 0, 255, 255}) // Пурпурный цвет для отладки
+	return img
+}
+
+// DrawAnimal отрисовывает животное с правильным спрайтом и анимацией
+func (sr *SpriteRenderer) DrawAnimal(screen *ebiten.Image, world *core.World, entity core.EntityID, screenX, screenY, zoom float32) {
+	// Получаем тип животного
+	animalType, hasType := world.GetAnimalType(entity)
+	if !hasType {
+		return
+	}
+
+	// Получаем анимацию
+	anim, hasAnim := world.GetAnimation(entity)
+	if !hasAnim {
+		return
+	}
+
+	// Получаем спрайты для этого типа животного
+	sprites, hasSprites := sr.animalSprites[animalType]
+	if !hasSprites {
+		return
+	}
+
+	// Получаем кадры для текущей анимации
+	animType := animation.AnimationType(anim.CurrentAnim)
+	frames, hasFrames := sprites.animations[animType]
+	if !hasFrames || len(frames) == 0 {
+		return
+	}
+
+	// Выбираем правильный кадр
+	frameIndex := anim.Frame
+	if frameIndex >= len(frames) {
+		frameIndex = len(frames) - 1
+	}
+	if frameIndex < 0 {
+		frameIndex = 0
+	}
+
+	sprite := frames[frameIndex]
+
+	// Настраиваем отрисовку
+	op := &ebiten.DrawImageOptions{}
+
+	// Масштабирование (разное для разных животных)
+	var spriteScale float64
+	if animalType == core.TypeRabbit {
+		spriteScale = float64(zoom) * 0.067 // 1/15 = 0.067 (в 3 раза меньше чем было)
+	} else {
+		spriteScale = float64(zoom) * 0.2 // 1/5 = 0.2 для волков
+	}
+	op.GeoM.Scale(spriteScale, spriteScale)
+
+	// Отражение по горизонтали если животное смотрит влево
+	if !anim.FacingRight {
+		// Отражаем спрайт
+		spriteWidth := float64(sprite.Bounds().Dx())
+		op.GeoM.Scale(-1, 1)
+		op.GeoM.Translate(spriteWidth*spriteScale, 0)
+	}
+
+	// Центрируем спрайт относительно позиции животного
+	spriteWidth := float64(sprite.Bounds().Dx()) * spriteScale
+	spriteHeight := float64(sprite.Bounds().Dy()) * spriteScale
+	op.GeoM.Translate(
+		float64(screenX)-spriteWidth/2,
+		float64(screenY)-spriteHeight/2,
+	)
+
+	// Рисуем спрайт
+	screen.DrawImage(sprite, op)
+}
+
+// GetSpriteBounds возвращает размеры спрайта для животного (для расчёта коллизий)
+func (sr *SpriteRenderer) GetSpriteBounds(animalType core.AnimalType) image.Rectangle {
+	sprites, hasSprites := sr.animalSprites[animalType]
+	if !hasSprites {
+		return image.Rectangle{}
+	}
+
+	// Берём первый кадр idle анимации для получения размера
+	if frames, hasIdle := sprites.animations[animation.AnimIdle]; hasIdle && len(frames) > 0 {
+		return frames[0].Bounds()
+	}
+
+	return image.Rectangle{}
+}

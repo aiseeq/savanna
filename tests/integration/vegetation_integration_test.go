@@ -10,6 +10,7 @@ import (
 )
 
 func TestVegetationIntegration_BasicFunctionality(t *testing.T) {
+	t.Parallel()
 	// Создаем простую симуляцию
 	cfg := &config.Config{
 		World: config.WorldConfig{

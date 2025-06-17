@@ -9,6 +9,7 @@ import (
 
 // TestGoModTidy проверяет что go mod tidy не вносит изменений
 func TestGoModTidy(t *testing.T) {
+	t.Parallel()
 	projectRoot, err := filepath.Abs("../..")
 	if err != nil {
 		t.Fatalf("Не удалось определить корневую папку проекта: %v", err)
@@ -37,6 +38,7 @@ func TestGoModTidy(t *testing.T) {
 
 // TestGoModDependencies проверяет что все необходимые зависимости присутствуют
 func TestGoModDependencies(t *testing.T) {
+	t.Parallel()
 	projectRoot, err := filepath.Abs("../..")
 	if err != nil {
 		t.Fatalf("Не удалось определить корневую папку проекта: %v", err)
@@ -69,6 +71,7 @@ func TestGoModDependencies(t *testing.T) {
 
 // TestGoModuleName проверяет имя модуля
 func TestGoModuleName(t *testing.T) {
+	t.Parallel()
 	projectRoot, err := filepath.Abs("../..")
 	if err != nil {
 		t.Fatalf("Не удалось определить корневую папку проекта: %v", err)
@@ -94,6 +97,7 @@ func TestGoModuleName(t *testing.T) {
 
 // TestGoBuild проверяет что код компилируется
 func TestGoBuild(t *testing.T) {
+	t.Parallel()
 	projectRoot, err := filepath.Abs("../..")
 	if err != nil {
 		t.Fatalf("Не удалось определить корневую папку проекта: %v", err)
@@ -113,6 +117,7 @@ func TestGoBuild(t *testing.T) {
 
 // TestGoVet проверяет код с помощью go vet
 func TestGoVet(t *testing.T) {
+	t.Parallel()
 	projectRoot, err := filepath.Abs("../..")
 	if err != nil {
 		t.Fatalf("Не удалось определить корневую папку проекта: %v", err)
@@ -131,6 +136,7 @@ func TestGoVet(t *testing.T) {
 
 // TestGoFmt проверяет форматирование кода
 func TestGoFmt(t *testing.T) {
+	t.Parallel()
 	projectRoot, err := filepath.Abs("../..")
 	if err != nil {
 		t.Fatalf("Не удалось определить корневую папку проекта: %v", err)

@@ -11,6 +11,7 @@ import (
 
 // TestEcosystemSurvival диагностирует проблемы с выживанием животных
 func TestEcosystemSurvival(t *testing.T) {
+	t.Parallel()
 	// Создаём минимальную симуляцию
 	cfg := config.LoadDefaultConfig()
 	cfg.World.Size = 20
@@ -178,6 +179,7 @@ func TestEcosystemSurvival(t *testing.T) {
 
 // TestAnimalHealthAndHunger проверяет начальные параметры животных
 func TestAnimalHealthAndHunger(t *testing.T) {
+	t.Parallel()
 	world := core.NewWorld(1000, 1000, 42)
 
 	// Создаём зайца и проверяем его параметры
@@ -213,6 +215,7 @@ func TestAnimalHealthAndHunger(t *testing.T) {
 
 // TestFeedingSystemIsolated тестирует систему питания изолированно
 func TestFeedingSystemIsolated(t *testing.T) {
+	t.Parallel()
 	cfg := config.LoadDefaultConfig()
 	cfg.World.Size = 20
 

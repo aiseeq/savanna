@@ -20,6 +20,7 @@ func vectorsAlmostEqual(v1, v2 physics.Vec2) bool {
 }
 
 func TestNewVec2(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		x, y     float32
@@ -32,7 +33,9 @@ func TestNewVec2(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Копируем переменную цикла для избежания loop closure
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := physics.NewVec2(tt.x, tt.y)
 			if result != tt.expected {
 				t.Errorf("NewVec2(%f, %f) = %v, expected %v", tt.x, tt.y, result, tt.expected)
@@ -42,6 +45,7 @@ func TestNewVec2(t *testing.T) {
 }
 
 func TestZero(t *testing.T) {
+	t.Parallel()
 	result := physics.Zero()
 	expected := physics.NewVec2(0, 0)
 	if result != expected {
@@ -50,6 +54,7 @@ func TestZero(t *testing.T) {
 }
 
 func TestVec2Add(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		v1, v2   physics.Vec2
@@ -63,7 +68,9 @@ func TestVec2Add(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Копируем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v1.Add(tt.v2)
 			if !vectorsAlmostEqual(result, tt.expected) {
 				t.Errorf("%v.Add(%v) = %v, expected %v", tt.v1, tt.v2, result, tt.expected)
@@ -73,6 +80,7 @@ func TestVec2Add(t *testing.T) {
 }
 
 func TestVec2Sub(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		v1, v2   physics.Vec2
@@ -86,7 +94,9 @@ func TestVec2Sub(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Копируем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v1.Sub(tt.v2)
 			if !vectorsAlmostEqual(result, tt.expected) {
 				t.Errorf("%v.Sub(%v) = %v, expected %v", tt.v1, tt.v2, result, tt.expected)
@@ -96,6 +106,7 @@ func TestVec2Sub(t *testing.T) {
 }
 
 func TestVec2Mul(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		v        physics.Vec2
@@ -111,7 +122,9 @@ func TestVec2Mul(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v.Mul(tt.scalar)
 			if !vectorsAlmostEqual(result, tt.expected) {
 				t.Errorf("%v.Mul(%f) = %v, expected %v", tt.v, tt.scalar, result, tt.expected)
@@ -121,6 +134,7 @@ func TestVec2Mul(t *testing.T) {
 }
 
 func TestVec2Div(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		v        physics.Vec2
@@ -135,7 +149,9 @@ func TestVec2Div(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v.Div(tt.scalar)
 			if !vectorsAlmostEqual(result, tt.expected) {
 				t.Errorf("%v.Div(%f) = %v, expected %v", tt.v, tt.scalar, result, tt.expected)
@@ -145,6 +161,7 @@ func TestVec2Div(t *testing.T) {
 }
 
 func TestVec2Dot(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		v1, v2   physics.Vec2
@@ -160,7 +177,9 @@ func TestVec2Dot(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v1.Dot(tt.v2)
 			if !almostEqual(result, tt.expected) {
 				t.Errorf("%v.Dot(%v) = %f, expected %f", tt.v1, tt.v2, result, tt.expected)
@@ -170,6 +189,7 @@ func TestVec2Dot(t *testing.T) {
 }
 
 func TestVec2Length(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		v        physics.Vec2
@@ -185,7 +205,9 @@ func TestVec2Length(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v.Length()
 			if !almostEqual(result, tt.expected) {
 				t.Errorf("%v.Length() = %f, expected %f", tt.v, result, tt.expected)
@@ -195,6 +217,7 @@ func TestVec2Length(t *testing.T) {
 }
 
 func TestVec2LengthSquared(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		v        physics.Vec2
@@ -209,7 +232,9 @@ func TestVec2LengthSquared(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v.LengthSquared()
 			if !almostEqual(result, tt.expected) {
 				t.Errorf("%v.LengthSquared() = %f, expected %f", tt.v, result, tt.expected)
@@ -219,6 +244,7 @@ func TestVec2LengthSquared(t *testing.T) {
 }
 
 func TestVec2Distance(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		v1, v2   physics.Vec2
@@ -233,7 +259,9 @@ func TestVec2Distance(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v1.Distance(tt.v2)
 			if !almostEqual(result, tt.expected) {
 				t.Errorf("%v.Distance(%v) = %f, expected %f", tt.v1, tt.v2, result, tt.expected)
@@ -243,6 +271,7 @@ func TestVec2Distance(t *testing.T) {
 }
 
 func TestVec2DistanceSquared(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		v1, v2   physics.Vec2
@@ -257,7 +286,9 @@ func TestVec2DistanceSquared(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v1.DistanceSquared(tt.v2)
 			if !almostEqual(result, tt.expected) {
 				t.Errorf("%v.DistanceSquared(%v) = %f, expected %f", tt.v1, tt.v2, result, tt.expected)
@@ -267,6 +298,7 @@ func TestVec2DistanceSquared(t *testing.T) {
 }
 
 func TestVec2Normalize(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		v        physics.Vec2
@@ -281,7 +313,9 @@ func TestVec2Normalize(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v.Normalize()
 			if !vectorsAlmostEqual(result, tt.expected) {
 				t.Errorf("%v.Normalize() = %v, expected %v", tt.v, result, tt.expected)
@@ -299,6 +333,7 @@ func TestVec2Normalize(t *testing.T) {
 }
 
 func TestVec2Rotate(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		v        physics.Vec2
@@ -314,7 +349,9 @@ func TestVec2Rotate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v.Rotate(tt.angle)
 			if !vectorsAlmostEqual(result, tt.expected) {
 				t.Errorf("%v.Rotate(%f) = %v, expected %v", tt.v, tt.angle, result, tt.expected)
@@ -324,6 +361,7 @@ func TestVec2Rotate(t *testing.T) {
 }
 
 func TestVec2Angle(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		v        physics.Vec2
@@ -338,7 +376,9 @@ func TestVec2Angle(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v.Angle()
 			if !almostEqual(result, tt.expected) {
 				t.Errorf("%v.Angle() = %f, expected %f", tt.v, result, tt.expected)
@@ -348,6 +388,7 @@ func TestVec2Angle(t *testing.T) {
 }
 
 func TestVec2AngleTo(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		v1, v2   physics.Vec2
@@ -362,7 +403,9 @@ func TestVec2AngleTo(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v1.AngleTo(tt.v2)
 			if !almostEqual(result, tt.expected) {
 				t.Errorf("%v.AngleTo(%v) = %f, expected %f", tt.v1, tt.v2, result, tt.expected)
@@ -372,6 +415,7 @@ func TestVec2AngleTo(t *testing.T) {
 }
 
 func TestVec2Lerp(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		v1, v2   physics.Vec2
@@ -386,7 +430,9 @@ func TestVec2Lerp(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v1.Lerp(tt.v2, tt.t)
 			if !vectorsAlmostEqual(result, tt.expected) {
 				t.Errorf("%v.Lerp(%v, %f) = %v, expected %v", tt.v1, tt.v2, tt.t, result, tt.expected)
@@ -396,6 +442,7 @@ func TestVec2Lerp(t *testing.T) {
 }
 
 func TestVec2Equal(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		v1, v2   physics.Vec2
@@ -410,7 +457,9 @@ func TestVec2Equal(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v1.Equal(tt.v2, tt.epsilon)
 			if result != tt.expected {
 				t.Errorf("%v.Equal(%v, %f) = %t, expected %t", tt.v1, tt.v2, tt.epsilon, result, tt.expected)
@@ -420,6 +469,7 @@ func TestVec2Equal(t *testing.T) {
 }
 
 func TestVec2IsZero(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		v        physics.Vec2
@@ -433,7 +483,9 @@ func TestVec2IsZero(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v.IsZero()
 			if result != tt.expected {
 				t.Errorf("%v.IsZero() = %t, expected %t", tt.v, result, tt.expected)
@@ -443,6 +495,7 @@ func TestVec2IsZero(t *testing.T) {
 }
 
 func TestVec2Clamp(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		v         physics.Vec2
@@ -457,7 +510,9 @@ func TestVec2Clamp(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v.Clamp(tt.maxLength)
 			if !vectorsAlmostEqual(result, tt.expected) {
 				t.Errorf("%v.Clamp(%f) = %v, expected %v", tt.v, tt.maxLength, result, tt.expected)
@@ -473,6 +528,7 @@ func TestVec2Clamp(t *testing.T) {
 }
 
 func TestVec2Reflect(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		v        physics.Vec2
@@ -487,7 +543,9 @@ func TestVec2Reflect(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.v.Reflect(tt.normal)
 			if !vectorsAlmostEqual(result, tt.expected) {
 				t.Errorf("%v.Reflect(%v) = %v, expected %v", tt.v, tt.normal, result, tt.expected)

@@ -4,20 +4,21 @@ import (
 	"testing"
 
 	"github.com/aiseeq/savanna/config"
+	"github.com/aiseeq/savanna/internal/adapters"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
 )
 
 const (
-	TEST_WORLD_SIZE = 20.0 * 32.0 // 20 тайлов для тестов (меньше чем в реальной игре)
-	TEST_TPS        = 60
+	TestWorldSize = 20.0 * 32.0 // 20 тайлов для тестов (меньше чем в реальной игре)
+	TestTPS       = 60
 )
 
 // createTestVegetationSystem создаёт vegetation систему для тестов
 func createTestVegetationSystem() *simulation.VegetationSystem {
 	cfg := config.LoadDefaultConfig()
-	cfg.World.Size = int(TEST_WORLD_SIZE / 32)
+	cfg.World.Size = int(TestWorldSize / 32)
 	terrainGen := generator.NewTerrainGenerator(cfg)
 	terrain := terrainGen.Generate()
 	return simulation.NewVegetationSystem(terrain)
@@ -25,21 +26,22 @@ func createTestVegetationSystem() *simulation.VegetationSystem {
 
 // TestBasicSimulation проверяет базовую работу симуляции
 func TestBasicSimulation(t *testing.T) {
-	world := core.NewWorld(TEST_WORLD_SIZE, TEST_WORLD_SIZE, 42)
+	t.Parallel()
+	world := core.NewWorld(TestWorldSize, TestWorldSize, 42)
 	systemManager := core.NewSystemManager()
 
 	// Создаём минимальную vegetation систему для тестов
 	cfg := config.LoadDefaultConfig()
-	cfg.World.Size = int(TEST_WORLD_SIZE / 32)
+	cfg.World.Size = int(TestWorldSize / 32)
 	terrainGen := generator.NewTerrainGenerator(cfg)
 	terrain := terrainGen.Generate()
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
 
 	// Добавляем системы
 	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(simulation.NewAnimalBehaviorSystem(vegetationSystem))
-	systemManager.AddSystem(simulation.NewMovementSystem(TEST_WORLD_SIZE, TEST_WORLD_SIZE))
-	systemManager.AddSystem(simulation.NewFeedingSystem(vegetationSystem))
+	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: simulation.NewAnimalBehaviorSystem(vegetationSystem)})
+	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: simulation.NewMovementSystem(TestWorldSize, TestWorldSize)})
+	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: simulation.NewFeedingSystem(vegetationSystem)})
 
 	// Создаем несколько животных
 	rabbit1 := simulation.CreateRabbit(world, 100, 100)
@@ -52,8 +54,8 @@ func TestBasicSimulation(t *testing.T) {
 	}
 
 	// Запускаем симуляцию на 1 секунду
-	deltaTime := float32(1.0 / TEST_TPS)
-	for i := 0; i < TEST_TPS; i++ {
+	deltaTime := float32(1.0 / TestTPS)
+	for i := 0; i < TestTPS; i++ {
 		world.Update(deltaTime)
 		systemManager.Update(world, deltaTime)
 	}
@@ -80,35 +82,36 @@ func TestBasicSimulation(t *testing.T) {
 
 // TestDeterministicSimulation проверяет детерминированность симуляции
 func TestDeterministicSimulation(t *testing.T) {
+	t.Parallel()
 	// Функция для запуска симуляции и получения результата
 	runSimulation := func(seed int64) map[core.AnimalType]int {
-		world := core.NewWorld(TEST_WORLD_SIZE, TEST_WORLD_SIZE, seed)
+		world := core.NewWorld(TestWorldSize, TestWorldSize, seed)
 		systemManager := core.NewSystemManager()
 
 		// Создаём vegetation систему для детерминированного теста
 		vegetationSystem := createTestVegetationSystem()
 		systemManager.AddSystem(vegetationSystem)
-		systemManager.AddSystem(simulation.NewAnimalBehaviorSystem(vegetationSystem))
-		systemManager.AddSystem(simulation.NewMovementSystem(TEST_WORLD_SIZE, TEST_WORLD_SIZE))
-		systemManager.AddSystem(simulation.NewFeedingSystem(vegetationSystem))
+		systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: simulation.NewAnimalBehaviorSystem(vegetationSystem)})
+		systemManager.AddSystem(&adapters.MovementSystemAdapter{System: simulation.NewMovementSystem(TestWorldSize, TestWorldSize)})
+		systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: simulation.NewFeedingSystem(vegetationSystem)})
 
 		// Создаем 10 зайцев и 2 волков
 		rng := world.GetRNG()
 		for i := 0; i < 10; i++ {
-			x := rng.Float32()*TEST_WORLD_SIZE*0.8 + TEST_WORLD_SIZE*0.1
-			y := rng.Float32()*TEST_WORLD_SIZE*0.8 + TEST_WORLD_SIZE*0.1
+			x := rng.Float32()*TestWorldSize*0.8 + TestWorldSize*0.1
+			y := rng.Float32()*TestWorldSize*0.8 + TestWorldSize*0.1
 			simulation.CreateRabbit(world, x, y)
 		}
 
 		for i := 0; i < 2; i++ {
-			x := rng.Float32()*TEST_WORLD_SIZE*0.8 + TEST_WORLD_SIZE*0.1
-			y := rng.Float32()*TEST_WORLD_SIZE*0.8 + TEST_WORLD_SIZE*0.1
+			x := rng.Float32()*TestWorldSize*0.8 + TestWorldSize*0.1
+			y := rng.Float32()*TestWorldSize*0.8 + TestWorldSize*0.1
 			simulation.CreateWolf(world, x, y)
 		}
 
 		// Симулируем 10 секунд
-		deltaTime := float32(1.0 / TEST_TPS)
-		for i := 0; i < TEST_TPS*10; i++ {
+		deltaTime := float32(1.0 / TestTPS)
+		for i := 0; i < TestTPS*10; i++ {
 			world.Update(deltaTime)
 			systemManager.Update(world, deltaTime)
 		}
@@ -143,7 +146,8 @@ func TestDeterministicSimulation(t *testing.T) {
 
 // TestHungerSystem проверяет систему голода
 func TestHungerSystem(t *testing.T) {
-	world := core.NewWorld(TEST_WORLD_SIZE, TEST_WORLD_SIZE, 42)
+	t.Parallel()
+	world := core.NewWorld(TestWorldSize, TestWorldSize, 42)
 	vegetationSystem := createTestVegetationSystem()
 	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 
@@ -156,8 +160,8 @@ func TestHungerSystem(t *testing.T) {
 	initialHealth, _ := world.GetHealth(rabbit)
 
 	// Запускаем систему голода на несколько секунд
-	deltaTime := float32(1.0 / TEST_TPS)
-	for i := 0; i < TEST_TPS*5; i++ { // 5 секунд
+	deltaTime := float32(1.0 / TestTPS)
+	for i := 0; i < TestTPS*5; i++ { // 5 секунд
 		world.Update(deltaTime)
 		feedingSystem.Update(world, deltaTime)
 	}
@@ -179,15 +183,16 @@ func TestHungerSystem(t *testing.T) {
 
 // TestAnimalInteraction проверяет взаимодействие животных
 func TestAnimalInteraction(t *testing.T) {
-	world := core.NewWorld(TEST_WORLD_SIZE, TEST_WORLD_SIZE, 42)
+	t.Parallel()
+	world := core.NewWorld(TestWorldSize, TestWorldSize, 42)
 	systemManager := core.NewSystemManager()
 
 	// Создаём vegetation систему для взаимодействия
 	vegetationSystem := createTestVegetationSystem()
 	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(simulation.NewAnimalBehaviorSystem(vegetationSystem))
-	systemManager.AddSystem(simulation.NewMovementSystem(TEST_WORLD_SIZE, TEST_WORLD_SIZE))
-	systemManager.AddSystem(simulation.NewFeedingSystem(vegetationSystem))
+	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: simulation.NewAnimalBehaviorSystem(vegetationSystem)})
+	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: simulation.NewMovementSystem(TestWorldSize, TestWorldSize)})
+	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: simulation.NewFeedingSystem(vegetationSystem)})
 
 	// Создаем зайца и волка на дистанции видимости
 	rabbit := simulation.CreateRabbit(world, 200, 200)
@@ -200,8 +205,8 @@ func TestAnimalInteraction(t *testing.T) {
 	initialWolfPos, _ := world.GetPosition(wolf)
 
 	// Запускаем симуляцию
-	deltaTime := float32(1.0 / TEST_TPS)
-	for i := 0; i < TEST_TPS*2; i++ { // 2 секунды
+	deltaTime := float32(1.0 / TestTPS)
+	for i := 0; i < TestTPS*2; i++ { // 2 секунды
 		world.Update(deltaTime)
 		systemManager.Update(world, deltaTime)
 	}
@@ -231,21 +236,22 @@ func TestAnimalInteraction(t *testing.T) {
 	}
 
 	// Дополнительно проверяем что оба животных в пределах мира
-	if finalRabbitPos.X < 0 || finalRabbitPos.X > TEST_WORLD_SIZE ||
-		finalRabbitPos.Y < 0 || finalRabbitPos.Y > TEST_WORLD_SIZE {
+	if finalRabbitPos.X < 0 || finalRabbitPos.X > TestWorldSize ||
+		finalRabbitPos.Y < 0 || finalRabbitPos.Y > TestWorldSize {
 		t.Error("Rabbit moved outside world boundaries")
 	}
 
-	if finalWolfPos.X < 0 || finalWolfPos.X > TEST_WORLD_SIZE ||
-		finalWolfPos.Y < 0 || finalWolfPos.Y > TEST_WORLD_SIZE {
+	if finalWolfPos.X < 0 || finalWolfPos.X > TestWorldSize ||
+		finalWolfPos.Y < 0 || finalWolfPos.Y > TestWorldSize {
 		t.Error("Wolf moved outside world boundaries")
 	}
 }
 
 // TestBoundaryConstraints проверяет что животные не выходят за границы мира
 func TestBoundaryConstraints(t *testing.T) {
-	world := core.NewWorld(TEST_WORLD_SIZE, TEST_WORLD_SIZE, 42)
-	movementSystem := simulation.NewMovementSystem(TEST_WORLD_SIZE, TEST_WORLD_SIZE)
+	t.Parallel()
+	world := core.NewWorld(TestWorldSize, TestWorldSize, 42)
+	movementSystem := simulation.NewMovementSystem(TestWorldSize, TestWorldSize)
 
 	// Создаем зайца у края мира
 	rabbit := simulation.CreateRabbit(world, 5, 5) // Близко к левому верхнему углу
@@ -254,8 +260,8 @@ func TestBoundaryConstraints(t *testing.T) {
 	world.SetVelocity(rabbit, core.Velocity{X: -100, Y: -100}) // Движение к границе
 
 	// Запускаем систему движения
-	deltaTime := float32(1.0 / TEST_TPS)
-	for i := 0; i < TEST_TPS; i++ { // 1 секунда
+	deltaTime := float32(1.0 / TestTPS)
+	for i := 0; i < TestTPS; i++ { // 1 секунда
 		world.Update(deltaTime)
 		movementSystem.Update(world, deltaTime)
 	}
@@ -272,22 +278,24 @@ func TestBoundaryConstraints(t *testing.T) {
 		t.Errorf("Rabbit went outside top boundary: pos.Y=%f, radius=%f", pos.Y, size.Radius)
 	}
 
-	if pos.X+size.Radius > TEST_WORLD_SIZE {
+	if pos.X+size.Radius > TestWorldSize {
 		t.Errorf("Rabbit went outside right boundary: pos.X=%f, radius=%f, world=%f",
-			pos.X, size.Radius, TEST_WORLD_SIZE)
+			pos.X, size.Radius, TestWorldSize)
 	}
 
-	if pos.Y+size.Radius > TEST_WORLD_SIZE {
+	if pos.Y+size.Radius > TestWorldSize {
 		t.Errorf("Rabbit went outside bottom boundary: pos.Y=%f, radius=%f, world=%f",
-			pos.Y, size.Radius, TEST_WORLD_SIZE)
+			pos.Y, size.Radius, TestWorldSize)
 	}
 }
 
 // TestStarvationDeath проверяет что животные умирают от голода
 func TestStarvationDeath(t *testing.T) {
-	world := core.NewWorld(TEST_WORLD_SIZE, TEST_WORLD_SIZE, 42)
+	t.Parallel()
+	world := core.NewWorld(TestWorldSize, TestWorldSize, 42)
 	vegetationSystem := createTestVegetationSystem()
 	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
+	combatSystem := simulation.NewCombatSystem() // Отвечает за удаление мертвых животных
 
 	// Создаем зайца с минимальным здоровьем и голодом
 	rabbit := simulation.CreateRabbit(world, 100, 100)
@@ -299,12 +307,13 @@ func TestStarvationDeath(t *testing.T) {
 	}
 
 	// Запускаем систему питания пока заяц не умрет
-	deltaTime := float32(1.0 / TEST_TPS)
-	maxIterations := TEST_TPS * 10 // Максимум 10 секунд
+	deltaTime := float32(1.0 / TestTPS)
+	maxIterations := TestTPS * 10 // Максимум 10 секунд
 
 	for i := 0; i < maxIterations && world.IsAlive(rabbit); i++ {
 		world.Update(deltaTime)
 		feedingSystem.Update(world, deltaTime)
+		combatSystem.Update(world, deltaTime) // Удаляет мертвых животных
 	}
 
 	// Заяц должен умереть от голода

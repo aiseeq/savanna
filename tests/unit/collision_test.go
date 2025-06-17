@@ -8,6 +8,7 @@ import (
 )
 
 func TestNewCircle(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		center   physics.Vec2
@@ -20,7 +21,9 @@ func TestNewCircle(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := physics.NewCircle(tt.center, tt.radius)
 			if result != tt.expected {
 				t.Errorf("NewCircle(%v, %f) = %v, expected %v", tt.center, tt.radius, result, tt.expected)
@@ -30,18 +33,33 @@ func TestNewCircle(t *testing.T) {
 }
 
 func TestNewRectangle(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		min, max physics.Vec2
 		expected physics.Rectangle
 	}{
-		{"unit rectangle", physics.NewVec2(0, 0), physics.NewVec2(1, 1), physics.Rectangle{Min: physics.NewVec2(0, 0), Max: physics.NewVec2(1, 1)}},
-		{"offset rectangle", physics.NewVec2(5, 10), physics.NewVec2(5, 25), physics.Rectangle{Min: physics.NewVec2(5, 10), Max: physics.NewVec2(5, 25)}},
-		{"negative coords", physics.NewVec2(5, -5), physics.NewVec2(5, 5), physics.Rectangle{Min: physics.NewVec2(5, -5), Max: physics.NewVec2(5, 5)}},
+		{
+			"unit rectangle",
+			physics.NewVec2(0, 0), physics.NewVec2(1, 1),
+			physics.Rectangle{Min: physics.NewVec2(0, 0), Max: physics.NewVec2(1, 1)},
+		},
+		{
+			"offset rectangle",
+			physics.NewVec2(5, 10), physics.NewVec2(5, 25),
+			physics.Rectangle{Min: physics.NewVec2(5, 10), Max: physics.NewVec2(5, 25)},
+		},
+		{
+			"negative coords",
+			physics.NewVec2(5, -5), physics.NewVec2(5, 5),
+			physics.Rectangle{Min: physics.NewVec2(5, -5), Max: physics.NewVec2(5, 5)},
+		},
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := physics.NewRectangle(tt.min, tt.max)
 			if result != tt.expected {
 				t.Errorf("NewRectangle(%v, %v) = %v, expected %v", tt.min, tt.max, result, tt.expected)
@@ -51,6 +69,7 @@ func TestNewRectangle(t *testing.T) {
 }
 
 func TestNewRectangleFromCenter(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name          string
 		center        physics.Vec2
@@ -64,7 +83,9 @@ func TestNewRectangleFromCenter(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := physics.NewRectangleFromCenter(tt.center, tt.width, tt.height)
 			if !vectorsAlmostEqual(result.Min, tt.expectedMin) || !vectorsAlmostEqual(result.Max, tt.expectedMax) {
 				t.Errorf("NewRectangleFromCenter(%v, %f, %f) = {%v, %v}, expected {%v, %v}",
@@ -75,6 +96,7 @@ func TestNewRectangleFromCenter(t *testing.T) {
 }
 
 func TestCircleCircleCollision(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		c1, c2   physics.Circle
@@ -85,12 +107,24 @@ func TestCircleCircleCollision(t *testing.T) {
 		{"overlapping", physics.NewCircle(physics.NewVec2(0, 0), 2), physics.NewCircle(physics.NewVec2(1, 0), 2), true},
 		{"one inside other", physics.NewCircle(physics.NewVec2(0, 0), 5), physics.NewCircle(physics.NewVec2(1, 1), 1), true},
 		{"same position", physics.NewCircle(physics.NewVec2(5, 5), 2), physics.NewCircle(physics.NewVec2(5, 5), 3), true},
-		{"diagonal touching", physics.NewCircle(physics.NewVec2(0, 0), 1), physics.NewCircle(physics.NewVec2(float32(math.Sqrt(2)), float32(math.Sqrt(2))), 1), true},
-		{"diagonal not touching", physics.NewCircle(physics.NewVec2(0, 0), 1), physics.NewCircle(physics.NewVec2(3, 3), 1), false},
+		{
+			"diagonal touching",
+			physics.NewCircle(physics.NewVec2(0, 0), 1),
+			physics.NewCircle(physics.NewVec2(float32(math.Sqrt(2)), float32(math.Sqrt(2))), 1),
+			true,
+		},
+		{
+			"diagonal not touching",
+			physics.NewCircle(physics.NewVec2(0, 0), 1),
+			physics.NewCircle(physics.NewVec2(3, 3), 1),
+			false,
+		},
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := physics.CircleCircleCollision(tt.c1, tt.c2)
 			if result != tt.expected {
 				t.Errorf("CircleCircleCollision(%v, %v) = %t, expected %t", tt.c1, tt.c2, result, tt.expected)
@@ -107,6 +141,7 @@ func TestCircleCircleCollision(t *testing.T) {
 }
 
 func TestCircleCircleCollisionWithDetails(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name                string
 		c1, c2              physics.Circle
@@ -147,7 +182,9 @@ func TestCircleCircleCollisionWithDetails(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := physics.CircleCircleCollisionWithDetails(tt.c1, tt.c2)
 
 			if result.Colliding != tt.expectedColliding {
@@ -162,7 +199,8 @@ func TestCircleCircleCollisionWithDetails(t *testing.T) {
 				// Для случая совпадающих центров нормаль может быть любой единичной
 				if tt.c1.Center == tt.c2.Center {
 					if !almostEqual(result.Normal.Length(), 1.0) {
-						t.Errorf("Expected unit normal for same center case, got %v with length %f", result.Normal, result.Normal.Length())
+						t.Errorf("Expected unit normal for same center case, got %v with length %f",
+							result.Normal, result.Normal.Length())
 					}
 				} else if !vectorsAlmostEqual(result.Normal, tt.expectedNormal) {
 					t.Errorf("Expected normal %v, got %v", tt.expectedNormal, result.Normal)
@@ -173,6 +211,7 @@ func TestCircleCircleCollisionWithDetails(t *testing.T) {
 }
 
 func TestCircleRectangleCollision(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		circle   physics.Circle
@@ -218,7 +257,9 @@ func TestCircleRectangleCollision(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := physics.CircleRectangleCollision(tt.circle, tt.rect)
 			if result != tt.expected {
 				t.Errorf("CircleRectangleCollision(%v, %v) = %t, expected %t", tt.circle, tt.rect, result, tt.expected)
@@ -228,6 +269,7 @@ func TestCircleRectangleCollision(t *testing.T) {
 }
 
 func TestCircleRectangleCollisionWithDetails(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name              string
 		circle            physics.Circle
@@ -261,7 +303,9 @@ func TestCircleRectangleCollisionWithDetails(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := physics.CircleRectangleCollisionWithDetails(tt.circle, tt.rect)
 
 			if result.Colliding != tt.expectedColliding {
@@ -285,6 +329,7 @@ func TestCircleRectangleCollisionWithDetails(t *testing.T) {
 }
 
 func TestRectangleRectangleCollision(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		r1, r2   physics.Rectangle
@@ -329,7 +374,9 @@ func TestRectangleRectangleCollision(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := physics.RectangleRectangleCollision(tt.r1, tt.r2)
 			if result != tt.expected {
 				t.Errorf("RectangleRectangleCollision(%v, %v) = %t, expected %t", tt.r1, tt.r2, result, tt.expected)
@@ -345,6 +392,7 @@ func TestRectangleRectangleCollision(t *testing.T) {
 }
 
 func TestPointInCircle(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		point    physics.Vec2
@@ -359,7 +407,9 @@ func TestPointInCircle(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := physics.PointInCircle(tt.point, tt.circle)
 			if result != tt.expected {
 				t.Errorf("PointInCircle(%v, %v) = %t, expected %t", tt.point, tt.circle, result, tt.expected)
@@ -369,6 +419,7 @@ func TestPointInCircle(t *testing.T) {
 }
 
 func TestPointInRectangle(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		point    physics.Vec2
@@ -383,7 +434,9 @@ func TestPointInRectangle(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := physics.PointInRectangle(tt.point, tt.rect)
 			if result != tt.expected {
 				t.Errorf("PointInRectangle(%v, %v) = %t, expected %t", tt.point, tt.rect, result, tt.expected)
@@ -393,6 +446,7 @@ func TestPointInRectangle(t *testing.T) {
 }
 
 func TestRectangleCenter(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		rect     physics.Rectangle
@@ -404,7 +458,9 @@ func TestRectangleCenter(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.rect.Center()
 			if !vectorsAlmostEqual(result, tt.expected) {
 				t.Errorf("%v.Center() = %v, expected %v", tt.rect, result, tt.expected)
@@ -414,6 +470,7 @@ func TestRectangleCenter(t *testing.T) {
 }
 
 func TestRectangleDimensions(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		rect           physics.Rectangle
@@ -427,7 +484,9 @@ func TestRectangleDimensions(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			width := tt.rect.Width()
 			height := tt.rect.Height()
 			area := tt.rect.Area()
@@ -446,6 +505,7 @@ func TestRectangleDimensions(t *testing.T) {
 }
 
 func TestRectangleIntersect(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		r1, r2   physics.Rectangle
@@ -472,7 +532,9 @@ func TestRectangleIntersect(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.r1.Intersect(tt.r2)
 			if !vectorsAlmostEqual(result.Min, tt.expected.Min) || !vectorsAlmostEqual(result.Max, tt.expected.Max) {
 				t.Errorf("%v.Intersect(%v) = %v, expected %v", tt.r1, tt.r2, result, tt.expected)
@@ -482,6 +544,7 @@ func TestRectangleIntersect(t *testing.T) {
 }
 
 func TestRectangleContains(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		r1, r2   physics.Rectangle
@@ -514,7 +577,9 @@ func TestRectangleContains(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.r1.Contains(tt.r2)
 			if result != tt.expected {
 				t.Errorf("%v.Contains(%v) = %t, expected %t", tt.r1, tt.r2, result, tt.expected)

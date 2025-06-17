@@ -8,19 +8,21 @@ import (
 
 // TestEntityManager тестирует базовую функциональность EntityManager
 func TestEntityManager(t *testing.T) {
-	em := core.NewEntityManager()
+	t.Parallel()
 
 	// Тест создания сущностей
 	t.Run("CreateEntity", func(t *testing.T) {
+		t.Parallel()
+		em := core.NewEntityManager()
 		entity1 := em.CreateEntity()
 		entity2 := em.CreateEntity()
 
-		if entity1 == core.INVALID_ENTITY {
-			t.Error("Expected valid entity ID, got INVALID_ENTITY")
+		if entity1 == core.InvalidEntity {
+			t.Error("Expected valid entity ID, got InvalidEntity")
 		}
 
-		if entity2 == core.INVALID_ENTITY {
-			t.Error("Expected valid entity ID, got INVALID_ENTITY")
+		if entity2 == core.InvalidEntity {
+			t.Error("Expected valid entity ID, got InvalidEntity")
 		}
 
 		if entity1 == entity2 {
@@ -34,14 +36,16 @@ func TestEntityManager(t *testing.T) {
 
 	// Тест проверки живости
 	t.Run("IsAlive", func(t *testing.T) {
+		t.Parallel()
+		em := core.NewEntityManager()
 		entity := em.CreateEntity()
 
 		if !em.IsAlive(entity) {
 			t.Error("Entity should be alive after creation")
 		}
 
-		if em.IsAlive(core.INVALID_ENTITY) {
-			t.Error("INVALID_ENTITY should not be alive")
+		if em.IsAlive(core.InvalidEntity) {
+			t.Error("InvalidEntity should not be alive")
 		}
 
 		if em.IsAlive(999) {
@@ -51,6 +55,8 @@ func TestEntityManager(t *testing.T) {
 
 	// Тест уничтожения сущностей
 	t.Run("DestroyEntity", func(t *testing.T) {
+		t.Parallel()
+		em := core.NewEntityManager()
 		entity := em.CreateEntity()
 		initialCount := em.Count()
 
@@ -74,7 +80,8 @@ func TestEntityManager(t *testing.T) {
 
 	// Тест переиспользования ID
 	t.Run("ReuseIDs", func(t *testing.T) {
-		em.Clear()
+		t.Parallel()
+		em := core.NewEntityManager()
 
 		// Создаем несколько сущностей
 		entities := make([]core.EntityID, 5)
@@ -106,27 +113,30 @@ func TestEntityManager(t *testing.T) {
 
 	// Тест лимита сущностей
 	t.Run("EntityLimit", func(t *testing.T) {
-		em.Clear()
+		t.Parallel()
+		em := core.NewEntityManager()
 
 		// Создаем максимальное количество сущностей
-		for i := 0; i < core.MAX_ENTITIES-1; i++ {
+		for i := 0; i < core.MaxEntities-1; i++ {
 			entity := em.CreateEntity()
-			if entity == core.INVALID_ENTITY {
+			if entity == core.InvalidEntity {
 				t.Fatalf("Failed to create entity %d", i)
 			}
 		}
 
-		// Следующая сущность должна вернуть INVALID_ENTITY
+		// Следующая сущность должна вернуть InvalidEntity
 		entity := em.CreateEntity()
-		if entity != core.INVALID_ENTITY {
-			t.Error("Expected INVALID_ENTITY when hitting limit")
+		if entity != core.InvalidEntity {
+			t.Error("Expected InvalidEntity when hitting limit")
 		}
 	})
 }
 
 // TestComponentMasks тестирует работу с битовыми масками компонентов
 func TestComponentMasks(t *testing.T) {
+	t.Parallel()
 	t.Run("HasComponent", func(t *testing.T) {
+		t.Parallel()
 		mask := core.MaskPosition | core.MaskVelocity
 
 		if !mask.HasComponent(core.MaskPosition) {
@@ -143,6 +153,7 @@ func TestComponentMasks(t *testing.T) {
 	})
 
 	t.Run("AddRemoveComponent", func(t *testing.T) {
+		t.Parallel()
 		mask := core.MaskPosition
 
 		// Добавляем компонент
@@ -163,6 +174,7 @@ func TestComponentMasks(t *testing.T) {
 	})
 
 	t.Run("ComponentSet", func(t *testing.T) {
+		t.Parallel()
 		cs := core.NewComponentSet(core.MaskPosition, core.MaskVelocity)
 
 		if !cs.Has(core.MaskPosition) {
@@ -187,13 +199,14 @@ func TestComponentMasks(t *testing.T) {
 
 // TestWorld тестирует основную функциональность World
 func TestWorld(t *testing.T) {
-	world := core.NewWorld(100, 100, 42)
-	defer world.Clear()
+	t.Parallel()
 
 	t.Run("CreateDestroyEntity", func(t *testing.T) {
+		t.Parallel()
+		world := core.NewWorld(100, 100, 42)
 		entity := world.CreateEntity()
 
-		if entity == core.INVALID_ENTITY {
+		if entity == core.InvalidEntity {
 			t.Error("Expected valid entity")
 		}
 
@@ -219,6 +232,8 @@ func TestWorld(t *testing.T) {
 	})
 
 	t.Run("TimeManagement", func(t *testing.T) {
+		t.Parallel()
+		world := core.NewWorld(100, 100, 42)
 		initialTime := world.GetTime()
 
 		world.Update(1.0 / 60.0) // 60 FPS
@@ -247,6 +262,8 @@ func TestWorld(t *testing.T) {
 	})
 
 	t.Run("WorldDimensions", func(t *testing.T) {
+		t.Parallel()
+		world := core.NewWorld(100, 100, 42)
 		width, height := world.GetWorldDimensions()
 
 		if width != 100 {
@@ -261,12 +278,13 @@ func TestWorld(t *testing.T) {
 
 // TestComponents тестирует работу с компонентами
 func TestComponents(t *testing.T) {
-	world := core.NewWorld(100, 100, 42)
-	defer world.Clear()
-
-	entity := world.CreateEntity()
+	t.Parallel()
 
 	t.Run("Position", func(t *testing.T) {
+		t.Parallel()
+		world := core.NewWorld(100, 100, 42)
+		entity := world.CreateEntity()
+
 		// Проверяем что компонента изначально нет
 		if world.HasComponent(entity, core.MaskPosition) {
 			t.Error("Entity should not have Position initially")
@@ -319,6 +337,10 @@ func TestComponents(t *testing.T) {
 	})
 
 	t.Run("MultipleComponents", func(t *testing.T) {
+		t.Parallel()
+		world := core.NewWorld(100, 100, 42)
+		entity := world.CreateEntity()
+
 		// Добавляем несколько компонентов
 		world.AddPosition(entity, core.Position{X: 5, Y: 5})
 		world.AddVelocity(entity, core.Velocity{X: 1, Y: 1})
@@ -348,6 +370,9 @@ func TestComponents(t *testing.T) {
 	})
 
 	t.Run("AnimalType", func(t *testing.T) {
+		t.Parallel()
+		world := core.NewWorld(100, 100, 42)
+		entity := world.CreateEntity()
 		world.AddAnimalType(entity, core.TypeRabbit)
 
 		animalType, ok := world.GetAnimalType(entity)
@@ -368,26 +393,34 @@ func TestComponents(t *testing.T) {
 
 // TestQueries тестирует системы запросов
 func TestQueries(t *testing.T) {
-	world := core.NewWorld(100, 100, 42)
-	defer world.Clear()
+	t.Parallel()
 
-	// Создаем несколько сущностей с разными компонентами
-	rabbit1 := world.CreateEntity()
-	world.AddPosition(rabbit1, core.Position{X: 10, Y: 10})
-	world.AddVelocity(rabbit1, core.Velocity{X: 1, Y: 0})
-	world.AddAnimalType(rabbit1, core.TypeRabbit)
-	world.AddHealth(rabbit1, core.Health{Current: 50, Max: 100})
+	setupWorld := func() *core.World {
+		world := core.NewWorld(100, 100, 42)
 
-	rabbit2 := world.CreateEntity()
-	world.AddPosition(rabbit2, core.Position{X: 20, Y: 20})
-	world.AddAnimalType(rabbit2, core.TypeRabbit)
+		// Создаем несколько сущностей с разными компонентами
+		rabbit1 := world.CreateEntity()
+		world.AddPosition(rabbit1, core.Position{X: 10, Y: 10})
+		world.AddVelocity(rabbit1, core.Velocity{X: 1, Y: 0})
+		world.AddAnimalType(rabbit1, core.TypeRabbit)
+		world.AddHealth(rabbit1, core.Health{Current: 50, Max: 100})
 
-	wolf := world.CreateEntity()
-	world.AddPosition(wolf, core.Position{X: 30, Y: 30})
-	world.AddVelocity(wolf, core.Velocity{X: -1, Y: -1})
-	world.AddAnimalType(wolf, core.TypeWolf)
+		rabbit2 := world.CreateEntity()
+		world.AddPosition(rabbit2, core.Position{X: 20, Y: 20})
+		world.AddAnimalType(rabbit2, core.TypeRabbit)
+
+		wolf := world.CreateEntity()
+		world.AddPosition(wolf, core.Position{X: 30, Y: 30})
+		world.AddVelocity(wolf, core.Velocity{X: -1, Y: -1})
+		world.AddAnimalType(wolf, core.TypeWolf)
+
+		return world
+	}
 
 	t.Run("ForEachWith", func(t *testing.T) {
+		t.Parallel()
+		world := setupWorld()
+
 		// Считаем сущности с позицией
 		count := 0
 		world.ForEachWith(core.MaskPosition, func(entity core.EntityID) {
@@ -410,6 +443,8 @@ func TestQueries(t *testing.T) {
 	})
 
 	t.Run("QueryEntitiesWith", func(t *testing.T) {
+		t.Parallel()
+		world := setupWorld()
 		entities := world.QueryEntitiesWith(core.MaskPosition)
 
 		if len(entities) != 3 {
@@ -425,6 +460,8 @@ func TestQueries(t *testing.T) {
 	})
 
 	t.Run("CountEntitiesWith", func(t *testing.T) {
+		t.Parallel()
+		world := setupWorld()
 		count := world.CountEntitiesWith(core.MaskAnimalType)
 		if count != 3 {
 			t.Errorf("Expected 3 animals, got %d", count)
@@ -437,6 +474,8 @@ func TestQueries(t *testing.T) {
 	})
 
 	t.Run("QueryByType", func(t *testing.T) {
+		t.Parallel()
+		world := setupWorld()
 		rabbits := world.QueryByType(core.TypeRabbit)
 		if len(rabbits) != 2 {
 			t.Errorf("Expected 2 rabbits, got %d", len(rabbits))
@@ -454,6 +493,8 @@ func TestQueries(t *testing.T) {
 	})
 
 	t.Run("GetStats", func(t *testing.T) {
+		t.Parallel()
+		world := setupWorld()
 		stats := world.GetStats()
 
 		if stats[core.TypeRabbit] != 2 {
@@ -472,23 +513,31 @@ func TestQueries(t *testing.T) {
 
 // TestSpatialIntegration тестирует интеграцию с пространственной системой
 func TestSpatialIntegration(t *testing.T) {
-	world := core.NewWorld(100, 100, 42)
-	defer world.Clear()
+	t.Parallel()
 
-	// Создаем сущности с позицией и размером
-	entity1 := world.CreateEntity()
-	world.AddPosition(entity1, core.Position{X: 10, Y: 10})
-	world.AddSize(entity1, core.Size{Radius: 5})
+	setupSpatialWorld := func() (*core.World, core.EntityID, core.EntityID, core.EntityID) {
+		world := core.NewWorld(100, 100, 42)
 
-	entity2 := world.CreateEntity()
-	world.AddPosition(entity2, core.Position{X: 20, Y: 20})
-	world.AddSize(entity2, core.Size{Radius: 3})
+		// Создаем сущности с позицией и размером
+		entity1 := world.CreateEntity()
+		world.AddPosition(entity1, core.Position{X: 10, Y: 10})
+		world.AddSize(entity1, core.Size{Radius: 5, AttackRange: 0})
 
-	entity3 := world.CreateEntity()
-	world.AddPosition(entity3, core.Position{X: 80, Y: 80})
-	world.AddSize(entity3, core.Size{Radius: 2})
+		entity2 := world.CreateEntity()
+		world.AddPosition(entity2, core.Position{X: 20, Y: 20})
+		world.AddSize(entity2, core.Size{Radius: 3, AttackRange: 0})
+
+		entity3 := world.CreateEntity()
+		world.AddPosition(entity3, core.Position{X: 80, Y: 80})
+		world.AddSize(entity3, core.Size{Radius: 2, AttackRange: 0})
+
+		return world, entity1, entity2, entity3
+	}
 
 	t.Run("QueryInRadius", func(t *testing.T) {
+		t.Parallel()
+		world, entity1, _, _ := setupSpatialWorld()
+
 		// Поиск в радиусе 15 от точки (10, 10)
 		nearby := world.QueryInRadius(10, 10, 15)
 
@@ -511,6 +560,9 @@ func TestSpatialIntegration(t *testing.T) {
 	})
 
 	t.Run("FindNearestAnimal", func(t *testing.T) {
+		t.Parallel()
+		world, entity1, entity2, entity3 := setupSpatialWorld()
+
 		// Добавляем типы животных
 		world.AddAnimalType(entity1, core.TypeRabbit)
 		world.AddAnimalType(entity2, core.TypeRabbit)
@@ -530,6 +582,13 @@ func TestSpatialIntegration(t *testing.T) {
 	})
 
 	t.Run("FindNearestByType", func(t *testing.T) {
+		t.Parallel()
+		world, entity1, _, entity3 := setupSpatialWorld()
+
+		// Добавляем типы животных
+		world.AddAnimalType(entity1, core.TypeRabbit)
+		world.AddAnimalType(entity3, core.TypeWolf)
+
 		// Ищем ближайшего волка к точке (10, 10)
 		nearest, found := world.FindNearestByType(10, 10, 100, core.TypeWolf)
 
@@ -556,6 +615,7 @@ func TestSpatialIntegration(t *testing.T) {
 
 // TestDestroyEntityCleanup тестирует что уничтожение сущности очищает все данные
 func TestDestroyEntityCleanup(t *testing.T) {
+	t.Parallel()
 	world := core.NewWorld(100, 100, 42)
 	defer world.Clear()
 
@@ -568,7 +628,7 @@ func TestDestroyEntityCleanup(t *testing.T) {
 	world.AddHunger(entity, core.Hunger{Value: 50})
 	world.AddAge(entity, core.Age{Seconds: 10})
 	world.AddAnimalType(entity, core.TypeRabbit)
-	world.AddSize(entity, core.Size{Radius: 5})
+	world.AddSize(entity, core.Size{Radius: 5, AttackRange: 0})
 	world.AddSpeed(entity, core.Speed{Base: 20, Current: 15})
 
 	// Проверяем что все компоненты есть

@@ -52,25 +52,48 @@ func LoadConfig(filename string) (*Config, error) {
 	return &config, nil
 }
 
+// Константы конфигурации по умолчанию
+const (
+	// Размеры мира
+	DefaultWorldSize = 50 // Размер мира в тайлах (50x50)
+	DefaultWorldSeed = 42 // Базовый seed для генерации мира
+
+	// Параметры ландшафта
+	DefaultWaterBodies    = 3 // Количество водоёмов
+	DefaultWaterRadiusMin = 3 // Минимальный радиус водоёма (тайлы)
+	DefaultWaterRadiusMax = 5 // Максимальный радиус водоёма (тайлы)
+	DefaultBushClusters   = 7 // Количество кустарниковых кластеров
+	DefaultBushPerCluster = 5 // Количество кустов в кластере
+
+	// Параметры популяций животных
+	DefaultRabbits         = 30 // Начальное количество зайцев
+	DefaultWolves          = 3  // Начальное количество волков
+	DefaultRabbitGroupSize = 3  // Размер группы зайцев
+	DefaultMinWolfDistance = 20 // Минимальное расстояние между волками (тайлы)
+
+	// Права доступа к файлам
+	ConfigFilePermissions = 0600 // Права доступа к файлу конфигурации (только владелец)
+)
+
 // LoadDefaultConfig загружает конфигурацию по умолчанию
 func LoadDefaultConfig() *Config {
 	return &Config{
 		World: WorldConfig{
-			Size: 50,
-			Seed: 42,
+			Size: DefaultWorldSize,
+			Seed: DefaultWorldSeed,
 		},
 		Terrain: TerrainConfig{
-			WaterBodies:    3,
-			WaterRadiusMin: 3,
-			WaterRadiusMax: 5,
-			BushClusters:   7,
-			BushPerCluster: 5,
+			WaterBodies:    DefaultWaterBodies,
+			WaterRadiusMin: DefaultWaterRadiusMin,
+			WaterRadiusMax: DefaultWaterRadiusMax,
+			BushClusters:   DefaultBushClusters,
+			BushPerCluster: DefaultBushPerCluster,
 		},
 		Population: PopulationConfig{
-			Rabbits:         30,
-			Wolves:          3,
-			RabbitGroupSize: 3,
-			MinWolfDistance: 20,
+			Rabbits:         DefaultRabbits,
+			Wolves:          DefaultWolves,
+			RabbitGroupSize: DefaultRabbitGroupSize,
+			MinWolfDistance: DefaultMinWolfDistance,
 		},
 	}
 }
@@ -82,7 +105,7 @@ func SaveConfig(config *Config, filename string) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(filename, data, 0644); err != nil {
+	if err := os.WriteFile(filename, data, ConfigFilePermissions); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

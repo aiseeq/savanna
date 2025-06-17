@@ -61,6 +61,7 @@ func (m *MockTerrain) ConsumeGrass(x, y int, amount float32) float32 {
 }
 
 func TestVegetationSystem_GrassGrowth(t *testing.T) {
+	t.Parallel()
 	// Создаем тестовое окружение
 	terrain := NewMockTerrain(10)
 	vegSystem := simulation.NewVegetationSystem(terrain)
@@ -76,13 +77,15 @@ func TestVegetationSystem_GrassGrowth(t *testing.T) {
 
 	// Проверяем что трава выросла (+ 1 единица за 2 секунды)
 	newAmount := terrain.GetGrassAmount(5, 5)
-	expected := float32(51.0) // 50 + 1
-	if newAmount != expected {
-		t.Errorf("Ожидали %f травы, получили %f", expected, newAmount)
+	expected := float32(51.0)  // 50 + 1
+	tolerance := float32(0.01) // Допуск для чисел с плавающей точкой
+	if newAmount < expected-tolerance || newAmount > expected+tolerance {
+		t.Errorf("Ожидали %f травы (±%.3f), получили %f", expected, tolerance, newAmount)
 	}
 }
 
 func TestVegetationSystem_GrassGrowthCap(t *testing.T) {
+	t.Parallel()
 	// Создаем тестовое окружение
 	terrain := NewMockTerrain(10)
 	vegSystem := simulation.NewVegetationSystem(terrain)
@@ -104,6 +107,7 @@ func TestVegetationSystem_GrassGrowthCap(t *testing.T) {
 }
 
 func TestVegetationSystem_NonGrassTiles(t *testing.T) {
+	t.Parallel()
 	// Создаем тестовое окружение
 	terrain := NewMockTerrain(10)
 	vegSystem := simulation.NewVegetationSystem(terrain)
@@ -125,6 +129,7 @@ func TestVegetationSystem_NonGrassTiles(t *testing.T) {
 }
 
 func TestVegetationSystem_FindNearestGrass(t *testing.T) {
+	t.Parallel()
 	// Создаем тестовое окружение
 	terrain := NewMockTerrain(10)
 	vegSystem := simulation.NewVegetationSystem(terrain)
@@ -153,6 +158,7 @@ func TestVegetationSystem_FindNearestGrass(t *testing.T) {
 }
 
 func TestVegetationSystem_FindNearestGrass_NotFound(t *testing.T) {
+	t.Parallel()
 	// Создаем тестовое окружение
 	terrain := NewMockTerrain(10)
 	vegSystem := simulation.NewVegetationSystem(terrain)
@@ -170,6 +176,7 @@ func TestVegetationSystem_FindNearestGrass_NotFound(t *testing.T) {
 }
 
 func TestVegetationSystem_ConsumeGrass(t *testing.T) {
+	t.Parallel()
 	// Создаем тестовое окружение
 	terrain := NewMockTerrain(10)
 
@@ -191,6 +198,7 @@ func TestVegetationSystem_ConsumeGrass(t *testing.T) {
 }
 
 func TestVegetationSystem_ConsumeGrass_PartialConsumption(t *testing.T) {
+	t.Parallel()
 	// Создаем тестовое окружение
 	terrain := NewMockTerrain(10)
 

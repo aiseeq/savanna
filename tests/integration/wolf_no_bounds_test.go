@@ -28,6 +28,7 @@ func (sms *SimpleMovementSystem) Update(world *core.World, deltaTime float32) {
 
 // TestWolfWithoutBoundaryInterference тест без влияния границ мира
 func TestWolfWithoutBoundaryInterference(t *testing.T) {
+	t.Parallel()
 	cfg := &config.Config{
 		World: config.WorldConfig{Size: 50, Seed: 123}, // Больший мир
 	}

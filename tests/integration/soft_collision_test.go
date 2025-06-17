@@ -10,6 +10,7 @@ import (
 
 // TestSoftCollisions проверяет мягкое расталкивание как в StarCraft 2
 func TestSoftCollisions(t *testing.T) {
+	t.Parallel()
 	world := core.NewWorld(320, 320, 42)
 	movementSystem := simulation.NewMovementSystem(320, 320)
 
