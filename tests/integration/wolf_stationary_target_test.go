@@ -12,6 +12,7 @@ import (
 
 // TestWolfVsStationaryTarget проверяет поведение волка с полностью неподвижной целью
 func TestWolfVsStationaryTarget(t *testing.T) {
+	t.Parallel()
 	cfg := &config.Config{
 		World: config.WorldConfig{Size: 10, Seed: 123},
 	}

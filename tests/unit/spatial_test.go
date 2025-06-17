@@ -7,6 +7,7 @@ import (
 )
 
 func TestNewSpatialGrid(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name               string
 		worldWidth         float32
@@ -23,7 +24,9 @@ func TestNewSpatialGrid(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			grid := physics.NewSpatialGrid(tt.worldWidth, tt.worldHeight, tt.cellSize)
 
 			if grid.GetCellSize() != tt.cellSize {
@@ -56,7 +59,7 @@ func TestNewSpatialGrid(t *testing.T) {
 }
 
 func TestSpatialGridInsert(t *testing.T) {
-	grid := physics.NewSpatialGrid(10, 10, 2)
+	t.Parallel()
 
 	tests := []struct {
 		name     string
@@ -71,8 +74,16 @@ func TestSpatialGridInsert(t *testing.T) {
 	}
 
 	for i, tt := range tests {
+		i, tt := i, tt // Фиксируем значения loop variables для closure
 		t.Run(tt.name, func(t *testing.T) {
-			grid.Insert(tt.id, tt.position, tt.radius)
+			t.Parallel()
+			grid := physics.NewSpatialGrid(10, 10, 2)
+
+			// Добавляем все предыдущие сущности
+			for j := 0; j <= i; j++ {
+				prevTest := tests[j]
+				grid.Insert(prevTest.id, prevTest.position, prevTest.radius)
+			}
 
 			expectedCount := i + 1
 			if grid.GetEntityCount() != expectedCount {
@@ -87,6 +98,7 @@ func TestSpatialGridInsert(t *testing.T) {
 }
 
 func TestSpatialGridRemove(t *testing.T) {
+	t.Parallel()
 	grid := physics.NewSpatialGrid(10, 10, 2)
 
 	// Добавляем сущности
@@ -131,6 +143,7 @@ func TestSpatialGridRemove(t *testing.T) {
 }
 
 func TestSpatialGridUpdate(t *testing.T) {
+	t.Parallel()
 	grid := physics.NewSpatialGrid(10, 10, 2)
 
 	// Добавляем сущность
@@ -150,7 +163,9 @@ func TestSpatialGridUpdate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			grid.Update(entityID, tt.newPosition, tt.newRadius)
 
 			if grid.GetEntityCount() != 1 {
@@ -167,6 +182,7 @@ func TestSpatialGridUpdate(t *testing.T) {
 }
 
 func TestSpatialGridUpdateNonExistent(t *testing.T) {
+	t.Parallel()
 	grid := physics.NewSpatialGrid(10, 10, 2)
 
 	// Обновляем несуществующую сущность - должна создаться
@@ -185,7 +201,7 @@ func TestSpatialGridUpdateNonExistent(t *testing.T) {
 }
 
 func TestSpatialGridQueryRange(t *testing.T) {
-	grid := physics.NewSpatialGrid(20, 20, 4)
+	t.Parallel()
 
 	// Добавляем сущности в разные области
 	entities := []struct {
@@ -198,10 +214,6 @@ func TestSpatialGridQueryRange(t *testing.T) {
 		{3, physics.NewVec2(10, 10), 0.5}, // Центр
 		{4, physics.NewVec2(2, 18), 0.5},  // Левый верхний угол
 		{5, physics.NewVec2(8, 2), 0.5},   // Правый нижний угол
-	}
-
-	for _, e := range entities {
-		grid.Insert(e.id, e.position, e.radius)
 	}
 
 	tests := []struct {
@@ -219,7 +231,16 @@ func TestSpatialGridQueryRange(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			grid := physics.NewSpatialGrid(20, 20, 4)
+
+			// Добавляем все сущности в этот экземпляр grid
+			for _, e := range entities {
+				grid.Insert(e.id, e.position, e.radius)
+			}
+
 			result := grid.QueryRange(tt.minX, tt.minY, tt.maxX, tt.maxY)
 
 			if !tt.allowAdditionalEntities && len(result) != tt.expectedEntityCount {
@@ -244,7 +265,7 @@ func TestSpatialGridQueryRange(t *testing.T) {
 }
 
 func TestSpatialGridQueryRadius(t *testing.T) {
-	grid := physics.NewSpatialGrid(20, 20, 4)
+	t.Parallel()
 
 	// Добавляем сущности в определенные позиции
 	entities := []struct {
@@ -257,10 +278,6 @@ func TestSpatialGridQueryRadius(t *testing.T) {
 		{3, physics.NewVec2(10, 14), 0.5}, // 4 единицы от центра
 		{4, physics.NewVec2(5, 15), 0.5},  // ~7 единиц от центра
 		{5, physics.NewVec2(2, 2), 0.5},   // Далеко от центра
-	}
-
-	for _, e := range entities {
-		grid.Insert(e.id, e.position, e.radius)
 	}
 
 	tests := []struct {
@@ -303,7 +320,16 @@ func TestSpatialGridQueryRadius(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			grid := physics.NewSpatialGrid(20, 20, 4)
+
+			// Добавляем все сущности в этот экземпляр grid
+			for _, e := range entities {
+				grid.Insert(e.id, e.position, e.radius)
+			}
+
 			result := grid.QueryRadius(tt.center, tt.radius)
 
 			if len(result) < tt.expectedMinCount || len(result) > tt.expectedMaxCount {
@@ -331,6 +357,7 @@ func TestSpatialGridQueryRadius(t *testing.T) {
 }
 
 func TestSpatialGridQueryNearest(t *testing.T) {
+	t.Parallel()
 	grid := physics.NewSpatialGrid(20, 20, 4)
 
 	// Добавляем сущности
@@ -363,7 +390,9 @@ func TestSpatialGridQueryNearest(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result, found := grid.QueryNearest(tt.center, tt.maxRadius)
 
 			if found != tt.expectedFound {
@@ -387,6 +416,7 @@ func TestSpatialGridQueryNearest(t *testing.T) {
 }
 
 func TestSpatialGridQueryNearestEmpty(t *testing.T) {
+	t.Parallel()
 	grid := physics.NewSpatialGrid(10, 10, 2)
 
 	// Пустая сетка
@@ -398,6 +428,7 @@ func TestSpatialGridQueryNearestEmpty(t *testing.T) {
 }
 
 func TestSpatialGridClear(t *testing.T) {
+	t.Parallel()
 	grid := physics.NewSpatialGrid(10, 10, 2)
 
 	// Добавляем несколько сущностей
@@ -427,7 +458,7 @@ func TestSpatialGridClear(t *testing.T) {
 }
 
 func TestSpatialGridBoundaryConditions(t *testing.T) {
-	grid := physics.NewSpatialGrid(10, 10, 2)
+	t.Parallel()
 
 	tests := []struct {
 		name     string
@@ -441,9 +472,16 @@ func TestSpatialGridBoundaryConditions(t *testing.T) {
 	}
 
 	for i, tt := range tests {
+		i, tt := i, tt // Фиксируем значения loop variables для closure
 		t.Run(tt.name, func(t *testing.T) {
-			entityID := physics.EntityID(i + 1)
-			grid.Insert(entityID, tt.position, tt.radius)
+			t.Parallel()
+			grid := physics.NewSpatialGrid(10, 10, 2)
+
+			// Добавляем все предыдущие сущности тоже
+			for j := 0; j <= i; j++ {
+				entityID := physics.EntityID(j + 1)
+				grid.Insert(entityID, tests[j].position, tests[j].radius)
+			}
 
 			if grid.GetEntityCount() != i+1 {
 				t.Errorf("Expected %d entities, got %d", i+1, grid.GetEntityCount())
@@ -459,6 +497,7 @@ func TestSpatialGridBoundaryConditions(t *testing.T) {
 }
 
 func TestSpatialGridLargeScale(t *testing.T) {
+	t.Parallel()
 	grid := physics.NewSpatialGrid(100, 100, 5)
 
 	// Добавляем много сущностей

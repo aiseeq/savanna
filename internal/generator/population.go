@@ -6,6 +6,20 @@ import (
 
 	"github.com/aiseeq/savanna/config"
 	"github.com/aiseeq/savanna/internal/core"
+	"github.com/aiseeq/savanna/internal/physics"
+)
+
+const (
+	// Константы для детерминированной генерации
+	PopulationSeedOffset = 1000 // Смещение seed для популяций относительно terrain
+
+	// Константы размещения (в пикселях, привязаны к TILE_SIZE)
+	TileSizePixels       = float32(physics.TileSize) // 32.0 пикселя на тайл
+	MaxAttemptsPlacement = 1000                      // Максимум попыток размещения
+	MarginPixels         = 2 * TileSizePixels        // Отступ от краёв карты (2 тайла)
+
+	// Группировка животных
+	MaxGroupRadiusPixels = 2 * TileSizePixels // Радиус группы зайцев (2 тайла)
 )
 
 // PopulationGenerator генерирует размещение животных на карте
@@ -25,7 +39,7 @@ type AnimalPlacement struct {
 func NewPopulationGenerator(cfg *config.Config, terrain *Terrain) *PopulationGenerator {
 	// Создаём отдельный источник случайности для размещения животных
 	// Используем отдельный seed для детерминированности
-	source := rand.NewSource(cfg.World.Seed + 1000) // +1000 чтобы отличаться от terrain
+	source := rand.NewSource(cfg.World.Seed + PopulationSeedOffset) // Смещение для детерминированности
 	rng := rand.New(source)
 
 	return &PopulationGenerator{
@@ -74,16 +88,16 @@ func (pg *PopulationGenerator) placeRabbits() []AnimalPlacement {
 
 		// Размещаем зайцев в группе
 		for i := 0; i < currentGroupSize; i++ {
-			// Случайное смещение в радиусе 2 тайлов от центра группы
+			// Случайное смещение в радиусе группы от центра
 			angle := pg.rng.Float64() * 2 * math.Pi
-			radius := pg.rng.Float64() * 2.0 * 32.0 // 2 тайла в пикселях
+			radius := pg.rng.Float64() * float64(MaxGroupRadiusPixels)
 
 			x := groupCenterX + float32(radius*math.Cos(angle))
 			y := groupCenterY + float32(radius*math.Sin(angle))
 
 			// Проверяем что позиция валидна
-			tileX := int(x / 32.0)
-			tileY := int(y / 32.0)
+			tileX := int(x / TileSizePixels)
+			tileY := int(y / TileSizePixels)
 
 			if !pg.terrain.IsPassable(tileX, tileY) {
 				// Если место неподходящее, размещаем в центре группы
@@ -110,7 +124,7 @@ func (pg *PopulationGenerator) placeWolves() []AnimalPlacement {
 	var wolfPositions []struct{ x, y float32 }
 
 	totalWolves := pg.config.Population.Wolves
-	minDistance := float32(pg.config.Population.MinWolfDistance) * 32.0 // Конвертируем в пиксели
+	minDistance := float32(pg.config.Population.MinWolfDistance) * TileSizePixels // Конвертируем в пиксели
 
 	for placedWolves := 0; placedWolves < totalWolves; placedWolves++ {
 		// Находим место для волка с учётом минимальной дистанции
@@ -134,18 +148,20 @@ func (pg *PopulationGenerator) placeWolves() []AnimalPlacement {
 }
 
 // findSuitableLocation ищет подходящее место для размещения животного
-func (pg *PopulationGenerator) findSuitableLocation(existingPositions []struct{ x, y float32 }, minDistance float32) (float32, float32, bool) {
-	worldSizePixels := float32(pg.terrain.Size * 32) // Размер мира в пикселях
-	margin := float32(64)                            // Отступ от краёв (2 тайла)
+func (pg *PopulationGenerator) findSuitableLocation(
+	existingPositions []struct{ x, y float32 }, minDistance float32,
+) (x, y float32, found bool) {
+	worldSizePixels := float32(pg.terrain.Size) * TileSizePixels // Размер мира в пикселях
+	margin := MarginPixels                                       // Отступ от краёв карты
 
-	for attempts := 0; attempts < 1000; attempts++ {
+	for attempts := 0; attempts < MaxAttemptsPlacement; attempts++ {
 		// Случайная позиция с отступом от краёв
 		x := margin + pg.rng.Float32()*(worldSizePixels-2*margin)
 		y := margin + pg.rng.Float32()*(worldSizePixels-2*margin)
 
 		// Проверяем что тайл проходим
-		tileX := int(x / 32.0)
-		tileY := int(y / 32.0)
+		tileX := int(x / TileSizePixels)
+		tileY := int(y / TileSizePixels)
 
 		if !pg.terrain.IsPassable(tileX, tileY) {
 			continue
@@ -182,8 +198,8 @@ func (pg *PopulationGenerator) ValidatePlacement(placements []AnimalPlacement) [
 
 	// Проверяем что все животные на проходимых тайлах
 	for _, placement := range placements {
-		tileX := int(placement.X / 32.0)
-		tileY := int(placement.Y / 32.0)
+		tileX := int(placement.X / TileSizePixels)
+		tileY := int(placement.Y / TileSizePixels)
 
 		if !pg.terrain.IsPassable(tileX, tileY) {
 			errors = append(errors, "Animal placed on impassable tile")
@@ -191,7 +207,7 @@ func (pg *PopulationGenerator) ValidatePlacement(placements []AnimalPlacement) [
 	}
 
 	// Проверяем минимальные расстояния между волками
-	minWolfDistance := float32(pg.config.Population.MinWolfDistance) * 32.0
+	minWolfDistance := float32(pg.config.Population.MinWolfDistance) * TileSizePixels
 	wolves := make([]AnimalPlacement, 0)
 
 	for _, placement := range placements {
@@ -215,13 +231,27 @@ func (pg *PopulationGenerator) ValidatePlacement(placements []AnimalPlacement) [
 	return errors
 }
 
-// GetStats возвращает статистику размещения животных
+// GetStats возвращает статистику размещения животных (рефакторинг: снижена когнитивная сложность)
 func (pg *PopulationGenerator) GetStats(placements []AnimalPlacement) map[string]interface{} {
 	stats := make(map[string]interface{})
 
-	rabbits := 0
-	wolves := 0
+	rabbits, wolves := pg.countAnimalsByType(placements)
 
+	stats["total_animals"] = len(placements)
+	stats["rabbits"] = rabbits
+	stats["wolves"] = wolves
+	stats["rabbit_groups"] = pg.calculateRabbitGroups(rabbits)
+
+	// Добавляем статистику расстояний между волками
+	if avgDistance, hasDistance := pg.calculateAverageWolfDistance(placements, wolves); hasDistance {
+		stats["average_wolf_distance"] = avgDistance
+	}
+
+	return stats
+}
+
+// countAnimalsByType подсчитывает количество животных по типам (helper-функция)
+func (pg *PopulationGenerator) countAnimalsByType(placements []AnimalPlacement) (rabbits, wolves int) {
 	for _, placement := range placements {
 		switch placement.Type {
 		case core.TypeRabbit:
@@ -230,38 +260,53 @@ func (pg *PopulationGenerator) GetStats(placements []AnimalPlacement) map[string
 			wolves++
 		}
 	}
+	return rabbits, wolves
+}
 
-	stats["total_animals"] = len(placements)
-	stats["rabbits"] = rabbits
-	stats["wolves"] = wolves
-	stats["rabbit_groups"] = (rabbits + pg.config.Population.RabbitGroupSize - 1) / pg.config.Population.RabbitGroupSize // Округление вверх
+// calculateRabbitGroups вычисляет количество групп зайцев (helper-функция)
+func (pg *PopulationGenerator) calculateRabbitGroups(rabbits int) int {
+	// Округление вверх
+	return (rabbits + pg.config.Population.RabbitGroupSize - 1) / pg.config.Population.RabbitGroupSize
+}
 
-	// Вычисляем среднее расстояние между волками
-	if wolves > 1 {
-		totalDistance := float32(0)
-		pairs := 0
-
-		wolfPlacements := make([]AnimalPlacement, 0)
-		for _, placement := range placements {
-			if placement.Type == core.TypeWolf {
-				wolfPlacements = append(wolfPlacements, placement)
-			}
-		}
-
-		for i := 0; i < len(wolfPlacements); i++ {
-			for j := i + 1; j < len(wolfPlacements); j++ {
-				dx := wolfPlacements[i].X - wolfPlacements[j].X
-				dy := wolfPlacements[i].Y - wolfPlacements[j].Y
-				distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
-				totalDistance += distance
-				pairs++
-			}
-		}
-
-		if pairs > 0 {
-			stats["average_wolf_distance"] = totalDistance / float32(pairs)
-		}
+// calculateAverageWolfDistance вычисляет среднее расстояние между волками (helper-функция)
+func (pg *PopulationGenerator) calculateAverageWolfDistance(placements []AnimalPlacement, wolves int) (float32, bool) {
+	if wolves <= 1 {
+		return 0, false
 	}
 
-	return stats
+	wolfPlacements := pg.filterWolfPlacements(placements)
+	totalDistance, pairs := pg.calculatePairwiseDistances(wolfPlacements)
+
+	if pairs > 0 {
+		return totalDistance / float32(pairs), true
+	}
+	return 0, false
+}
+
+// filterWolfPlacements фильтрует размещения волков (helper-функция)
+func (pg *PopulationGenerator) filterWolfPlacements(placements []AnimalPlacement) []AnimalPlacement {
+	wolfPlacements := make([]AnimalPlacement, 0)
+	for _, placement := range placements {
+		if placement.Type == core.TypeWolf {
+			wolfPlacements = append(wolfPlacements, placement)
+		}
+	}
+	return wolfPlacements
+}
+
+// calculatePairwiseDistances вычисляет суммарное расстояние между всеми парами волков (helper-функция)
+func (pg *PopulationGenerator) calculatePairwiseDistances(
+	wolfPlacements []AnimalPlacement,
+) (totalDistance float32, pairs int) {
+	for i := 0; i < len(wolfPlacements); i++ {
+		for j := i + 1; j < len(wolfPlacements); j++ {
+			dx := wolfPlacements[i].X - wolfPlacements[j].X
+			dy := wolfPlacements[i].Y - wolfPlacements[j].Y
+			distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
+			totalDistance += distance
+			pairs++
+		}
+	}
+	return totalDistance, pairs
 }

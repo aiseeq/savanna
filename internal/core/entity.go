@@ -4,25 +4,25 @@ package core
 // Используем uint16 для поддержки до 65535 сущностей
 type EntityID uint16
 
-// MAX_ENTITIES максимальное количество сущностей в мире
-const MAX_ENTITIES = 1000
+// MaxEntities максимальное количество сущностей в мире
+const MaxEntities = 1000
 
-// INVALID_ENTITY специальное значение для несуществующей сущности
-const INVALID_ENTITY EntityID = 0
+// InvalidEntity специальное значение для несуществующей сущности
+const InvalidEntity EntityID = 0
 
 // EntityManager управляет созданием, удалением и переиспользованием ID сущностей
 type EntityManager struct {
-	nextID  EntityID           // Следующий доступный ID
-	freeIDs []EntityID         // Освобождённые ID для переиспользования
-	alive   [MAX_ENTITIES]bool // Битовая маска живых сущностей
-	count   int                // Количество живых сущностей
+	nextID  EntityID          // Следующий доступный ID
+	freeIDs []EntityID        // Освобождённые ID для переиспользования
+	alive   [MaxEntities]bool // Битовая маска живых сущностей
+	count   int               // Количество живых сущностей
 }
 
 // NewEntityManager создаёт новый менеджер сущностей
 func NewEntityManager() *EntityManager {
 	return &EntityManager{
-		nextID:  1,                                   // Начинаем с 1, т.к. 0 это INVALID_ENTITY
-		freeIDs: make([]EntityID, 0, MAX_ENTITIES/4), // Предварительно выделяем память
+		nextID:  1,                                  // Начинаем с 1, т.к. 0 это InvalidEntity
+		freeIDs: make([]EntityID, 0, MaxEntities/4), // Предварительно выделяем память
 		count:   0,
 	}
 }
@@ -37,8 +37,8 @@ func (em *EntityManager) CreateEntity() EntityID {
 		em.freeIDs = em.freeIDs[:len(em.freeIDs)-1]
 	} else {
 		// Иначе используем следующий доступный ID
-		if em.nextID >= MAX_ENTITIES {
-			return INVALID_ENTITY // Достигли лимита сущностей
+		if em.nextID >= MaxEntities {
+			return InvalidEntity // Достигли лимита сущностей
 		}
 		id = em.nextID
 		em.nextID++
@@ -51,7 +51,7 @@ func (em *EntityManager) CreateEntity() EntityID {
 
 // DestroyEntity уничтожает сущность и освобождает её ID для переиспользования
 func (em *EntityManager) DestroyEntity(id EntityID) bool {
-	if id == INVALID_ENTITY || id >= MAX_ENTITIES || !em.alive[id] {
+	if id == InvalidEntity || id >= MaxEntities || !em.alive[id] {
 		return false // Сущность не существует
 	}
 
@@ -66,7 +66,7 @@ func (em *EntityManager) DestroyEntity(id EntityID) bool {
 
 // IsAlive проверяет, существует ли сущность
 func (em *EntityManager) IsAlive(id EntityID) bool {
-	if id == INVALID_ENTITY || id >= MAX_ENTITIES {
+	if id == InvalidEntity || id >= MaxEntities {
 		return false
 	}
 	return em.alive[id]

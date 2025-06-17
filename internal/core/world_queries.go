@@ -56,7 +56,7 @@ func (w *World) FindFirstWith(mask ComponentMask) (EntityID, bool) {
 		}
 	}
 
-	return INVALID_ENTITY, false
+	return InvalidEntity, false
 }
 
 // ForEachMoving итерирует по всем движущимся сущностям (Position + Velocity)
@@ -91,8 +91,8 @@ func (w *World) QueryByType(animalType AnimalType) []EntityID {
 func (w *World) QueryInRadius(centerX, centerY, radius float32) []EntityID {
 	w.queryBuffer = w.queryBuffer[:0]
 
-	// Используем пространственную сетку для быстрого поиска
-	spatialResults := w.spatialGrid.QueryRadius(
+	// Используем пространственную систему для быстрого поиска
+	spatialResults := w.spatialProvider.QueryRadius(
 		physics.Vec2{X: centerX, Y: centerY}, radius)
 
 	for _, result := range spatialResults {
@@ -107,7 +107,7 @@ func (w *World) QueryInRadius(centerX, centerY, radius float32) []EntityID {
 
 // FindNearestAnimal находит ближайшее животное к указанной позиции
 func (w *World) FindNearestAnimal(centerX, centerY, maxRadius float32) (EntityID, bool) {
-	result, found := w.spatialGrid.QueryNearest(
+	result, found := w.spatialProvider.QueryNearest(
 		physics.Vec2{X: centerX, Y: centerY}, maxRadius)
 
 	if found {
@@ -117,7 +117,7 @@ func (w *World) FindNearestAnimal(centerX, centerY, maxRadius float32) (EntityID
 		}
 	}
 
-	return INVALID_ENTITY, false
+	return InvalidEntity, false
 }
 
 // FindNearestByType находит ближайшее животное определённого типа
@@ -125,7 +125,7 @@ func (w *World) FindNearestByType(centerX, centerY, maxRadius float32, animalTyp
 	// Получаем всех в радиусе
 	nearby := w.QueryInRadius(centerX, centerY, maxRadius)
 
-	var nearestEntity EntityID = INVALID_ENTITY
+	var nearestEntity EntityID = InvalidEntity
 	var nearestDistanceSq float32 = maxRadius * maxRadius
 
 	for _, entity := range nearby {
@@ -152,7 +152,7 @@ func (w *World) FindNearestByType(centerX, centerY, maxRadius float32, animalTyp
 		}
 	}
 
-	return nearestEntity, nearestEntity != INVALID_ENTITY
+	return nearestEntity, nearestEntity != InvalidEntity
 }
 
 // GetStats возвращает статистику по типам животных

@@ -8,6 +8,7 @@ import (
 
 // TestProjectStructure проверяет что все необходимые папки и файлы существуют
 func TestProjectStructure(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		path     string
@@ -61,7 +62,9 @@ func TestProjectStructure(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			fullPath := filepath.Join(projectRoot, tt.path)
 			info, err := os.Stat(fullPath)
 
@@ -81,11 +84,9 @@ func TestProjectStructure(t *testing.T) {
 				if !tt.isDir && info.IsDir() {
 					t.Errorf("%s должен быть файлом, но это папка", tt.path)
 				}
-			} else {
+			} else if os.IsNotExist(err) {
 				// Для необязательных файлов просто логируем их отсутствие
-				if os.IsNotExist(err) {
-					t.Logf("Необязательный файл отсутствует: %s", tt.path)
-				}
+				t.Logf("Необязательный файл отсутствует: %s", tt.path)
 			}
 		})
 	}
@@ -93,6 +94,7 @@ func TestProjectStructure(t *testing.T) {
 
 // TestGoMod проверяет содержимое go.mod
 func TestGoMod(t *testing.T) {
+	t.Parallel()
 	projectRoot, err := filepath.Abs("../..")
 	if err != nil {
 		t.Fatalf("Не удалось определить корневую папку проекта: %v", err)
@@ -117,7 +119,9 @@ func TestGoMod(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			if !contains(goModContent, tt.contains) {
 				t.Errorf("go.mod должен содержать '%s'", tt.contains)
 			}
@@ -127,7 +131,7 @@ func TestGoMod(t *testing.T) {
 
 // contains проверяет содержит ли строка подстроку (helper функция)
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (len(substr) == 0 || findSubstring(s, substr))
+	return len(s) >= len(substr) && (substr == "" || findSubstring(s, substr))
 }
 
 func findSubstring(s, substr string) bool {

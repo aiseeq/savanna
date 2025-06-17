@@ -10,6 +10,7 @@ import (
 
 // TestTerrainGeneration проверяет генерацию ландшафта
 func TestTerrainGeneration(t *testing.T) {
+	t.Parallel()
 	cfg := config.LoadDefaultConfig()
 	cfg.World.Size = 20 // Маленький мир для тестов
 	cfg.Terrain.WaterBodies = 2
@@ -60,6 +61,7 @@ func TestTerrainGeneration(t *testing.T) {
 
 // TestDeterministicTerrainGeneration проверяет детерминированность генерации ландшафта
 func TestDeterministicTerrainGeneration(t *testing.T) {
+	t.Parallel()
 	cfg := config.LoadDefaultConfig()
 	cfg.World.Size = 15
 	cfg.World.Seed = 12345
@@ -92,6 +94,7 @@ func TestDeterministicTerrainGeneration(t *testing.T) {
 
 // TestPopulationGeneration проверяет размещение животных
 func TestPopulationGeneration(t *testing.T) {
+	t.Parallel()
 	cfg := config.LoadDefaultConfig()
 	cfg.World.Size = 20
 	cfg.Population.Rabbits = 10
@@ -136,6 +139,7 @@ func TestPopulationGeneration(t *testing.T) {
 
 // TestAnimalPlacementValidation проверяет что животные не размещаются на воде/кустах
 func TestAnimalPlacementValidation(t *testing.T) {
+	t.Parallel()
 	cfg := config.LoadDefaultConfig()
 	cfg.World.Size = 15
 	cfg.Terrain.WaterBodies = 5  // Много воды
@@ -165,6 +169,7 @@ func TestAnimalPlacementValidation(t *testing.T) {
 
 // TestWolfMinimumDistance проверяет минимальную дистанцию между волками
 func TestWolfMinimumDistance(t *testing.T) {
+	t.Parallel()
 	cfg := config.LoadDefaultConfig()
 	cfg.World.Size = 30        // Большой мир
 	cfg.Population.Rabbits = 5 // Мало зайцев
@@ -206,6 +211,7 @@ func TestWolfMinimumDistance(t *testing.T) {
 
 // TestConfigValidation проверяет валидацию конфигурации
 func TestConfigValidation(t *testing.T) {
+	t.Parallel()
 	// Тест корректной конфигурации
 	validConfig := config.LoadDefaultConfig()
 	if err := validConfig.Validate(); err != nil {

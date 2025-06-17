@@ -4,6 +4,155 @@ import "github.com/aiseeq/savanna/internal/physics"
 
 // Методы для работы с компонентами в World
 
+// componentAccessor представляет generic интерфейс для доступа к компонентам
+// Устраняет дублирование 45+ функций с идентичной логикой валидации
+type componentAccessor[T any] struct {
+	data    []T           // Массив компонентов
+	hasMask []uint64      // Битовая маска
+	mask    ComponentMask // Маска компонента
+}
+
+// addComponent generic функция для добавления компонента (устраняет дублирование)
+func addComponent[T any](w *World, entity EntityID, component T, accessor componentAccessor[T]) bool {
+	if !w.entities.IsAlive(entity) {
+		return false
+	}
+
+	accessor.data[entity] = component
+	setBitMask(accessor.hasMask, entity)
+	return true
+}
+
+// getComponent generic функция для получения компонента (устраняет дублирование)
+func getComponent[T any](w *World, entity EntityID, accessor componentAccessor[T]) (T, bool) {
+	var zero T
+	if !w.entities.IsAlive(entity) || !testBitMask(accessor.hasMask, entity) {
+		return zero, false
+	}
+
+	return accessor.data[entity], true
+}
+
+// setComponent generic функция для установки компонента (устраняет дублирование)
+func setComponent[T any](w *World, entity EntityID, component T, accessor componentAccessor[T]) bool {
+	if !w.entities.IsAlive(entity) || !testBitMask(accessor.hasMask, entity) {
+		return false
+	}
+
+	accessor.data[entity] = component
+	return true
+}
+
+// removeComponent generic функция для удаления компонента (устраняет дублирование)
+func removeComponent[T any](w *World, entity EntityID, accessor componentAccessor[T]) bool {
+	if !w.entities.IsAlive(entity) || !testBitMask(accessor.hasMask, entity) {
+		return false
+	}
+
+	clearBitMask(accessor.hasMask, entity)
+	return true
+}
+
+// Accessor'ы для каждого типа компонента (устраняет дублирование)
+// Position и Velocity accessor'ы не используются т.к. эти компоненты
+// имеют специальную логику для пространственной сетки
+
+func (w *World) healthAccessor() componentAccessor[Health] {
+	return componentAccessor[Health]{
+		data:    w.healths[:],
+		hasMask: w.hasHealth[:],
+		mask:    MaskHealth,
+	}
+}
+
+func (w *World) hungerAccessor() componentAccessor[Hunger] {
+	return componentAccessor[Hunger]{
+		data:    w.hungers[:],
+		hasMask: w.hasHunger[:],
+		mask:    MaskHunger,
+	}
+}
+
+func (w *World) ageAccessor() componentAccessor[Age] {
+	return componentAccessor[Age]{
+		data:    w.ages[:],
+		hasMask: w.hasAge[:],
+		mask:    MaskAge,
+	}
+}
+
+func (w *World) animalTypeAccessor() componentAccessor[AnimalType] {
+	return componentAccessor[AnimalType]{
+		data:    w.types[:],
+		hasMask: w.hasType[:],
+		mask:    MaskAnimalType,
+	}
+}
+
+func (w *World) sizeAccessor() componentAccessor[Size] {
+	return componentAccessor[Size]{
+		data:    w.sizes[:],
+		hasMask: w.hasSize[:],
+		mask:    MaskSize,
+	}
+}
+
+func (w *World) speedAccessor() componentAccessor[Speed] {
+	return componentAccessor[Speed]{
+		data:    w.speeds[:],
+		hasMask: w.hasSpeed[:],
+		mask:    MaskSpeed,
+	}
+}
+
+func (w *World) animationAccessor() componentAccessor[Animation] {
+	return componentAccessor[Animation]{
+		data:    w.animations[:],
+		hasMask: w.hasAnimation[:],
+		mask:    MaskAnimation,
+	}
+}
+
+func (w *World) damageFlashAccessor() componentAccessor[DamageFlash] {
+	return componentAccessor[DamageFlash]{
+		data:    w.damageFlashes[:],
+		hasMask: w.hasDamageFlash[:],
+		mask:    MaskDamageFlash,
+	}
+}
+
+func (w *World) corpseAccessor() componentAccessor[Corpse] {
+	return componentAccessor[Corpse]{
+		data:    w.corpses[:],
+		hasMask: w.hasCorpse[:],
+		mask:    MaskCorpse,
+	}
+}
+
+func (w *World) carrionAccessor() componentAccessor[Carrion] {
+	return componentAccessor[Carrion]{
+		data:    w.carrions[:],
+		hasMask: w.hasCarrion[:],
+		mask:    MaskCarrion,
+	}
+}
+
+func (w *World) eatingStateAccessor() componentAccessor[EatingState] {
+	return componentAccessor[EatingState]{
+		data:    w.eatingStates[:],
+		hasMask: w.hasEatingState[:],
+		mask:    MaskEatingState,
+	}
+}
+
+func (w *World) attackStateAccessor() componentAccessor[AttackState] {
+	return componentAccessor[AttackState]{
+		data:    w.attackStates[:],
+		hasMask: w.hasAttackState[:],
+		mask:    MaskAttackState,
+	}
+}
+
 // HasComponent проверяет наличие компонента у сущности
 func (w *World) HasComponent(entity EntityID, component ComponentMask) bool {
 	if !w.entities.IsAlive(entity) {
@@ -27,6 +176,22 @@ func (w *World) HasComponent(entity EntityID, component ComponentMask) bool {
 		return testBitMask(w.hasSize[:], entity)
 	case MaskSpeed:
 		return testBitMask(w.hasSpeed[:], entity)
+	case MaskAnimation:
+		return testBitMask(w.hasAnimation[:], entity)
+	case MaskDamageFlash:
+		return testBitMask(w.hasDamageFlash[:], entity)
+	case MaskCorpse:
+		return testBitMask(w.hasCorpse[:], entity)
+	case MaskCarrion:
+		return testBitMask(w.hasCarrion[:], entity)
+	case MaskEatingState:
+		return testBitMask(w.hasEatingState[:], entity)
+	case MaskAttackState:
+		return testBitMask(w.hasAttackState[:], entity)
+	case MaskBehavior:
+		return testBitMask(w.hasBehavior[:], entity)
+	case MaskAnimalConfig:
+		return testBitMask(w.hasAnimalConfig[:], entity)
 	}
 	return false
 }
@@ -37,30 +202,34 @@ func (w *World) HasComponents(entity EntityID, mask ComponentMask) bool {
 		return false
 	}
 
-	// Проверяем каждый бит в маске
-	if mask&MaskPosition != 0 && !testBitMask(w.hasPosition[:], entity) {
-		return false
+	// Lookup таблица для проверки компонентов (устраняет дублирование кода)
+	componentChecks := []struct {
+		mask    ComponentMask
+		hasMask []uint64
+	}{
+		{MaskPosition, w.hasPosition[:]},
+		{MaskVelocity, w.hasVelocity[:]},
+		{MaskHealth, w.hasHealth[:]},
+		{MaskHunger, w.hasHunger[:]},
+		{MaskAge, w.hasAge[:]},
+		{MaskAnimalType, w.hasType[:]},
+		{MaskSize, w.hasSize[:]},
+		{MaskSpeed, w.hasSpeed[:]},
+		{MaskAnimation, w.hasAnimation[:]},
+		{MaskDamageFlash, w.hasDamageFlash[:]},
+		{MaskCorpse, w.hasCorpse[:]},
+		{MaskCarrion, w.hasCarrion[:]},
+		{MaskEatingState, w.hasEatingState[:]},
+		{MaskAttackState, w.hasAttackState[:]},
+		{MaskBehavior, w.hasBehavior[:]},
+		{MaskAnimalConfig, w.hasAnimalConfig[:]},
 	}
-	if mask&MaskVelocity != 0 && !testBitMask(w.hasVelocity[:], entity) {
-		return false
-	}
-	if mask&MaskHealth != 0 && !testBitMask(w.hasHealth[:], entity) {
-		return false
-	}
-	if mask&MaskHunger != 0 && !testBitMask(w.hasHunger[:], entity) {
-		return false
-	}
-	if mask&MaskAge != 0 && !testBitMask(w.hasAge[:], entity) {
-		return false
-	}
-	if mask&MaskAnimalType != 0 && !testBitMask(w.hasType[:], entity) {
-		return false
-	}
-	if mask&MaskSize != 0 && !testBitMask(w.hasSize[:], entity) {
-		return false
-	}
-	if mask&MaskSpeed != 0 && !testBitMask(w.hasSpeed[:], entity) {
-		return false
+
+	// Проверяем каждый компонент через цикл
+	for _, check := range componentChecks {
+		if mask&check.mask != 0 && !testBitMask(check.hasMask, entity) {
+			return false
+		}
 	}
 
 	return true
@@ -80,7 +249,7 @@ func (w *World) AddPosition(entity EntityID, position Position) bool {
 	// Обновляем пространственную сетку если есть размер
 	if w.HasComponent(entity, MaskSize) {
 		size := w.sizes[entity]
-		w.spatialGrid.Update(physics.EntityID(entity),
+		w.spatialProvider.UpdateEntity(uint32(entity),
 			physics.Vec2{X: position.X, Y: position.Y}, size.Radius)
 	}
 
@@ -106,7 +275,7 @@ func (w *World) SetPosition(entity EntityID, position Position) bool {
 	// Обновляем пространственную сетку если есть размер
 	if w.HasComponent(entity, MaskSize) {
 		size := w.sizes[entity]
-		w.spatialGrid.Update(physics.EntityID(entity),
+		w.spatialProvider.UpdateEntity(uint32(entity),
 			physics.Vec2{X: position.X, Y: position.Y}, size.Radius)
 	}
 
@@ -120,7 +289,7 @@ func (w *World) RemovePosition(entity EntityID) bool {
 	}
 
 	clearBitMask(w.hasPosition[:], entity)
-	w.spatialGrid.Remove(physics.EntityID(entity))
+	w.spatialProvider.RemoveEntity(uint32(entity))
 	return true
 }
 
@@ -169,181 +338,102 @@ func (w *World) RemoveVelocity(entity EntityID) bool {
 
 // AddHealth добавляет компонент Health
 func (w *World) AddHealth(entity EntityID, health Health) bool {
-	if !w.entities.IsAlive(entity) {
-		return false
-	}
-
-	w.healths[entity] = health
-	setBitMask(w.hasHealth[:], entity)
-	return true
+	return addComponent(w, entity, health, w.healthAccessor())
 }
 
 // GetHealth получает компонент Health
 func (w *World) GetHealth(entity EntityID) (Health, bool) {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasHealth[:], entity) {
-		return Health{}, false
-	}
-	return w.healths[entity], true
+	return getComponent(w, entity, w.healthAccessor())
 }
 
 // SetHealth изменяет здоровье сущности
 func (w *World) SetHealth(entity EntityID, health Health) bool {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasHealth[:], entity) {
-		return false
-	}
-
-	w.healths[entity] = health
-	return true
+	return setComponent(w, entity, health, w.healthAccessor())
 }
 
 // RemoveHealth удаляет компонент Health
 func (w *World) RemoveHealth(entity EntityID) bool {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasHealth[:], entity) {
-		return false
-	}
-
-	clearBitMask(w.hasHealth[:], entity)
-	return true
+	return removeComponent(w, entity, w.healthAccessor())
 }
 
 // Hunger Component
 
 // AddHunger добавляет компонент Hunger
 func (w *World) AddHunger(entity EntityID, hunger Hunger) bool {
-	if !w.entities.IsAlive(entity) {
-		return false
-	}
-
-	w.hungers[entity] = hunger
-	setBitMask(w.hasHunger[:], entity)
-	return true
+	return addComponent(w, entity, hunger, w.hungerAccessor())
 }
 
 // GetHunger получает компонент Hunger
 func (w *World) GetHunger(entity EntityID) (Hunger, bool) {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasHunger[:], entity) {
-		return Hunger{}, false
-	}
-	return w.hungers[entity], true
+	return getComponent(w, entity, w.hungerAccessor())
 }
 
 // SetHunger изменяет голод сущности
 func (w *World) SetHunger(entity EntityID, hunger Hunger) bool {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasHunger[:], entity) {
-		return false
-	}
-
-	w.hungers[entity] = hunger
-	return true
+	return setComponent(w, entity, hunger, w.hungerAccessor())
 }
 
 // RemoveHunger удаляет компонент Hunger
 func (w *World) RemoveHunger(entity EntityID) bool {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasHunger[:], entity) {
-		return false
-	}
-
-	clearBitMask(w.hasHunger[:], entity)
-	return true
+	return removeComponent(w, entity, w.hungerAccessor())
 }
 
 // Age Component
 
 // AddAge добавляет компонент Age
 func (w *World) AddAge(entity EntityID, age Age) bool {
-	if !w.entities.IsAlive(entity) {
-		return false
-	}
-
-	w.ages[entity] = age
-	setBitMask(w.hasAge[:], entity)
-	return true
+	return addComponent(w, entity, age, w.ageAccessor())
 }
 
 // GetAge получает компонент Age
 func (w *World) GetAge(entity EntityID) (Age, bool) {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasAge[:], entity) {
-		return Age{}, false
-	}
-	return w.ages[entity], true
+	return getComponent(w, entity, w.ageAccessor())
 }
 
 // SetAge изменяет возраст сущности
 func (w *World) SetAge(entity EntityID, age Age) bool {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasAge[:], entity) {
-		return false
-	}
-
-	w.ages[entity] = age
-	return true
+	return setComponent(w, entity, age, w.ageAccessor())
 }
 
 // RemoveAge удаляет компонент Age
 func (w *World) RemoveAge(entity EntityID) bool {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasAge[:], entity) {
-		return false
-	}
-
-	clearBitMask(w.hasAge[:], entity)
-	return true
+	return removeComponent(w, entity, w.ageAccessor())
 }
 
 // AnimalType Component
 
 // AddAnimalType добавляет компонент AnimalType
 func (w *World) AddAnimalType(entity EntityID, animalType AnimalType) bool {
-	if !w.entities.IsAlive(entity) {
-		return false
-	}
-
-	w.types[entity] = animalType
-	setBitMask(w.hasType[:], entity)
-	return true
+	return addComponent(w, entity, animalType, w.animalTypeAccessor())
 }
 
 // GetAnimalType получает компонент AnimalType
 func (w *World) GetAnimalType(entity EntityID) (AnimalType, bool) {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasType[:], entity) {
-		return TypeNone, false
-	}
-	return w.types[entity], true
+	return getComponent(w, entity, w.animalTypeAccessor())
 }
 
 // SetAnimalType изменяет тип животного сущности
 func (w *World) SetAnimalType(entity EntityID, animalType AnimalType) bool {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasType[:], entity) {
-		return false
-	}
-
-	w.types[entity] = animalType
-	return true
+	return setComponent(w, entity, animalType, w.animalTypeAccessor())
 }
 
 // RemoveAnimalType удаляет компонент AnimalType
 func (w *World) RemoveAnimalType(entity EntityID) bool {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasType[:], entity) {
-		return false
-	}
-
-	clearBitMask(w.hasType[:], entity)
-	return true
+	return removeComponent(w, entity, w.animalTypeAccessor())
 }
 
 // Size Component
 
-// AddSize добавляет компонент Size
+// AddSize добавляет компонент Size (с обновлением пространственной сетки)
 func (w *World) AddSize(entity EntityID, size Size) bool {
-	if !w.entities.IsAlive(entity) {
+	if !addComponent(w, entity, size, w.sizeAccessor()) {
 		return false
 	}
 
-	w.sizes[entity] = size
-	setBitMask(w.hasSize[:], entity)
-
-	// Обновляем пространственную сетку если есть позиция
+	// Обновляем пространственную систему если есть позиция
 	if w.HasComponent(entity, MaskPosition) {
 		position := w.positions[entity]
-		w.spatialGrid.Update(physics.EntityID(entity),
+		w.spatialProvider.UpdateEntity(uint32(entity),
 			physics.Vec2{X: position.X, Y: position.Y}, size.Radius)
 	}
 
@@ -352,24 +442,19 @@ func (w *World) AddSize(entity EntityID, size Size) bool {
 
 // GetSize получает компонент Size
 func (w *World) GetSize(entity EntityID) (Size, bool) {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasSize[:], entity) {
-		return Size{}, false
-	}
-	return w.sizes[entity], true
+	return getComponent(w, entity, w.sizeAccessor())
 }
 
-// SetSize изменяет размер сущности
+// SetSize изменяет размер сущности (с обновлением пространственной сетки)
 func (w *World) SetSize(entity EntityID, size Size) bool {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasSize[:], entity) {
+	if !setComponent(w, entity, size, w.sizeAccessor()) {
 		return false
 	}
 
-	w.sizes[entity] = size
-
-	// Обновляем пространственную сетку если есть позиция
+	// Обновляем пространственную систему если есть позиция
 	if w.HasComponent(entity, MaskPosition) {
 		position := w.positions[entity]
-		w.spatialGrid.Update(physics.EntityID(entity),
+		w.spatialProvider.UpdateEntity(uint32(entity),
 			physics.Vec2{X: position.X, Y: position.Y}, size.Radius)
 	}
 
@@ -378,51 +463,243 @@ func (w *World) SetSize(entity EntityID, size Size) bool {
 
 // RemoveSize удаляет компонент Size
 func (w *World) RemoveSize(entity EntityID) bool {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasSize[:], entity) {
-		return false
-	}
-
-	clearBitMask(w.hasSize[:], entity)
-	return true
+	return removeComponent(w, entity, w.sizeAccessor())
 }
 
 // Speed Component
 
 // AddSpeed добавляет компонент Speed
 func (w *World) AddSpeed(entity EntityID, speed Speed) bool {
-	if !w.entities.IsAlive(entity) {
-		return false
-	}
-
-	w.speeds[entity] = speed
-	setBitMask(w.hasSpeed[:], entity)
-	return true
+	return addComponent(w, entity, speed, w.speedAccessor())
 }
 
 // GetSpeed получает компонент Speed
 func (w *World) GetSpeed(entity EntityID) (Speed, bool) {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasSpeed[:], entity) {
-		return Speed{}, false
-	}
-	return w.speeds[entity], true
+	return getComponent(w, entity, w.speedAccessor())
 }
 
 // SetSpeed изменяет скорость сущности
 func (w *World) SetSpeed(entity EntityID, speed Speed) bool {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasSpeed[:], entity) {
-		return false
-	}
-
-	w.speeds[entity] = speed
-	return true
+	return setComponent(w, entity, speed, w.speedAccessor())
 }
 
 // RemoveSpeed удаляет компонент Speed
 func (w *World) RemoveSpeed(entity EntityID) bool {
-	if !w.entities.IsAlive(entity) || !testBitMask(w.hasSpeed[:], entity) {
+	return removeComponent(w, entity, w.speedAccessor())
+}
+
+// Animation Component
+
+// AddAnimation добавляет компонент Animation
+func (w *World) AddAnimation(entity EntityID, animation Animation) bool {
+	return addComponent(w, entity, animation, w.animationAccessor())
+}
+
+// GetAnimation получает компонент Animation
+func (w *World) GetAnimation(entity EntityID) (Animation, bool) {
+	return getComponent(w, entity, w.animationAccessor())
+}
+
+// SetAnimation изменяет анимацию сущности
+func (w *World) SetAnimation(entity EntityID, animation Animation) bool {
+	return setComponent(w, entity, animation, w.animationAccessor())
+}
+
+// RemoveAnimation удаляет компонент Animation
+func (w *World) RemoveAnimation(entity EntityID) bool {
+	return removeComponent(w, entity, w.animationAccessor())
+}
+
+// DamageFlash Component
+
+// AddDamageFlash добавляет компонент DamageFlash
+func (w *World) AddDamageFlash(entity EntityID, damageFlash DamageFlash) bool {
+	return addComponent(w, entity, damageFlash, w.damageFlashAccessor())
+}
+
+// GetDamageFlash получает компонент DamageFlash
+func (w *World) GetDamageFlash(entity EntityID) (DamageFlash, bool) {
+	return getComponent(w, entity, w.damageFlashAccessor())
+}
+
+// SetDamageFlash изменяет DamageFlash сущности
+func (w *World) SetDamageFlash(entity EntityID, damageFlash DamageFlash) bool {
+	return setComponent(w, entity, damageFlash, w.damageFlashAccessor())
+}
+
+// RemoveDamageFlash удаляет компонент DamageFlash
+func (w *World) RemoveDamageFlash(entity EntityID) bool {
+	return removeComponent(w, entity, w.damageFlashAccessor())
+}
+
+// Corpse Component
+
+// AddCorpse добавляет компонент Corpse
+func (w *World) AddCorpse(entity EntityID, corpse Corpse) bool {
+	return addComponent(w, entity, corpse, w.corpseAccessor())
+}
+
+// GetCorpse получает компонент Corpse
+func (w *World) GetCorpse(entity EntityID) (Corpse, bool) {
+	return getComponent(w, entity, w.corpseAccessor())
+}
+
+// SetCorpse изменяет Corpse сущности
+func (w *World) SetCorpse(entity EntityID, corpse Corpse) bool {
+	return setComponent(w, entity, corpse, w.corpseAccessor())
+}
+
+// RemoveCorpse удаляет компонент Corpse
+func (w *World) RemoveCorpse(entity EntityID) bool {
+	return removeComponent(w, entity, w.corpseAccessor())
+}
+
+// Carrion Component
+
+// AddCarrion добавляет компонент Carrion
+func (w *World) AddCarrion(entity EntityID, carrion Carrion) bool {
+	return addComponent(w, entity, carrion, w.carrionAccessor())
+}
+
+// GetCarrion получает компонент Carrion
+func (w *World) GetCarrion(entity EntityID) (Carrion, bool) {
+	return getComponent(w, entity, w.carrionAccessor())
+}
+
+// SetCarrion изменяет Carrion сущности
+func (w *World) SetCarrion(entity EntityID, carrion Carrion) bool {
+	return setComponent(w, entity, carrion, w.carrionAccessor())
+}
+
+// RemoveCarrion удаляет компонент Carrion
+func (w *World) RemoveCarrion(entity EntityID) bool {
+	return removeComponent(w, entity, w.carrionAccessor())
+}
+
+// EatingState Component
+
+// AddEatingState добавляет компонент EatingState
+func (w *World) AddEatingState(entity EntityID, eatingState EatingState) bool {
+	return addComponent(w, entity, eatingState, w.eatingStateAccessor())
+}
+
+// GetEatingState получает компонент EatingState
+func (w *World) GetEatingState(entity EntityID) (EatingState, bool) {
+	return getComponent(w, entity, w.eatingStateAccessor())
+}
+
+// SetEatingState изменяет EatingState сущности
+func (w *World) SetEatingState(entity EntityID, eatingState EatingState) bool {
+	return setComponent(w, entity, eatingState, w.eatingStateAccessor())
+}
+
+// RemoveEatingState удаляет компонент EatingState
+func (w *World) RemoveEatingState(entity EntityID) bool {
+	return removeComponent(w, entity, w.eatingStateAccessor())
+}
+
+// AttackState Component
+
+// AddAttackState добавляет компонент AttackState
+func (w *World) AddAttackState(entity EntityID, attackState AttackState) bool {
+	return addComponent(w, entity, attackState, w.attackStateAccessor())
+}
+
+// GetAttackState получает компонент AttackState
+func (w *World) GetAttackState(entity EntityID) (AttackState, bool) {
+	return getComponent(w, entity, w.attackStateAccessor())
+}
+
+// SetAttackState изменяет AttackState сущности
+func (w *World) SetAttackState(entity EntityID, attackState AttackState) bool {
+	return setComponent(w, entity, attackState, w.attackStateAccessor())
+}
+
+// RemoveAttackState удаляет компонент AttackState
+func (w *World) RemoveAttackState(entity EntityID) bool {
+	return removeComponent(w, entity, w.attackStateAccessor())
+}
+
+// Behavior Component
+
+// AddBehavior добавляет компонент Behavior
+func (w *World) AddBehavior(entity EntityID, behavior Behavior) bool {
+	if !w.entities.IsAlive(entity) {
 		return false
 	}
 
-	clearBitMask(w.hasSpeed[:], entity)
+	setBitMask(w.hasBehavior[:], entity)
+	w.behaviors[entity] = behavior
+	return true
+}
+
+// GetBehavior получает компонент Behavior
+func (w *World) GetBehavior(entity EntityID) (Behavior, bool) {
+	if !w.entities.IsAlive(entity) || !testBitMask(w.hasBehavior[:], entity) {
+		return Behavior{}, false
+	}
+
+	return w.behaviors[entity], true
+}
+
+// SetBehavior устанавливает компонент Behavior
+func (w *World) SetBehavior(entity EntityID, behavior Behavior) bool {
+	if !w.entities.IsAlive(entity) || !testBitMask(w.hasBehavior[:], entity) {
+		return false
+	}
+
+	w.behaviors[entity] = behavior
+	return true
+}
+
+// RemoveBehavior удаляет компонент Behavior
+func (w *World) RemoveBehavior(entity EntityID) bool {
+	if !w.entities.IsAlive(entity) || !testBitMask(w.hasBehavior[:], entity) {
+		return false
+	}
+
+	clearBitMask(w.hasBehavior[:], entity)
+	return true
+}
+
+// AnimalConfig Component
+
+// AddAnimalConfig добавляет компонент AnimalConfig
+func (w *World) AddAnimalConfig(entity EntityID, config AnimalConfig) bool {
+	if !w.entities.IsAlive(entity) {
+		return false
+	}
+
+	setBitMask(w.hasAnimalConfig[:], entity)
+	w.animalConfigs[entity] = config
+	return true
+}
+
+// GetAnimalConfig получает компонент AnimalConfig
+func (w *World) GetAnimalConfig(entity EntityID) (AnimalConfig, bool) {
+	if !w.entities.IsAlive(entity) || !testBitMask(w.hasAnimalConfig[:], entity) {
+		return AnimalConfig{}, false
+	}
+
+	return w.animalConfigs[entity], true
+}
+
+// SetAnimalConfig устанавливает компонент AnimalConfig
+func (w *World) SetAnimalConfig(entity EntityID, config AnimalConfig) bool {
+	if !w.entities.IsAlive(entity) || !testBitMask(w.hasAnimalConfig[:], entity) {
+		return false
+	}
+
+	w.animalConfigs[entity] = config
+	return true
+}
+
+// RemoveAnimalConfig удаляет компонент AnimalConfig
+func (w *World) RemoveAnimalConfig(entity EntityID) bool {
+	if !w.entities.IsAlive(entity) || !testBitMask(w.hasAnimalConfig[:], entity) {
+		return false
+	}
+
+	clearBitMask(w.hasAnimalConfig[:], entity)
 	return true
 }

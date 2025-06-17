@@ -12,6 +12,7 @@ import (
 
 // TestWolfSimpleChase проверяет что волк правильно преследует неподвижного зайца
 func TestWolfSimpleChase(t *testing.T) {
+	t.Parallel()
 	// Создаем минимальную симуляцию
 	cfg := &config.Config{
 		World: config.WorldConfig{

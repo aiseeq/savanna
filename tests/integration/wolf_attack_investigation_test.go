@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aiseeq/savanna/config"
+	"github.com/aiseeq/savanna/internal/adapters"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
@@ -12,6 +13,7 @@ import (
 
 // TestWolfAttackBehavior исследует поведение волка при атаке зайца
 func TestWolfAttackBehavior(t *testing.T) {
+	t.Parallel()
 	// Создаем минимальную симуляцию
 	cfg := &config.Config{
 		World: config.WorldConfig{
@@ -35,9 +37,9 @@ func TestWolfAttackBehavior(t *testing.T) {
 	movementSystem := simulation.NewMovementSystem(worldSizePixels, worldSizePixels)
 
 	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(animalBehaviorSystem)
-	systemManager.AddSystem(movementSystem)
-	systemManager.AddSystem(feedingSystem)
+	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
+	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
+	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
 
 	// Создаем волка и зайца рядом друг с другом
 	rabbitX, rabbitY := float32(160), float32(160) // Центр мира
@@ -107,6 +109,7 @@ func TestWolfAttackBehavior(t *testing.T) {
 
 // TestWolfOvershooting проверяет перепрыгивание волка через зайца
 func TestWolfOvershooting(t *testing.T) {
+	t.Parallel()
 	// Создаем простую симуляцию
 	worldSizePixels := float32(320)
 	world := core.NewWorld(worldSizePixels, worldSizePixels, 54321)
@@ -115,7 +118,7 @@ func TestWolfOvershooting(t *testing.T) {
 	movementSystem := simulation.NewMovementSystem(worldSizePixels, worldSizePixels)
 
 	// Добавляем только движение, поведение будем вызывать вручную для волка
-	systemManager.AddSystem(movementSystem)
+	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
 
 	// Зайца ставим неподвижно, волка близко
 	rabbit := simulation.CreateRabbit(world, 160, 160)

@@ -17,6 +17,18 @@ const (
 	TileWetland                 // Влажная земля (проходимо, быстрый рост травы)
 )
 
+// Константы генерации (устранение магических чисел)
+const (
+	MaxLakeAttempts      = 50  // Максимальное количество попыток создания озёр
+	WaterProbability     = 0.7 // Вероятность создания воды в центре озера
+	MapEdgeMargin        = 10  // Отступ от краёв карты для озёр
+	MapCenterOffset      = 5   // Смещение от краёв для центра озера
+	WetlandGrassBase     = 50  // Базовое количество травы для влажных земель
+	WetlandGrassVariance = 50  // Вариация количества травы для влажных земель
+	RegularGrassBase     = 80  // Базовое количество травы для обычных земель
+	RegularGrassVariance = 20  // Вариация количества травы для обычных земель
+)
+
 // Terrain представляет сгенерированную карту мира
 type Terrain struct {
 	Size  int          // Размер мира в тайлах
@@ -86,8 +98,16 @@ func (tg *TerrainGenerator) generateWaterBodies(terrain *Terrain) {
 	for i := 0; i < waterBodies; i++ {
 		// Случайная позиция с отступом от краёв
 		margin := int(maxRadius) + 2
-		x := margin + tg.rng.Intn(terrain.Size-2*margin)
-		y := margin + tg.rng.Intn(terrain.Size-2*margin)
+		availableWidth := terrain.Size - 2*margin
+		availableHeight := terrain.Size - 2*margin
+
+		// Проверяем что есть место для размещения
+		if availableWidth <= 0 || availableHeight <= 0 {
+			continue // Пропускаем если нет места
+		}
+
+		x := margin + tg.rng.Intn(availableWidth)
+		y := margin + tg.rng.Intn(availableHeight)
 
 		// Случайный радиус
 		radius := minRadius + tg.rng.Float32()*(maxRadius-minRadius)
@@ -165,9 +185,17 @@ func (tg *TerrainGenerator) generateBushClusters(terrain *Terrain) {
 		// Находим подходящее место для кластера
 		var centerX, centerY int
 		attempts := 0
-		for attempts < 50 { // Ограничиваем количество попыток
-			centerX = 5 + tg.rng.Intn(terrain.Size-10) // Отступ от краёв
-			centerY = 5 + tg.rng.Intn(terrain.Size-10)
+		for attempts < MaxLakeAttempts { // Ограничиваем количество попыток
+			availableX := terrain.Size - MapEdgeMargin
+			availableY := terrain.Size - MapEdgeMargin
+
+			// Проверяем что есть место для размещения
+			if availableX <= 0 || availableY <= 0 {
+				break // Нет места для кластеров
+			}
+
+			centerX = MapCenterOffset + tg.rng.Intn(availableX) // Отступ от краёв
+			centerY = MapCenterOffset + tg.rng.Intn(availableY)
 
 			// Проверяем что центр на траве или влажной земле
 			if terrain.Tiles[centerY][centerX] == TileGrass ||
@@ -177,7 +205,7 @@ func (tg *TerrainGenerator) generateBushClusters(terrain *Terrain) {
 			attempts++
 		}
 
-		if attempts >= 50 {
+		if attempts >= MaxLakeAttempts {
 			continue // Не удалось найти подходящее место
 		}
 
@@ -216,16 +244,16 @@ func (tg *TerrainGenerator) generateInitialGrass(terrain *Terrain) {
 		for x := 0; x < terrain.Size; x++ {
 			switch terrain.Tiles[y][x] {
 			case TileGrass:
-				// 70% тайлов с травой получают 50-100 единиц
-				if tg.rng.Float32() < 0.7 {
-					terrain.Grass[y][x] = 50 + tg.rng.Float32()*50
+				// 70% тайлов с травой получают базовое количество
+				if tg.rng.Float32() < WaterProbability {
+					terrain.Grass[y][x] = WetlandGrassBase + tg.rng.Float32()*WetlandGrassVariance
 				} else {
 					terrain.Grass[y][x] = 0
 				}
 
 			case TileWetland:
 				// Влажная земля - всегда много травы
-				terrain.Grass[y][x] = 80 + tg.rng.Float32()*20
+				terrain.Grass[y][x] = RegularGrassBase + tg.rng.Float32()*RegularGrassVariance
 
 			case TileWater, TileBush:
 				// На воде и кустах травы нет

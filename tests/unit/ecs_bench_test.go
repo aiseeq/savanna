@@ -14,13 +14,13 @@ func BenchmarkEntityCreation(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		// Ограничиваем количество сущностей, чтобы не превысить MAX_ENTITIES
+		// Ограничиваем количество сущностей, чтобы не превысить MaxEntities
 		if i%500 == 0 && i > 0 {
 			world.Clear() // Очищаем каждые 500 итераций
 		}
 
 		entity := world.CreateEntity()
-		if entity == core.INVALID_ENTITY {
+		if entity == core.InvalidEntity {
 			b.Fatal("Failed to create entity")
 		}
 	}
@@ -173,7 +173,7 @@ func BenchmarkSpatialQuery(b *testing.B) {
 		y := float32(i/100) * 10
 
 		world.AddPosition(entity, core.Position{X: x, Y: y})
-		world.AddSize(entity, core.Size{Radius: 5})
+		world.AddSize(entity, core.Size{Radius: 5, AttackRange: 0})
 		world.AddAnimalType(entity, core.TypeRabbit)
 	}
 
@@ -251,7 +251,7 @@ func BenchmarkFullGameLoop(b *testing.B) {
 		world.AddHunger(entity, core.Hunger{Value: 80})
 		world.AddAge(entity, core.Age{Seconds: 0})
 		world.AddAnimalType(entity, core.TypeRabbit)
-		world.AddSize(entity, core.Size{Radius: 5})
+		world.AddSize(entity, core.Size{Radius: 5, AttackRange: 0})
 		world.AddSpeed(entity, core.Speed{Base: 20, Current: 20})
 	}
 
@@ -266,7 +266,7 @@ func BenchmarkFullGameLoop(b *testing.B) {
 		world.AddHunger(entity, core.Hunger{Value: 60})
 		world.AddAge(entity, core.Age{Seconds: 0})
 		world.AddAnimalType(entity, core.TypeWolf)
-		world.AddSize(entity, core.Size{Radius: 10})
+		world.AddSize(entity, core.Size{Radius: 10, AttackRange: 0})
 		world.AddSpeed(entity, core.Speed{Base: 30, Current: 30})
 	}
 
