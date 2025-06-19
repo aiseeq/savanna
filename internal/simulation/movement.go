@@ -164,7 +164,11 @@ func (ms *MovementSystem) constrainYBounds(pos *core.Position, radius float32, c
 }
 
 // reflectVelocityX отражает X скорость при столкновении с границей
-func (ms *MovementSystem) reflectVelocityX(world core.MovementSystemAccess, entity core.EntityID, posX, radius float32) {
+func (ms *MovementSystem) reflectVelocityX(
+	world core.MovementSystemAccess,
+	entity core.EntityID,
+	posX, radius float32,
+) {
 	if !world.HasComponent(entity, core.MaskVelocity) {
 		return
 	}
@@ -181,7 +185,11 @@ func (ms *MovementSystem) reflectVelocityX(world core.MovementSystemAccess, enti
 }
 
 // reflectVelocityY отражает Y скорость при столкновении с границей
-func (ms *MovementSystem) reflectVelocityY(world core.MovementSystemAccess, entity core.EntityID, posY, radius float32) {
+func (ms *MovementSystem) reflectVelocityY(
+	world core.MovementSystemAccess,
+	entity core.EntityID,
+	posY, radius float32,
+) {
 	if !world.HasComponent(entity, core.MaskVelocity) {
 		return
 	}
@@ -258,8 +266,11 @@ func (ms *MovementSystem) checkAndHandleCollision(world core.MovementSystemAcces
 	}
 }
 
-// separateEntities мягко расталкивает две сущности при коллизии (рефакторинг: разбито на helper-функции)
-func (ms *MovementSystem) separateEntities(world core.MovementSystemAccess, entity1, entity2 core.EntityID, collision physics.CollisionDetails) {
+// separateEntities мягко расталкивает две сущности при коллизии
+// (рефакторинг: разбито на helper-функции)
+func (ms *MovementSystem) separateEntities(
+	world core.MovementSystemAccess, entity1, entity2 core.EntityID, collision physics.CollisionDetails,
+) {
 	isPredatorPreyCollision := ms.isPredatorPreyCollision(world, entity1, entity2)
 
 	// Разделяем позиции только если это не коллизия хищник-добыча
@@ -273,7 +284,9 @@ func (ms *MovementSystem) separateEntities(world core.MovementSystemAccess, enti
 }
 
 // limitVelocity ограничивает скорость животного его максимальной скоростью
-func (ms *MovementSystem) limitVelocity(world core.MovementSystemAccess, entity core.EntityID, velocity core.Velocity) core.Velocity {
+func (ms *MovementSystem) limitVelocity(
+	world core.MovementSystemAccess, entity core.EntityID, velocity core.Velocity,
+) core.Velocity {
 	// Получаем максимальную скорость животного
 	speed, hasSpeed := world.GetSpeed(entity)
 	if !hasSpeed {
@@ -294,8 +307,11 @@ func (ms *MovementSystem) limitVelocity(world core.MovementSystemAccess, entity 
 	return velocity
 }
 
-// isPredatorPreyCollision проверяет является ли коллизия между хищником и добычей (helper-функция)
-func (ms *MovementSystem) isPredatorPreyCollision(world core.MovementSystemAccess, entity1, entity2 core.EntityID) bool {
+// isPredatorPreyCollision проверяет является ли коллизия между хищником и добычей
+// (helper-функция)
+func (ms *MovementSystem) isPredatorPreyCollision(
+	world core.MovementSystemAccess, entity1, entity2 core.EntityID,
+) bool {
 	if !world.HasComponent(entity1, core.MaskSize) || !world.HasComponent(entity2, core.MaskSize) {
 		return false
 	}
@@ -309,7 +325,9 @@ func (ms *MovementSystem) isPredatorPreyCollision(world core.MovementSystemAcces
 }
 
 // applyPositionSeparation применяет разделение позиций (helper-функция)
-func (ms *MovementSystem) applyPositionSeparation(world core.MovementSystemAccess, entity1, entity2 core.EntityID, collision physics.CollisionDetails) {
+func (ms *MovementSystem) applyPositionSeparation(
+	world core.MovementSystemAccess, entity1, entity2 core.EntityID, collision physics.CollisionDetails,
+) {
 	separationForce := collision.Penetration * CollisionConstants.SeparationForceMultiplier
 
 	pos1, _ := world.GetPosition(entity1)
@@ -326,7 +344,10 @@ func (ms *MovementSystem) applyPositionSeparation(world core.MovementSystemAcces
 }
 
 // applyVelocitySeparation применяет мягкое расталкивание через скорость (helper-функция)
-func (ms *MovementSystem) applyVelocitySeparation(world core.MovementSystemAccess, entity1, entity2 core.EntityID, collision physics.CollisionDetails, isPredatorPrey bool) {
+func (ms *MovementSystem) applyVelocitySeparation(
+	world core.MovementSystemAccess, entity1, entity2 core.EntityID,
+	collision physics.CollisionDetails, isPredatorPrey bool,
+) {
 	if !world.HasComponent(entity1, core.MaskVelocity) || !world.HasComponent(entity2, core.MaskVelocity) {
 		return
 	}

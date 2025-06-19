@@ -9,6 +9,8 @@ import (
 )
 
 // TestAnimationProgression проверяет что анимация ATTACK проходит от кадра 0 до кадра 1
+//
+//nolint:gocognit,revive // Детальный тест прогрессии анимации атаки
 func TestAnimationProgression(t *testing.T) {
 	t.Parallel()
 	world := core.NewWorld(96, 96, 42)
@@ -23,8 +25,8 @@ func TestAnimationProgression(t *testing.T) {
 	movementSystem := simulation.NewMovementSystem(96, 96)
 
 	// Создаём животных рядом
-	rabbit := simulation.CreateRabbit(world, 40, 48)
-	wolf := simulation.CreateWolf(world, 45, 48)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 40, 48)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 45, 48)
 
 	// Волк голоден
 	world.SetHunger(wolf, core.Hunger{Value: 5.0})

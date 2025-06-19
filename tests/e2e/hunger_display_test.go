@@ -26,9 +26,9 @@ func TestHungerDisplayE2E(t *testing.T) {
 	_ = terrainGen.Generate()
 
 	// Создаём животных с разным уровнем голода
-	rabbit1 := simulation.CreateRabbit(world, 50, 50)
-	rabbit2 := simulation.CreateRabbit(world, 100, 50)
-	wolf1 := simulation.CreateWolf(world, 150, 50)
+	rabbit1 := simulation.CreateAnimal(world, core.TypeRabbit, 50, 50)
+	rabbit2 := simulation.CreateAnimal(world, core.TypeRabbit, 100, 50)
+	wolf1 := simulation.CreateAnimal(world, core.TypeWolf, 150, 50)
 
 	// Устанавливаем разные уровни голода
 	world.SetHunger(rabbit1, core.Hunger{Value: 25.5}) // Очень голодный
@@ -165,7 +165,9 @@ func (hds *HungerDisplaySystem) GetHungerColor(hungerValue float32) HungerColor 
 }
 
 // RenderHungerTexts рендерит тексты голода на экране
-func (hds *HungerDisplaySystem) RenderHungerTexts(screen interface{}, displayInfos []HungerDisplayInfo, font interface{}) {
+func (hds *HungerDisplaySystem) RenderHungerTexts(
+	screen interface{}, displayInfos []HungerDisplayInfo, font interface{},
+) {
 	// В реальной реализации здесь будет рендеринг текста
 	// Для теста просто вызываем mock методы
 	if mockScreen, ok := screen.(*MockScreen); ok {

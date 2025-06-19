@@ -32,7 +32,7 @@ func TestFontDisplayE2E(t *testing.T) {
 	terrain := terrainGen.Generate()
 
 	// Создаём зайца
-	rabbit := simulation.CreateRabbit(world, 80, 80)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 80, 80)
 	world.SetHunger(rabbit, core.Hunger{Value: 75.0})
 
 	// Симулируем создание игрового мира со статистикой
@@ -114,11 +114,11 @@ func createUITextLines(gameWorld *MockGameWorld, camera Camera, timeManager *Moc
 	// Статистика животных
 	rabbitCount := gameWorld.stats["rabbits"].(int)
 	wolfCount := gameWorld.stats["wolves"].(int)
-	lines = append(lines, fmt.Sprintf("Rabbits: %d", rabbitCount))
-	lines = append(lines, fmt.Sprintf("Wolves: %d", wolfCount))
-
-	// Масштаб
-	lines = append(lines, fmt.Sprintf("Zoom: %.1fx", camera.Zoom))
+	lines = append(lines,
+		fmt.Sprintf("Rabbits: %d", rabbitCount),
+		fmt.Sprintf("Wolves: %d", wolfCount),
+		fmt.Sprintf("Zoom: %.1fx", camera.Zoom),
+	)
 
 	// Скорость
 	if timeManager.isPaused {

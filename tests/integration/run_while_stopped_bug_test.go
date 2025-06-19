@@ -12,6 +12,8 @@ import (
 )
 
 // TestRunWhileStoppedBug воспроизводит баг когда заяц показывает анимацию бега но стоит на месте
+//
+//nolint:gocognit,revive,funlen // Комплексный тест воспроизведения анимационного бага
 func TestRunWhileStoppedBug(t *testing.T) {
 	t.Parallel()
 
@@ -49,9 +51,9 @@ func TestRunWhileStoppedBug(t *testing.T) {
 	t.Logf("=== TDD: Баг анимации бега при нулевой скорости ===")
 
 	// СЦЕНАРИЙ 1: Заяц убегает от волка, потом волк исчезает
-	rabbit := simulation.CreateRabbit(world, 200, 200)
-	wolf := simulation.CreateWolf(world, 220, 200)  // Близко к зайцу
-	world.SetHunger(wolf, core.Hunger{Value: 50.0}) // Голодный волк
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 200, 200)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 220, 200) // Близко к зайцу
+	world.SetHunger(wolf, core.Hunger{Value: 50.0})                 // Голодный волк
 
 	deltaTime := float32(1.0 / 60.0)
 

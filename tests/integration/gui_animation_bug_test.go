@@ -12,6 +12,8 @@ import (
 )
 
 // TestGUIAnimationBug проверяет точную логику GUI анимаций как в main.go
+//
+//nolint:gocognit,revive,funlen // Комплексный тест GUI анимационной логики
 func TestGUIAnimationBug(t *testing.T) {
 	t.Parallel()
 
@@ -35,7 +37,9 @@ func TestGUIAnimationBug(t *testing.T) {
 	systemManager.AddSystem(vegetationSystem)
 	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
-	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: simulation.NewMovementSystem(TestWorldSize, TestWorldSize)})
+	systemManager.AddSystem(&adapters.MovementSystemAdapter{
+		System: simulation.NewMovementSystem(TestWorldSize, TestWorldSize),
+	})
 	systemManager.AddSystem(combatSystem)
 
 	// Создаём анимационные системы точно как в GUI
@@ -54,7 +58,6 @@ func TestGUIAnimationBug(t *testing.T) {
 		{"hare_run", 2, 12.0, true, animation.AnimRun},
 		{"hare_attack", 2, 5.0, false, animation.AnimAttack},
 		{"hare_eat", 2, 4.0, true, animation.AnimEat}, // ЭТО ДОЛЖНО РАБОТАТЬ!
-		{"hare_sleep", 2, 1.5, true, animation.AnimSleepLoop},
 		{"hare_dead", 2, 3.0, false, animation.AnimDeathDying},
 	}
 
@@ -83,7 +86,7 @@ func TestGUIAnimationBug(t *testing.T) {
 	t.Logf("Лучшее место с травой: (%.0f, %.0f) = %.1f единиц", grassX, grassY, maxGrass)
 
 	// Создаём голодного зайца
-	rabbit := simulation.CreateRabbit(world, grassX, grassY)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, grassX, grassY)
 	world.SetHunger(rabbit, core.Hunger{Value: 85.0})
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0})
 

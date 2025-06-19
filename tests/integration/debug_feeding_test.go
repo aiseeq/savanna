@@ -12,6 +12,8 @@ import (
 )
 
 // TestDebugFeeding детальная диагностика почему не создается EatingState
+//
+//nolint:gocognit,revive,funlen // Комплексный диагностический тест создания EatingState
 func TestDebugFeeding(t *testing.T) {
 	t.Parallel()
 
@@ -42,7 +44,7 @@ func TestDebugFeeding(t *testing.T) {
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: behaviorSystem})
 
 	// Создаём зайца в центре тайла с травой
-	rabbit := simulation.CreateRabbit(world, 48, 48) // Центр тайла (1,1)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 48, 48) // Центр тайла (1,1)
 
 	// Делаем зайца голодным
 	world.SetHunger(rabbit, core.Hunger{Value: 50.0}) // 50% < 90%
@@ -150,11 +152,13 @@ func TestDebugFeeding(t *testing.T) {
 	grassConsumed := grassBefore - grassAfter
 	t.Logf("ПОСЛЕ FeedingSystem: EatingState=%v, Трава=%.1f, Съедено=%.6f", isEatingAfter, grassAfter, grassConsumed)
 
-	if grassConsumed > 0 && !isEatingAfter {
-		t.Errorf("❌ БАГ: Трава съедена (%.6f) но EatingState не создан!", grassConsumed)
-	} else if grassConsumed > 0 && isEatingAfter {
-		t.Logf("✅ ИДЕАЛЬНО: Трава съедена и EatingState создан!")
-	} else if grassConsumed == 0 {
-		t.Errorf("❌ БАГ: FeedingSystem не съел траву!")
+	// ИСПРАВЛЕНИЕ: FeedingSystem только создает EatingState, а GrassEatingSystem съедает траву
+	if isEatingAfter && grassConsumed == 0 {
+		t.Logf("✅ ПРАВИЛЬНО: FeedingSystem создал EatingState без съедания травы")
+		t.Logf("   Трава будет съедена GrassEatingSystem дискретно по кадрам анимации")
+	} else if isEatingAfter && grassConsumed > 0 {
+		t.Errorf("❌ БАГ: FeedingSystem съел траву (%.6f) вместо GrassEatingSystem!", grassConsumed)
+	} else if !isEatingAfter {
+		t.Errorf("❌ БАГ: FeedingSystem не создал EatingState!")
 	}
 }

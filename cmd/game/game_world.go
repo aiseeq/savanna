@@ -63,17 +63,24 @@ func (gw *GameWorld) initializeSystems() {
 	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
-	movementSystem := simulation.NewMovementSystem(1600.0, 1600.0) // Фиксированные размеры мира
-	combatSystem := simulation.NewCombatSystem()                   // Уже включает DamageSystem внутри
+	// Стандартные размеры мира
+	movementSystem := simulation.NewMovementSystem(simulation.DefaultWorldSizePixels, simulation.DefaultWorldSizePixels)
+	// Уже включает DamageSystem внутри
+	combatSystem := simulation.NewCombatSystem()
 
 	// Добавляем системы в правильном порядке
 	// Используем адаптеры для систем с ISP интерфейсами
 	gw.systemManager.AddSystem(vegetationSystem)
-	gw.systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})         // Создаёт EatingState для травы
-	gw.systemManager.AddSystem(grassEatingSystem)                                             // Дискретное поедание травы по кадрам анимации
-	gw.systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem}) // Проверяет EatingState и не мешает еде
-	gw.systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})       // Сбрасывает скорость едящих
-	gw.systemManager.AddSystem(combatSystem)                                                  // Система боя (включает DamageSystem)
+	// Создаёт EatingState для травы
+	gw.systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
+	// Дискретное поедание травы по кадрам анимации
+	gw.systemManager.AddSystem(grassEatingSystem)
+	// Проверяет EatingState и не мешает еде
+	gw.systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
+	// Сбрасывает скорость едящих
+	gw.systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
+	// Система боя (включает DamageSystem)
+	gw.systemManager.AddSystem(combatSystem)
 
 	// Загружаем анимации для всех типов животных
 	if err := gw.animationManager.LoadAnimationsFromConfig(); err != nil {
@@ -83,23 +90,20 @@ func (gw *GameWorld) initializeSystems() {
 	}
 }
 
-// PopulateWorld заполняет мир животными
+// PopulateWorld заполняет мир животными (унифицированная система)
 func (gw *GameWorld) PopulateWorld() {
-	// Создаём фабрику животных
-	animalFactory := simulation.NewAnimalFactory()
-
 	// Размещаем зайцев
 	for i := 0; i < 20; i++ {
-		x := gw.world.GetRNG().Float32() * 1600.0 // Используем размеры мира
-		y := gw.world.GetRNG().Float32() * 1600.0
-		animalFactory.CreateRabbit(gw.world, x, y)
+		x := gw.world.GetRNG().Float32() * simulation.DefaultWorldSizePixels // Используем стандартные размеры мира
+		y := gw.world.GetRNG().Float32() * simulation.DefaultWorldSizePixels
+		simulation.CreateAnimal(gw.world, core.TypeRabbit, x, y)
 	}
 
 	// Размещаем волков
 	for i := 0; i < 3; i++ {
-		x := gw.world.GetRNG().Float32() * 1600.0
-		y := gw.world.GetRNG().Float32() * 1600.0
-		animalFactory.CreateWolf(gw.world, x, y)
+		x := gw.world.GetRNG().Float32() * simulation.DefaultWorldSizePixels
+		y := gw.world.GetRNG().Float32() * simulation.DefaultWorldSizePixels
+		simulation.CreateAnimal(gw.world, core.TypeWolf, x, y)
 	}
 }
 

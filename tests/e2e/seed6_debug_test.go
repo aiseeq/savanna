@@ -15,6 +15,8 @@ import (
 )
 
 // TestSeed6Debug воспроизводит ТОЧНО вашу ситуацию: seed 6, первые 15 секунд
+//
+//nolint:gocognit,revive // Сложный E2E тест, имитирующий полную игровую сессию
 func TestSeed6Debug(t *testing.T) {
 	t.Parallel()
 	t.Logf("=== ОТЛАДКА SEED 6: ПЕРВЫЕ 15 СЕКУНД ===")
@@ -74,11 +76,11 @@ func TestSeed6Debug(t *testing.T) {
 	for _, placement := range placements {
 		switch placement.Type {
 		case core.TypeRabbit:
-			rabbit := simulation.CreateRabbit(world, placement.X, placement.Y)
+			rabbit := simulation.CreateAnimal(world, core.TypeRabbit, placement.X, placement.Y)
 			rabbits = append(rabbits, rabbit)
 			t.Logf("  Заяц %d: позиция (%.1f, %.1f)", rabbit, placement.X, placement.Y)
 		case core.TypeWolf:
-			wolf := simulation.CreateWolf(world, placement.X, placement.Y)
+			wolf := simulation.CreateAnimal(world, core.TypeWolf, placement.X, placement.Y)
 			wolves = append(wolves, wolf)
 
 			// Проверяем начальный голод волка
@@ -159,10 +161,12 @@ func TestSeed6Debug(t *testing.T) {
 				t.Logf("    [ANIM] %s %d: %s -> %s", animalType.String(), entity, oldAnimType.String(), newAnimType.String())
 			}
 			if oldFrame != animComponent.Frame {
-				t.Logf("    [FRAME] %s %d: кадр %d->%d, играет %t", animalType.String(), entity, oldFrame, animComponent.Frame, animComponent.Playing)
+				t.Logf("    [FRAME] %s %d: кадр %d->%d, играет %t",
+					animalType.String(), entity, oldFrame, animComponent.Frame, animComponent.Playing)
 			}
 			if oldPlaying && !animComponent.Playing {
-				t.Logf("    [END] %s %d: анимация %s завершена", animalType.String(), entity, animation.AnimationType(anim.CurrentAnim).String())
+				t.Logf("    [END] %s %d: анимация %s завершена",
+					animalType.String(), entity, animation.AnimationType(anim.CurrentAnim).String())
 			}
 		})
 	}

@@ -12,6 +12,8 @@ import (
 )
 
 // TestWolfEatingBehaviorImproved проверяет улучшенное поведение волков при поедании
+//
+//nolint:gocognit,revive,funlen // Комплексный интеграционный тест поведения волков
 func TestWolfEatingBehaviorImproved(t *testing.T) {
 	t.Parallel()
 
@@ -52,9 +54,9 @@ func TestWolfEatingBehaviorImproved(t *testing.T) {
 	// Создаём волка и зайца на расстоянии
 	wolfStartX, wolfStartY := float32(200), float32(200)
 	rabbitX, rabbitY := float32(220), float32(220) // На расстоянии от волка
-	
-	wolf := simulation.CreateWolf(world, wolfStartX, wolfStartY)
-	rabbit := simulation.CreateRabbit(world, rabbitX, rabbitY)
+
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, wolfStartX, wolfStartY)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, rabbitX, rabbitY)
 
 	// Делаем волка голодным
 	world.SetHunger(wolf, core.Hunger{Value: 30.0})
@@ -139,7 +141,8 @@ func TestWolfEatingBehaviorImproved(t *testing.T) {
 			}
 
 			t.Logf("%.1fs: pos=(%.1f,%.1f), голод=%.1f%%, ест=%v, анимация=%s, питательность=%.1f, съедено=%.1f",
-				float32(tick)/60.0, wolfPos.X, wolfPos.Y, wolfHunger.Value, isEating, currentAnimType.String(), currentNutrition, nutritionGained)
+				float32(tick)/60.0, wolfPos.X, wolfPos.Y, wolfHunger.Value, isEating,
+				currentAnimType.String(), currentNutrition, nutritionGained)
 
 			// Отслеживаем начало поедания
 			if isEating && !eatingStarted {
@@ -157,8 +160,8 @@ func TestWolfEatingBehaviorImproved(t *testing.T) {
 
 			// ТЕСТ 2: Позиционирование - волк не должен двигаться ВО ВРЕМЯ поедания (только когда ест!)
 			if eatingStarted && isEating {
-				distance := ((wolfPos.X-wolfPositionWhenEatingStarted.X)*(wolfPos.X-wolfPositionWhenEatingStarted.X) + 
-							 (wolfPos.Y-wolfPositionWhenEatingStarted.Y)*(wolfPos.Y-wolfPositionWhenEatingStarted.Y))
+				distance := ((wolfPos.X-wolfPositionWhenEatingStarted.X)*(wolfPos.X-wolfPositionWhenEatingStarted.X) +
+					(wolfPos.Y-wolfPositionWhenEatingStarted.Y)*(wolfPos.Y-wolfPositionWhenEatingStarted.Y))
 				if distance > 1.0 { // Допуск 1 пиксель
 					t.Errorf("❌ Волк движется во время поедания! Был на (%.1f,%.1f), стал на (%.1f,%.1f)",
 						wolfPositionWhenEatingStarted.X, wolfPositionWhenEatingStarted.Y, wolfPos.X, wolfPos.Y)
@@ -194,9 +197,9 @@ func TestWolfEatingBehaviorImproved(t *testing.T) {
 
 	// ТЕСТ 2: Проверяем что волк не "телепортировался" к трупу
 	finalWolfPos, _ := world.GetPosition(wolf)
-	distanceTraveled := ((finalWolfPos.X-wolfStartX)*(finalWolfPos.X-wolfStartX) + 
-				 (finalWolfPos.Y-wolfStartY)*(finalWolfPos.Y-wolfStartY))
-	
+	distanceTraveled := ((finalWolfPos.X-wolfStartX)*(finalWolfPos.X-wolfStartX) +
+		(finalWolfPos.Y-wolfStartY)*(finalWolfPos.Y-wolfStartY))
+
 	// Расстояние до трупа было ~28 единиц, плюс небольшое движение после поедания
 	maxReasonableDistance := float32(40 * 40) // 40 пикселей максимум (разумно для подхода к трупу)
 

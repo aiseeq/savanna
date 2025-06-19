@@ -33,7 +33,7 @@ func TestGrassEatingSystemDirect(t *testing.T) {
 
 	// Создаём зайца
 	rabbitX, rabbitY := float32(centerX*32+16), float32(centerY*32+16)
-	rabbit := simulation.CreateRabbit(world, rabbitX, rabbitY)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, rabbitX, rabbitY)
 
 	// Делаем зайца голодным и ВРУЧНУЮ создаём EatingState (как FeedingSystem)
 	world.SetHunger(rabbit, core.Hunger{Value: 70.0})

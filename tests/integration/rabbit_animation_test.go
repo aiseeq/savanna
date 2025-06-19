@@ -11,6 +11,8 @@ import (
 )
 
 // TestRabbitAnimations проверяет правильность анимаций зайца
+//
+//nolint:gocognit,revive,funlen // Комплексный тест анимационной системы зайца
 func TestRabbitAnimations(t *testing.T) {
 	t.Parallel()
 
@@ -52,7 +54,7 @@ func TestRabbitAnimations(t *testing.T) {
 	}
 
 	// Создаём голодного зайца
-	rabbit := simulation.CreateRabbit(world, grassX, grassY)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, grassX, grassY)
 	world.SetHunger(rabbit, core.Hunger{Value: 80.0})    // Голодный
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0}) // Стоит
 

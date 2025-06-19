@@ -10,6 +10,8 @@ import (
 )
 
 // TestWolfMultipleAttacks проверяет что волк может атаковать несколько раз
+//
+//nolint:gocognit,revive,funlen // Комплексный интеграционный тест системы боя волков
 func TestWolfMultipleAttacks(t *testing.T) {
 	t.Parallel()
 	cfg := config.LoadDefaultConfig()
@@ -21,8 +23,8 @@ func TestWolfMultipleAttacks(t *testing.T) {
 	combatSystem := simulation.NewCombatSystem()
 
 	// Создаём зайца и волка в одной точке
-	rabbit := simulation.CreateRabbit(world, 300, 300)
-	wolf := simulation.CreateWolf(world, 300, 300)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 300, 300)
 
 	// Делаем волка очень голодным
 	world.SetHunger(wolf, core.Hunger{Value: 30.0}) // 30% < 60% = голодный

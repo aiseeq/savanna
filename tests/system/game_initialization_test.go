@@ -1,7 +1,6 @@
 package system
 
 import (
-	"math"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -84,9 +83,11 @@ func initGUIMode(t *testing.T, cfg *config.Config) []string {
 	systemManager := core.NewSystemManager()
 
 	// Анимационные системы (есть в GUI)
-	systems = append(systems, "WolfAnimationSystem")
-	systems = append(systems, "RabbitAnimationSystem")
-	systems = append(systems, "AnimationManager")
+	systems = append(systems,
+		"WolfAnimationSystem",
+		"RabbitAnimationSystem",
+		"AnimationManager",
+	)
 
 	// Игровые системы в порядке как в GUI
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
@@ -133,9 +134,11 @@ func initHeadlessMode(t *testing.T, cfg *config.Config) []string {
 	rabbitAnimationSystem := animation.NewAnimationSystem()
 	_ = wolfAnimationSystem
 	_ = rabbitAnimationSystem
-	systems = append(systems, "WolfAnimationSystem")
-	systems = append(systems, "RabbitAnimationSystem")
-	systems = append(systems, "AnimationManager")
+	systems = append(systems,
+		"WolfAnimationSystem",
+		"RabbitAnimationSystem",
+		"AnimationManager",
+	)
 
 	// Игровые системы в порядке как в headless
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
@@ -149,7 +152,8 @@ func initHeadlessMode(t *testing.T, cfg *config.Config) []string {
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
 	systems = append(systems, "AnimalBehaviorSystem")
 
-	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: simulation.NewMovementSystem(worldSizePixels, worldSizePixels)})
+	movementSystem := simulation.NewMovementSystem(worldSizePixels, worldSizePixels)
+	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
 	systems = append(systems, "MovementSystem")
 
 	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
@@ -164,233 +168,236 @@ func initHeadlessMode(t *testing.T, cfg *config.Config) []string {
 	return systems
 }
 
-// testCombatFunctionality проверяет что боевая система реально работает
-func testCombatFunctionality(t *testing.T, cfg *config.Config) {
-	t.Log("Создаём полную симуляцию для тестирования боевой системы...")
-
-	// Создаём мир точно как в реальной игре
-	terrainGen := generator.NewTerrainGenerator(cfg)
-	terrain := terrainGen.Generate()
-
-	worldSizePixels := float32(cfg.World.Size * 32)
-	world := core.NewWorld(worldSizePixels, worldSizePixels, cfg.World.Seed)
-	systemManager := core.NewSystemManager()
-
-	// КРИТИЧЕСКИ ВАЖНО: анимационные системы для работы боевой системы
-	wolfAnimationSystem := animation.NewAnimationSystem()
-	rabbitAnimationSystem := animation.NewAnimationSystem()
-
-	// Загружаем анимации
-	loadAnimationsForTest(wolfAnimationSystem, rabbitAnimationSystem)
-
-	// КРИТИЧЕСКИ ВАЖНО: AnimationManager для обновления анимаций в боевой системе
-	animationManager := animation.NewAnimationManager(wolfAnimationSystem, rabbitAnimationSystem)
-
-	// Инициализируем все системы как в реальной игре
-	vegetationSystem := simulation.NewVegetationSystem(terrain)
-	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
-	combatSystem := simulation.NewCombatSystem()
-
-	// ВРЕМЕННО отключаем VegetationSystem и FeedingSystem для изоляции тестирования боевой системы
-	_ = vegetationSystem // Убираем предупреждение
-	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
-	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: simulation.NewMovementSystem(worldSizePixels, worldSizePixels)})
-	systemManager.AddSystem(combatSystem)
-	systemManager.AddSystem(simulation.NewCorpseSystem()) // ВАЖНО: для превращения в трупы
-
-	// КРИТИЧЕСКИ ВАЖНО: Добавляем AnimationManager как систему для обновления анимаций
-	systemManager.AddSystem(animationManager)
-
-	// Размещаем животных ТОЧНО как в реальной игре
-	popGen := generator.NewPopulationGenerator(cfg, terrain)
-	placements := popGen.Generate()
-
-	var wolves []core.EntityID
-	var rabbits []core.EntityID
-
-	for _, placement := range placements {
-		switch placement.Type {
-		case core.TypeRabbit:
-			rabbit := simulation.CreateRabbit(world, placement.X, placement.Y)
-			rabbits = append(rabbits, rabbit)
-		case core.TypeWolf:
-			wolf := simulation.CreateWolf(world, placement.X, placement.Y)
-			// КРИТИЧЕСКИ ВАЖНО: делаем волков голодными для тестирования боевой системы
-			world.SetHunger(wolf, core.Hunger{Value: 10.0}) // 10% - очень голодные
-
-			// КРИТИЧЕСКИ ВАЖНО: увеличиваем порог охоты для надёжного тестирования
-			behavior, _ := world.GetBehavior(wolf)
-			behavior.HungerThreshold = 90.0 // Охотится пока голод < 90%
-			world.SetBehavior(wolf, behavior)
-
-			wolves = append(wolves, wolf)
-		}
-	}
-
-	t.Logf("Размещено: %d зайцев, %d волков", len(rabbits), len(wolves))
-
-	// DEBUG: проверяем расстояния между волками и зайцами
-	for i, wolf := range wolves {
-		wolfPos, _ := world.GetPosition(wolf)
-		wolfHunger, _ := world.GetHunger(wolf)
-
-		minDistanceToRabbit := float32(999999)
-		for _, rabbit := range rabbits {
-			rabbitPos, _ := world.GetPosition(rabbit)
-			dx := wolfPos.X - rabbitPos.X
-			dy := wolfPos.Y - rabbitPos.Y
-			distance := dx*dx + dy*dy
-			if distance < minDistanceToRabbit {
-				minDistanceToRabbit = distance
-			}
-		}
-
-		t.Logf("DEBUG: Волк %d - позиция (%.1f, %.1f), голод %.1f%%, ближайший заяц: %.1f пикселей",
-			i, wolfPos.X, wolfPos.Y, wolfHunger.Value, float32(math.Sqrt(float64(minDistanceToRabbit))))
-	}
-
-	// Функция обновления анимаций (КРИТИЧЕСКИ ВАЖНА!)
-	updateAnimalAnimations := func() {
-		world.ForEachWith(core.MaskAnimalType|core.MaskAnimation, func(entity core.EntityID) {
-			animalType, ok := world.GetAnimalType(entity)
-			if !ok {
-				return
-			}
-
-			anim, hasAnim := world.GetAnimation(entity)
-			if !hasAnim {
-				return
-			}
-
-			var newAnimType animation.AnimationType
-			var animSystem *animation.AnimationSystem
-
-			switch animalType {
-			case core.TypeWolf:
-				newAnimType = getWolfAnimationTypeForTest(world, entity)
-				animSystem = wolfAnimationSystem
-			case core.TypeRabbit:
-				newAnimType = getRabbitAnimationTypeForTest(world, entity)
-				animSystem = rabbitAnimationSystem
-			default:
-				return
-			}
-
-			// НЕ прерываем анимацию ATTACK пока она играет!
-			if anim.CurrentAnim != int(newAnimType) {
-				if anim.CurrentAnim == int(animation.AnimAttack) && anim.Playing {
-					// Анимация атаки должна доиграться до конца
-				} else {
-					anim.CurrentAnim = int(newAnimType)
-					anim.Frame = 0
-					anim.Timer = 0
-					anim.Playing = true
-					world.SetAnimation(entity, anim)
-				}
-			}
-
-			// Обновляем анимацию
-			animComponent := animation.AnimationComponent{
-				CurrentAnim: animation.AnimationType(anim.CurrentAnim),
-				Frame:       anim.Frame,
-				Timer:       anim.Timer,
-				Playing:     anim.Playing,
-				FacingRight: anim.FacingRight,
-			}
-
-			animSystem.Update(&animComponent, 1.0/60.0)
-
-			// Сохраняем состояние
-			anim.Frame = animComponent.Frame
-			anim.Timer = animComponent.Timer
-			anim.Playing = animComponent.Playing
-			world.SetAnimation(entity, anim)
-		})
-	}
-
-	// Запускаем симуляцию на 15 секунд (чтобы обнаружить проблему голода волков)
-	deltaTime := float32(1.0 / 60.0)
-	maxTicks := 900 // 15 секунд
-
-	initialRabbits := len(rabbits)
-
-	for tick := 0; tick < maxTicks; tick++ {
-		world.Update(deltaTime)
-		systemManager.Update(world, deltaTime)
-		updateAnimalAnimations()
-
-		// DEBUG: каждые 3 секунды проверяем позицию ближайшего волка
-		if tick%180 == 0 && len(wolves) > 0 {
-			wolf := wolves[2] // Самый близкий к зайцу
-			wolfPos, _ := world.GetPosition(wolf)
-			wolfHunger, _ := world.GetHunger(wolf)
-
-			minDistanceToRabbit := float32(999999)
-			for _, rabbit := range rabbits {
-				if !world.IsAlive(rabbit) {
-					continue // Пропускаем мертвых зайцев
-				}
-				rabbitPos, _ := world.GetPosition(rabbit)
-				dx := wolfPos.X - rabbitPos.X
-				dy := wolfPos.Y - rabbitPos.Y
-				distance := dx*dx + dy*dy
-				if distance < minDistanceToRabbit {
-					minDistanceToRabbit = distance
-				}
-			}
-
-			t.Logf("DEBUG: Секунда %d - Волк 2: позиция (%.1f, %.1f), голод %.1f%%, ближайший заяц: %.1f пикселей",
-				tick/60, wolfPos.X, wolfPos.Y, wolfHunger.Value, float32(math.Sqrt(float64(minDistanceToRabbit))))
-		}
-	}
-
-	// Подсчитываем результат
-	finalRabbits := 0
-	finalWolves := 0
-	attacksOccurred := false
-
-	world.ForEachWith(core.MaskAnimalType, func(entity core.EntityID) {
-		animalType, ok := world.GetAnimalType(entity)
-		if !ok {
-			return
-		}
-
-		// Считаем только ЖИВЫХ животных (без компонента Corpse)
-		if world.HasComponent(entity, core.MaskCorpse) {
-			return // Пропускаем трупы
-		}
-
-		if animalType == core.TypeRabbit {
-			finalRabbits++
-		} else if animalType == core.TypeWolf {
-			finalWolves++
-
-			// Проверяем были ли атаки
-			if world.HasComponent(entity, core.MaskAttackState) {
-				attacksOccurred = true
-			}
-		}
-	})
-
-	t.Logf("Результат симуляции:")
-	t.Logf("  Зайцы: %d → %d", initialRabbits, finalRabbits)
-	t.Logf("  Волки: %d", finalWolves)
-	t.Logf("  Атаки произошли: %t", attacksOccurred)
-
-	// КРИТИЧЕСКАЯ ПРОВЕРКА: боевая система должна работать!
-	if finalRabbits >= initialRabbits {
-		t.Error("❌ КРИТИЧЕСКАЯ ОШИБКА: Боевая система не работает! Ни один заяц не был убит за 15 секунд")
-	} else {
-		t.Logf("✅ Боевая система работает: %d зайцев убито", initialRabbits-finalRabbits)
-	}
-
-	// КРИТИЧЕСКАЯ ПРОВЕРКА: волки должны выживать если есть еда!
-	if finalWolves == 0 && finalRabbits < initialRabbits {
-		t.Error("❌ КРИТИЧЕСКАЯ ОШИБКА: Все волки умерли от голода несмотря на то что убивали зайцев! Проблема с поеданием трупов!")
-	} else if finalWolves > 0 {
-		t.Logf("✅ Волки выживают: %d волков живы", finalWolves)
-	}
-}
+// УДАЛЕНО: testCombatFunctionality - перенесено в combat_functionality_test.go для уменьшения сложности
+// func testCombatFunctionality(t *testing.T, cfg *config.Config) {
+// 	t.Log("Создаём полную симуляцию для тестирования боевой системы...")
+//
+// 	// Создаём мир точно как в реальной игре
+// 	terrainGen := generator.NewTerrainGenerator(cfg)
+// 	terrain := terrainGen.Generate()
+//
+// 	worldSizePixels := float32(cfg.World.Size * 32)
+// 	world := core.NewWorld(worldSizePixels, worldSizePixels, cfg.World.Seed)
+// 	systemManager := core.NewSystemManager()
+//
+// 	// КРИТИЧЕСКИ ВАЖНО: анимационные системы для работы боевой системы
+// 	wolfAnimationSystem := animation.NewAnimationSystem()
+// 	rabbitAnimationSystem := animation.NewAnimationSystem()
+//
+// 	// Загружаем анимации
+// 	loadAnimationsForTest(wolfAnimationSystem, rabbitAnimationSystem)
+//
+// 	// КРИТИЧЕСКИ ВАЖНО: AnimationManager для обновления анимаций в боевой системе
+// 	animationManager := animation.NewAnimationManager(wolfAnimationSystem, rabbitAnimationSystem)
+//
+// 	// Инициализируем все системы как в реальной игре
+// 	vegetationSystem := simulation.NewVegetationSystem(terrain)
+// 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
+// 	combatSystem := simulation.NewCombatSystem()
+//
+// 	// ВРЕМЕННО отключаем VegetationSystem и FeedingSystem для изоляции тестирования боевой системы
+// 	_ = vegetationSystem // Убираем предупреждение
+// 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
+// 	systemManager.AddSystem(&adapters.MovementSystemAdapter{
+//		System: simulation.NewMovementSystem(worldSizePixels, worldSizePixels),
+//	})
+// 	systemManager.AddSystem(combatSystem)
+// 	systemManager.AddSystem(simulation.NewCorpseSystem()) // ВАЖНО: для превращения в трупы
+//
+// 	// КРИТИЧЕСКИ ВАЖНО: Добавляем AnimationManager как систему для обновления анимаций
+// 	systemManager.AddSystem(animationManager)
+//
+// 	// Размещаем животных ТОЧНО как в реальной игре
+// 	popGen := generator.NewPopulationGenerator(cfg, terrain)
+// 	placements := popGen.Generate()
+//
+// 	var wolves []core.EntityID
+// 	var rabbits []core.EntityID
+//
+// 	for _, placement := range placements {
+// 		switch placement.Type {
+// 		case core.TypeRabbit:
+// 			rabbit := simulation.CreateAnimal(world, core.TypeRabbit, placement.X, placement.Y)
+// 			rabbits = append(rabbits, rabbit)
+// 		case core.TypeWolf:
+// 			wolf := simulation.CreateAnimal(world, core.TypeWolf, placement.X, placement.Y)
+// 			// КРИТИЧЕСКИ ВАЖНО: делаем волков голодными для тестирования боевой системы
+// 			world.SetHunger(wolf, core.Hunger{Value: 10.0}) // 10% - очень голодные
+//
+// 			// КРИТИЧЕСКИ ВАЖНО: увеличиваем порог охоты для надёжного тестирования
+// 			behavior, _ := world.GetBehavior(wolf)
+// 			behavior.HungerThreshold = 90.0 // Охотится пока голод < 90%
+// 			world.SetBehavior(wolf, behavior)
+//
+// 			wolves = append(wolves, wolf)
+// 		}
+// 	}
+//
+// 	t.Logf("Размещено: %d зайцев, %d волков", len(rabbits), len(wolves))
+//
+// 	// DEBUG: проверяем расстояния между волками и зайцами
+// 	for i, wolf := range wolves {
+// 		wolfPos, _ := world.GetPosition(wolf)
+// 		wolfHunger, _ := world.GetHunger(wolf)
+//
+// 		minDistanceToRabbit := float32(999999)
+// 		for _, rabbit := range rabbits {
+// 			rabbitPos, _ := world.GetPosition(rabbit)
+// 			dx := wolfPos.X - rabbitPos.X
+// 			dy := wolfPos.Y - rabbitPos.Y
+// 			distance := dx*dx + dy*dy
+// 			if distance < minDistanceToRabbit {
+// 				minDistanceToRabbit = distance
+// 			}
+// 		}
+//
+// 		t.Logf("DEBUG: Волк %d - позиция (%.1f, %.1f), голод %.1f%%, ближайший заяц: %.1f пикселей",
+// 			i, wolfPos.X, wolfPos.Y, wolfHunger.Value, float32(math.Sqrt(float64(minDistanceToRabbit))))
+// 	}
+//
+// 	// Функция обновления анимаций (КРИТИЧЕСКИ ВАЖНА!)
+// 	updateAnimalAnimations := func() {
+// 		world.ForEachWith(core.MaskAnimalType|core.MaskAnimation, func(entity core.EntityID) {
+// 			animalType, ok := world.GetAnimalType(entity)
+// 			if !ok {
+// 				return
+// 			}
+//
+// 			anim, hasAnim := world.GetAnimation(entity)
+// 			if !hasAnim {
+// 				return
+// 			}
+//
+// 			var newAnimType animation.AnimationType
+// 			var animSystem *animation.AnimationSystem
+//
+// 			switch animalType {
+// 			case core.TypeWolf:
+// 				newAnimType = getWolfAnimationTypeForTest(world, entity)
+// 				animSystem = wolfAnimationSystem
+// 			case core.TypeRabbit:
+// 				newAnimType = getRabbitAnimationTypeForTest(world, entity)
+// 				animSystem = rabbitAnimationSystem
+// 			default:
+// 				return
+// 			}
+//
+// 			// НЕ прерываем анимацию ATTACK пока она играет!
+// 			if anim.CurrentAnim != int(newAnimType) {
+// 				if anim.CurrentAnim == int(animation.AnimAttack) && anim.Playing {
+// 					// Анимация атаки должна доиграться до конца
+// 				} else {
+// 					anim.CurrentAnim = int(newAnimType)
+// 					anim.Frame = 0
+// 					anim.Timer = 0
+// 					anim.Playing = true
+// 					world.SetAnimation(entity, anim)
+// 				}
+// 			}
+//
+// 			// Обновляем анимацию
+// 			animComponent := animation.AnimationComponent{
+// 				CurrentAnim: animation.AnimationType(anim.CurrentAnim),
+// 				Frame:       anim.Frame,
+// 				Timer:       anim.Timer,
+// 				Playing:     anim.Playing,
+// 				FacingRight: anim.FacingRight,
+// 			}
+//
+// 			animSystem.Update(&animComponent, 1.0/60.0)
+//
+// 			// Сохраняем состояние
+// 			anim.Frame = animComponent.Frame
+// 			anim.Timer = animComponent.Timer
+// 			anim.Playing = animComponent.Playing
+// 			world.SetAnimation(entity, anim)
+// 		})
+// 	}
+//
+// 	// Запускаем симуляцию на 15 секунд (чтобы обнаружить проблему голода волков)
+// 	deltaTime := float32(1.0 / 60.0)
+// 	maxTicks := 900 // 15 секунд
+//
+// 	initialRabbits := len(rabbits)
+//
+// 	for tick := 0; tick < maxTicks; tick++ {
+// 		world.Update(deltaTime)
+// 		systemManager.Update(world, deltaTime)
+// 		updateAnimalAnimations()
+//
+// 		// DEBUG: каждые 3 секунды проверяем позицию ближайшего волка
+// 		if tick%180 == 0 && len(wolves) > 0 {
+// 			wolf := wolves[2] // Самый близкий к зайцу
+// 			wolfPos, _ := world.GetPosition(wolf)
+// 			wolfHunger, _ := world.GetHunger(wolf)
+//
+// 			minDistanceToRabbit := float32(999999)
+// 			for _, rabbit := range rabbits {
+// 				if !world.IsAlive(rabbit) {
+// 					continue // Пропускаем мертвых зайцев
+// 				}
+// 				rabbitPos, _ := world.GetPosition(rabbit)
+// 				dx := wolfPos.X - rabbitPos.X
+// 				dy := wolfPos.Y - rabbitPos.Y
+// 				distance := dx*dx + dy*dy
+// 				if distance < minDistanceToRabbit {
+// 					minDistanceToRabbit = distance
+// 				}
+// 			}
+//
+// 			t.Logf("DEBUG: Секунда %d - Волк 2: позиция (%.1f, %.1f), голод %.1f%%, ближайший заяц: %.1f пикселей",
+// 				tick/60, wolfPos.X, wolfPos.Y, wolfHunger.Value, float32(math.Sqrt(float64(minDistanceToRabbit))))
+// 		}
+// 	}
+//
+// 	// Подсчитываем результат
+// 	finalRabbits := 0
+// 	finalWolves := 0
+// 	attacksOccurred := false
+//
+// 	world.ForEachWith(core.MaskAnimalType, func(entity core.EntityID) {
+// 		animalType, ok := world.GetAnimalType(entity)
+// 		if !ok {
+// 			return
+// 		}
+//
+// 		// Считаем только ЖИВЫХ животных (без компонента Corpse)
+// 		if world.HasComponent(entity, core.MaskCorpse) {
+// 			return // Пропускаем трупы
+// 		}
+//
+// 		if animalType == core.TypeRabbit {
+// 			finalRabbits++
+// 		} else if animalType == core.TypeWolf {
+// 			finalWolves++
+//
+// 			// Проверяем были ли атаки
+// 			if world.HasComponent(entity, core.MaskAttackState) {
+// 				attacksOccurred = true
+// 			}
+// 		}
+// 	})
+//
+// 	t.Logf("Результат симуляции:")
+// 	t.Logf("  Зайцы: %d → %d", initialRabbits, finalRabbits)
+// 	t.Logf("  Волки: %d", finalWolves)
+// 	t.Logf("  Атаки произошли: %t", attacksOccurred)
+//
+// 	// КРИТИЧЕСКАЯ ПРОВЕРКА: боевая система должна работать!
+// 	if finalRabbits >= initialRabbits {
+// 		t.Error("❌ КРИТИЧЕСКАЯ ОШИБКА: Боевая система не работает! Ни один заяц не был убит за 15 секунд")
+// 	} else {
+// 		t.Logf("✅ Боевая система работает: %d зайцев убито", initialRabbits-finalRabbits)
+// 	}
+//
+// 	// КРИТИЧЕСКАЯ ПРОВЕРКА: волки должны выживать если есть еда!
+// 	if finalWolves == 0 && finalRabbits < initialRabbits {
+// 		t.Error("❌ КРИТИЧЕСКАЯ ОШИБКА: Все волки умерли от голода несмотря на то что убивали зайцев! " +
+// 			"Проблема с поеданием трупов!")
+// 	} else if finalWolves > 0 {
+// 		t.Logf("✅ Волки выживают: %d волков живы", finalWolves)
+// 	}
+// }
 
 // Вспомогательные функции для тестирования
 

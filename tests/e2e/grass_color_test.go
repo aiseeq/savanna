@@ -12,6 +12,8 @@ import (
 )
 
 // TestGrassColorChangeE2E проверяет что цвет травы меняется при её поедании
+//
+//nolint:gocognit,revive // E2E тест изменения цвета травы
 func TestGrassColorChangeE2E(t *testing.T) {
 	t.Parallel()
 
@@ -47,7 +49,7 @@ func TestGrassColorChangeE2E(t *testing.T) {
 	systemManager.AddSystem(&adapters.GrassEatingSystemAdapter{System: grassEatingSystem})
 
 	// Создаём зайца
-	rabbit := simulation.CreateRabbit(world, 48, 48)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 48, 48)
 	world.SetHunger(rabbit, core.Hunger{Value: 10.0}) // Очень голодный
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0})
 

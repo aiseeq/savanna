@@ -23,11 +23,6 @@ type Hunger struct {
 	Value float32 // 0 = умирает от голода, 100 = сыт
 }
 
-// Age возраст сущности в секундах
-type Age struct {
-	Seconds float32
-}
-
 // AnimalType тип животного
 type AnimalType uint8
 
@@ -208,7 +203,6 @@ const (
 	MaskVelocity
 	MaskHealth
 	MaskHunger
-	MaskAge
 	MaskAnimalType
 	MaskSize
 	MaskSpeed
@@ -288,7 +282,7 @@ var (
 	MovingEntities = NewComponentSet(MaskPosition, MaskVelocity)
 
 	// LivingEntities живые сущности
-	LivingEntities = NewComponentSet(MaskPosition, MaskHealth, MaskHunger, MaskAge, MaskAnimalType, MaskSize)
+	LivingEntities = NewComponentSet(MaskPosition, MaskHealth, MaskHunger, MaskAnimalType, MaskSize)
 
 	// AnimalsEntities животные (для рендеринга и логики)
 	AnimalsEntities = NewComponentSet(

@@ -13,6 +13,8 @@ import (
 )
 
 // TestRabbitFeedingBugE2E проверяет что зайцы правильно насыщаются до 90% как в игре
+//
+//nolint:gocognit,revive,funlen // Тест исправления бага системы питания зайцев
 func TestRabbitFeedingBugE2E(t *testing.T) {
 	t.Parallel()
 
@@ -68,7 +70,7 @@ func TestRabbitFeedingBugE2E(t *testing.T) {
 	animationResolver := animation.NewAnimationResolver()
 
 	// Создаём зайца с хорошими условиями для еды
-	rabbit := simulation.CreateRabbit(world, 160, 160) // В центре карты
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 160, 160) // В центре карты
 
 	// Делаем зайца голодным но не критично (как в игре)
 	initialHunger := float32(60.0) // 60% - будет искать еду но не умрёт
@@ -88,7 +90,8 @@ func TestRabbitFeedingBugE2E(t *testing.T) {
 	t.Logf("  Позиция зайца: (%.1f, %.1f)", pos.X, pos.Y)
 	t.Logf("  Голод зайца: %.1f%%", hunger.Value)
 	t.Logf("  Трава в позиции: %.1f единиц", grassAmount)
-	t.Logf("  SatietyThreshold: %.1f%% (заяц должен прекратить есть на этом уровне)", simulation.MaxHungerValue-simulation.SatietyTolerance)
+	t.Logf("  SatietyThreshold: %.1f%% (заяц должен прекратить есть на этом уровне)",
+		simulation.MaxHungerValue-simulation.SatietyTolerance)
 
 	// Проверяем начальные условия
 	if grassAmount < 50.0 {
@@ -172,7 +175,8 @@ func TestRabbitFeedingBugE2E(t *testing.T) {
 			// Отладочная информация о состоянии EatingState
 			var eatingInfo string
 			if eatingState, hasEatingState := world.GetEatingState(rabbit); hasEatingState {
-				eatingInfo = fmt.Sprintf("(прогресс:%.2f, питательность:%.2f)", eatingState.EatingProgress, eatingState.NutritionGained)
+				eatingInfo = fmt.Sprintf("(прогресс:%.2f, питательность:%.2f)",
+					eatingState.EatingProgress, eatingState.NutritionGained)
 			} else {
 				eatingInfo = "(нет состояния)"
 			}

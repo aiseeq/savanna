@@ -9,12 +9,14 @@ import (
 )
 
 // TestWolfAnimationSimple простой тест проблемы сохранения анимации
+//
+//nolint:gocognit,revive,funlen // Комплексный тест системы анимации волков
 func TestWolfAnimationSimple(t *testing.T) {
 	t.Parallel()
 	world := core.NewWorld(640, 640, 42)
 
 	// Создаём волка
-	wolf := simulation.CreateWolf(world, 300, 300)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 300, 300)
 
 	// Добавляем анимацию волку
 	animComp := core.Animation{
@@ -41,7 +43,8 @@ func TestWolfAnimationSimple(t *testing.T) {
 
 		// Сразу читаем обратно
 		if newAnim, hasNewAnim := world.GetAnimation(wolf); hasNewAnim {
-			t.Logf("Прочитали обратно: анимация %s, кадр %d", animation.AnimationType(newAnim.CurrentAnim).String(), newAnim.Frame)
+			t.Logf("Прочитали обратно: анимация %s, кадр %d",
+				animation.AnimationType(newAnim.CurrentAnim).String(), newAnim.Frame)
 
 			if newAnim.CurrentAnim != int(animation.AnimAttack) {
 				t.Errorf("ОШИБКА: Установили Attack (%d), но получили %s (%d)",

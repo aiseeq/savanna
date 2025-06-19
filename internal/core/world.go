@@ -7,240 +7,118 @@ import (
 )
 
 // World главная структура мира симуляции
-// Использует Structure of Arrays (SOA) для оптимальной производительности
+// Использует Composition Pattern и SRP - разделён на специализированные менеджеры
 type World struct {
-	// Управление сущностями
-	entities EntityManager
-
-	// Компоненты - индексируются по EntityID
-	positions     [MaxEntities]Position
-	velocities    [MaxEntities]Velocity
-	healths       [MaxEntities]Health
-	hungers       [MaxEntities]Hunger
-	ages          [MaxEntities]Age
-	types         [MaxEntities]AnimalType
-	sizes         [MaxEntities]Size
-	speeds        [MaxEntities]Speed
-	animations    [MaxEntities]Animation
-	damageFlashes [MaxEntities]DamageFlash
-	corpses       [MaxEntities]Corpse
-	carrions      [MaxEntities]Carrion
-	eatingStates  [MaxEntities]EatingState
-	attackStates  [MaxEntities]AttackState
-	behaviors     [MaxEntities]Behavior
-	animalConfigs [MaxEntities]AnimalConfig
-
-	// Битовые маски для быстрой проверки наличия компонентов
-	// Каждый uint64 хранит 64 бита, поэтому нужно MaxEntities/64 элементов
-	hasPosition     [MaxEntities/64 + 1]uint64
-	hasVelocity     [MaxEntities/64 + 1]uint64
-	hasHealth       [MaxEntities/64 + 1]uint64
-	hasHunger       [MaxEntities/64 + 1]uint64
-	hasAge          [MaxEntities/64 + 1]uint64
-	hasType         [MaxEntities/64 + 1]uint64
-	hasSize         [MaxEntities/64 + 1]uint64
-	hasSpeed        [MaxEntities/64 + 1]uint64
-	hasAnimation    [MaxEntities/64 + 1]uint64
-	hasDamageFlash  [MaxEntities/64 + 1]uint64
-	hasCorpse       [MaxEntities/64 + 1]uint64
-	hasCarrion      [MaxEntities/64 + 1]uint64
-	hasEatingState  [MaxEntities/64 + 1]uint64
-	hasAttackState  [MaxEntities/64 + 1]uint64
-	hasBehavior     [MaxEntities/64 + 1]uint64
-	hasAnimalConfig [MaxEntities/64 + 1]uint64
-
-	// Пространственная система запросов (абстракция через интерфейс - соблюдает DIP)
-	spatialProvider SpatialQueryProvider
-
-	// Время симуляции
-	time      float32 // Общее время симуляции в секундах
-	deltaTime float32 // Время с последнего обновления
-	timeScale float32 // Масштаб времени (1.0 = нормальная скорость)
-
-	// Детерминированный генератор случайных чисел
-	rng *rand.Rand
-
-	// Размеры мира
-	worldWidth  float32
-	worldHeight float32
-
-	// Буферы для переиспользования (предотвращение аллокаций)
-	queryBuffer    []EntityID
-	entitiesBuffer []EntityID
+	// Специализированные менеджеры (соблюдают SRP)
+	entityManager    *EntityManager    // Создание/удаление сущностей
+	componentManager *ComponentManager // Управление компонентами
+	queryManager     *QueryManager     // Запросы и итерации
+	worldState       *WorldState       // Состояние мира (время, размеры, RNG)
 }
 
 // NewWorld создаёт новый мир симуляции
 func NewWorld(worldWidth, worldHeight float32, seed int64) *World {
-	world := &World{
-		entities: *NewEntityManager(),
-		// Используем адаптер для SpatialGrid (соблюдает DIP)
-		spatialProvider: NewSpatialGridAdapter(worldWidth, worldHeight),
-		time:            0,
-		deltaTime:       0,
-		timeScale:       1.0,
-		rng:             rand.New(rand.NewSource(seed)),
-		worldWidth:      worldWidth,
-		worldHeight:     worldHeight,
-		queryBuffer:     make([]EntityID, 0, 100),
-		entitiesBuffer:  make([]EntityID, 0, MaxEntities),
-	}
+	// Создаём специализированные менеджеры (применяем Composition Pattern)
+	entityManager := NewEntityManager()
+	componentManager := NewComponentManager()
+	worldState := NewWorldState(worldWidth, worldHeight, seed)
+	queryManager := NewQueryManager(componentManager, entityManager)
 
-	return world
+	return &World{
+		entityManager:    entityManager,
+		componentManager: componentManager,
+		queryManager:     queryManager,
+		worldState:       worldState,
+	}
 }
 
-// GetTime возвращает текущее время симуляции
+// GetTime возвращает текущее время симуляции (делегирование к WorldState)
 func (w *World) GetTime() float32 {
-	return w.time
+	return w.worldState.GetTime()
 }
 
-// GetDeltaTime возвращает время с последнего обновления
+// GetDeltaTime возвращает время с последнего обновления (делегирование к WorldState)
 func (w *World) GetDeltaTime() float32 {
-	return w.deltaTime
+	return w.worldState.GetDeltaTime()
 }
 
-// SetTimeScale устанавливает масштаб времени
+// SetTimeScale устанавливает масштаб времени (делегирование к WorldState)
 func (w *World) SetTimeScale(scale float32) {
-	if scale >= 0 {
-		w.timeScale = scale
-	}
+	w.worldState.SetTimeScale(scale)
 }
 
-// GetTimeScale возвращает текущий масштаб времени
+// GetTimeScale возвращает текущий масштаб времени (делегирование к WorldState)
 func (w *World) GetTimeScale() float32 {
-	return w.timeScale
+	return w.worldState.GetTimeScale()
 }
 
-// Update обновляет мир на один кадр
+// Update обновляет мир на один кадр (делегирование к WorldState)
 func (w *World) Update(realDeltaTime float32) {
-	w.deltaTime = realDeltaTime * w.timeScale
-	w.time += w.deltaTime
+	w.worldState.Update(realDeltaTime)
 }
 
-// CreateEntity создаёт новую сущность
+// CreateEntity создаёт новую сущность (делегирование к EntityManager)
 func (w *World) CreateEntity() EntityID {
-	return w.entities.CreateEntity()
+	return w.entityManager.CreateEntity()
 }
 
 // DestroyEntity уничтожает сущность и все её компоненты
 func (w *World) DestroyEntity(entity EntityID) bool {
-	if !w.entities.IsAlive(entity) {
+	if !w.entityManager.IsAlive(entity) {
 		return false
 	}
 
 	// Удаляем из пространственной сетки если есть позиция
-	if w.HasComponent(entity, MaskPosition) {
-		w.spatialProvider.RemoveEntity(uint32(entity))
+	if w.componentManager.HasComponent(entity, MaskPosition) {
+		w.worldState.GetSpatialProvider().RemoveEntity(uint32(entity))
 	}
 
-	// Очищаем все компоненты
-	w.removeAllComponents(entity)
+	// Очищаем все компоненты (делегирование к ComponentManager)
+	w.componentManager.ClearAllComponents(entity)
 
-	// Уничтожаем сущность
-	return w.entities.DestroyEntity(entity)
+	// Уничтожаем сущность (делегирование к EntityManager)
+	return w.entityManager.DestroyEntity(entity)
 }
 
-// IsAlive проверяет, существует ли сущность
+// IsAlive проверяет, существует ли сущность (делегирование к EntityManager)
 func (w *World) IsAlive(entity EntityID) bool {
-	return w.entities.IsAlive(entity)
+	return w.entityManager.IsAlive(entity)
 }
 
-// GetEntityCount возвращает количество живых сущностей
+// GetEntityCount возвращает количество живых сущностей (делегирование к QueryManager)
 func (w *World) GetEntityCount() int {
-	return w.entities.Count()
+	return w.queryManager.GetEntityCount()
 }
 
-// GetWorldDimensions возвращает размеры мира
+// GetWorldDimensions возвращает размеры мира (делегирование к WorldState)
 func (w *World) GetWorldDimensions() (width, height float32) {
-	return w.worldWidth, w.worldHeight
+	return w.worldState.GetWorldWidth(), w.worldState.GetWorldHeight()
 }
 
 // GetSpatialGrid возвращает пространственную сетку для прямого доступа
-// DEPRECATED: нарушает DIP, будет удалена в будущем
+// Deprecated: нарушает DIP, будет удалена в будущем
 func (w *World) GetSpatialGrid() *physics.SpatialGrid {
 	// Приведение к конкретному типу через адаптер
-	if adapter, ok := w.spatialProvider.(*SpatialGridAdapter); ok {
+	if adapter, ok := w.worldState.GetSpatialProvider().(*SpatialGridAdapter); ok {
 		return adapter.grid
 	}
 	return nil
 }
 
-// GetRNG возвращает генератор случайных чисел
+// GetRNG возвращает генератор случайных чисел (делегирование к WorldState)
 func (w *World) GetRNG() *rand.Rand {
-	return w.rng
+	return w.worldState.GetRNG()
 }
 
 // Clear очищает весь мир (для тестов и перезапуска)
 func (w *World) Clear() {
-	w.entities.Clear()
-	w.spatialProvider.Clear()
-	w.time = 0
-	w.deltaTime = 0
+	// Делегируем очистку к соответствующим менеджерам
+	w.entityManager.Clear()
+	w.worldState.GetSpatialProvider().Clear()
 
-	// Очищаем все битовые маски через слайс указателей (устраняет дублирование)
-	allMasks := []*[MaxEntities/64 + 1]uint64{
-		&w.hasPosition, &w.hasVelocity, &w.hasHealth, &w.hasHunger,
-		&w.hasAge, &w.hasType, &w.hasSize, &w.hasSpeed,
-		&w.hasAnimation, &w.hasDamageFlash, &w.hasCorpse, &w.hasEatingState,
-		&w.hasAttackState, &w.hasBehavior, &w.hasAnimalConfig,
-	}
+	// Сбрасываем время через WorldState
+	w.worldState = NewWorldState(w.worldState.GetWorldWidth(), w.worldState.GetWorldHeight(), 0)
 
-	for _, mask := range allMasks {
-		for i := range mask {
-			mask[i] = 0
-		}
-	}
-}
-
-// Константы для битовых операций
-const (
-	BitsPerWord = 64 // Количество бит в uint64 слове
-)
-
-// Вспомогательные методы для работы с битовыми масками
-
-// setBitMask устанавливает бит в маске
-func setBitMask(mask []uint64, entity EntityID) {
-	wordIndex := entity / BitsPerWord
-	bitIndex := entity % BitsPerWord
-	if int(wordIndex) < len(mask) {
-		mask[wordIndex] |= 1 << bitIndex
-	}
-}
-
-// clearBitMask очищает бит в маске
-func clearBitMask(mask []uint64, entity EntityID) {
-	wordIndex := entity / BitsPerWord
-	bitIndex := entity % BitsPerWord
-	if int(wordIndex) < len(mask) {
-		mask[wordIndex] &^= 1 << bitIndex
-	}
-}
-
-// testBitMask проверяет бит в маске
-func testBitMask(mask []uint64, entity EntityID) bool {
-	wordIndex := entity / BitsPerWord
-	bitIndex := entity % BitsPerWord
-	if int(wordIndex) < len(mask) {
-		return mask[wordIndex]&(1<<bitIndex) != 0
-	}
-	return false
-}
-
-// removeAllComponents удаляет все компоненты у сущности
-func (w *World) removeAllComponents(entity EntityID) {
-	clearBitMask(w.hasPosition[:], entity)
-	clearBitMask(w.hasVelocity[:], entity)
-	clearBitMask(w.hasHealth[:], entity)
-	clearBitMask(w.hasHunger[:], entity)
-	clearBitMask(w.hasAge[:], entity)
-	clearBitMask(w.hasType[:], entity)
-	clearBitMask(w.hasSize[:], entity)
-	clearBitMask(w.hasSpeed[:], entity)
-	clearBitMask(w.hasAnimation[:], entity)
-	clearBitMask(w.hasDamageFlash[:], entity)
-	clearBitMask(w.hasCorpse[:], entity)
-	clearBitMask(w.hasEatingState[:], entity)
-	clearBitMask(w.hasAttackState[:], entity)
-	clearBitMask(w.hasBehavior[:], entity)
-	clearBitMask(w.hasAnimalConfig[:], entity)
+	// Очищаем компоненты через ComponentManager (он имеет метод для этого)
+	w.componentManager = NewComponentManager()
 }

@@ -12,6 +12,8 @@ import (
 )
 
 // TestHungerBalanceDebug проверяет точный баланс голода во время еды
+//
+//nolint:revive // function-length: Детальный тест баланса голода с множественными проверками
 func TestHungerBalanceDebug(t *testing.T) {
 	t.Parallel()
 
@@ -47,7 +49,7 @@ func TestHungerBalanceDebug(t *testing.T) {
 	animationResolver := animation.NewAnimationResolver()
 
 	// Создаём зайца
-	rabbit := simulation.CreateRabbit(world, 200, 200)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 200, 200)
 
 	// Устанавливаем траву
 	tileX := int(200 / 32)

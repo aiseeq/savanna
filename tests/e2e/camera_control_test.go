@@ -65,7 +65,8 @@ func TestCameraControlE2E(t *testing.T) {
 
 	// Левая кнопка НЕ должна перемещать камеру (она для выбора объектов)
 	if leftButtonX != initialX || leftButtonY != initialY {
-		t.Logf("⚠️  Левая кнопка тоже двигает камеру: (%.1f, %.1f) -> (%.1f, %.1f)", initialX, initialY, leftButtonX, leftButtonY)
+		t.Logf("⚠️  Левая кнопка тоже двигает камеру: (%.1f, %.1f) -> (%.1f, %.1f)",
+			initialX, initialY, leftButtonX, leftButtonY)
 		t.Logf("   Это может быть нормально, зависит от дизайна игры")
 	} else {
 		t.Logf("✅ Левая кнопка не двигает камеру (правильно для выбора объектов)")

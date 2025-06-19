@@ -12,6 +12,8 @@ import (
 )
 
 // TestAnimationE2E минимальный E2E тест анимаций без генерации ландшафта
+//
+//nolint:gocognit,revive // Комплексный E2E тест анимационной системы
 func TestAnimationE2E(t *testing.T) {
 	t.Parallel()
 	t.Logf("=== E2E ТЕСТ: АНИМАЦИИ КАК В РЕАЛЬНОЙ ИГРЕ ===")
@@ -41,8 +43,8 @@ func TestAnimationE2E(t *testing.T) {
 	offscreenImage := ebiten.NewImage(320, 320)
 
 	// Создаём животных рядом друг с другом
-	rabbit := simulation.CreateRabbit(world, 160, 160) // Центр
-	wolf := simulation.CreateWolf(world, 164, 160)     // Рядом с зайцем (4 пикселя)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 160, 160) // Центр
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 164, 160)     // Рядом с зайцем (4 пикселя)
 
 	// Делаем волка очень голодным
 	world.SetHunger(wolf, core.Hunger{Value: 5.0})
@@ -87,7 +89,8 @@ func TestAnimationE2E(t *testing.T) {
 				if anim.CurrentAnim == int(animation.AnimAttack) && anim.Playing {
 					t.Logf("    [ANIM] Entity %d: НЕ сбрасываем ATTACK анимацию (кадр %d)", entity, anim.Frame)
 				} else {
-					t.Logf("    [ANIM] Entity %d (%s): %s -> %s", entity, animalType.String(), oldAnimType.String(), newAnimType.String())
+					t.Logf("    [ANIM] Entity %d (%s): %s -> %s", entity,
+						animalType.String(), oldAnimType.String(), newAnimType.String())
 					anim.CurrentAnim = int(newAnimType)
 					anim.Frame = 0
 					anim.Timer = 0

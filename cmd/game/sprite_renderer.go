@@ -11,6 +11,7 @@ import (
 
 	"github.com/aiseeq/savanna/internal/animation"
 	"github.com/aiseeq/savanna/internal/core"
+	"github.com/aiseeq/savanna/internal/simulation"
 )
 
 // SpriteRenderer отвечает за загрузку и отрисовку спрайтов животных
@@ -57,7 +58,6 @@ func (sr *SpriteRenderer) loadAnimalSprites(animalType core.AnimalType, prefix s
 		{animation.AnimRun, "run", 2},
 		{animation.AnimAttack, "attack", 2},
 		{animation.AnimEat, "eat", 2},
-		{animation.AnimSleepLoop, "sleep", 2},
 		{animation.AnimDeathDying, "dead", 2},
 	}
 
@@ -76,13 +76,13 @@ func (sr *SpriteRenderer) loadAnimationFrames(prefix, animName string, frameCoun
 
 	for i := 1; i <= frameCount; i++ {
 		filename := fmt.Sprintf("%s_%s_%d.png", prefix, animName, i)
-		filepath := filepath.Join("assets", "animations", filename)
+		filePath := filepath.Join("assets", "animations", filename)
 
-		img, _, err := ebitenutil.NewImageFromFile(filepath)
+		img, _, err := ebitenutil.NewImageFromFile(filePath)
 		if err != nil {
-			fmt.Printf("⚠️  Не удалось загрузить %s: %v\n", filepath, err)
+			fmt.Printf("⚠️  Не удалось загрузить %s: %v\n", filePath, err)
 			// Создаём fallback спрайт (цветной квадрат)
-			img = sr.createFallbackSprite(32, 32)
+			img = sr.createFallbackSprite(simulation.DefaultSpriteSize, simulation.DefaultSpriteSize)
 		}
 
 		frames = append(frames, img)
@@ -98,8 +98,18 @@ func (sr *SpriteRenderer) createFallbackSprite(width, height int) *ebiten.Image 
 	return img
 }
 
+// RenderParams параметры отрисовки животного
+type RenderParams struct {
+	ScreenX, ScreenY, Zoom float32
+}
+
 // DrawAnimal отрисовывает животное с правильным спрайтом и анимацией
-func (sr *SpriteRenderer) DrawAnimal(screen *ebiten.Image, world *core.World, entity core.EntityID, screenX, screenY, zoom float32) {
+func (sr *SpriteRenderer) DrawAnimal(
+	screen *ebiten.Image,
+	world *core.World,
+	entity core.EntityID,
+	params RenderParams,
+) {
 	// Получаем тип животного
 	animalType, hasType := world.GetAnimalType(entity)
 	if !hasType {
@@ -142,9 +152,9 @@ func (sr *SpriteRenderer) DrawAnimal(screen *ebiten.Image, world *core.World, en
 	// Масштабирование (разное для разных животных)
 	var spriteScale float64
 	if animalType == core.TypeRabbit {
-		spriteScale = float64(zoom) * 0.067 // 1/15 = 0.067 (в 3 раза меньше чем было)
+		spriteScale = float64(params.Zoom) * simulation.RabbitSpriteScale // Масштаб спрайта зайца
 	} else {
-		spriteScale = float64(zoom) * 0.2 // 1/5 = 0.2 для волков
+		spriteScale = float64(params.Zoom) * simulation.WolfSpriteScale // Масштаб спрайта волка
 	}
 	op.GeoM.Scale(spriteScale, spriteScale)
 
@@ -160,9 +170,12 @@ func (sr *SpriteRenderer) DrawAnimal(screen *ebiten.Image, world *core.World, en
 	spriteWidth := float64(sprite.Bounds().Dx()) * spriteScale
 	spriteHeight := float64(sprite.Bounds().Dy()) * spriteScale
 	op.GeoM.Translate(
-		float64(screenX)-spriteWidth/2,
-		float64(screenY)-spriteHeight/2,
+		float64(params.ScreenX)-spriteWidth/2,
+		float64(params.ScreenY)-spriteHeight/2,
 	)
+
+	// ИСПРАВЛЕНИЕ: Применяем DamageFlash эффект к самому спрайту
+	sr.applyDamageFlash(world, entity, op)
 
 	// Рисуем спрайт
 	screen.DrawImage(sprite, op)
@@ -181,4 +194,25 @@ func (sr *SpriteRenderer) GetSpriteBounds(animalType core.AnimalType) image.Rect
 	}
 
 	return image.Rectangle{}
+}
+
+// applyDamageFlash применяет эффект мерцания к спрайту животного
+func (sr *SpriteRenderer) applyDamageFlash(world *core.World, entity core.EntityID, op *ebiten.DrawImageOptions) {
+	flash, hasFlash := world.GetDamageFlash(entity)
+	if !hasFlash {
+		return
+	}
+
+	// ИСПРАВЛЕНИЕ: Другой подход - увеличиваем яркость всех каналов
+	// При интенсивности 1.0 все цвета становятся максимально яркими (белыми)
+	// При интенсивности 0.0 цвета остаются нормальными
+	intensity := flash.Intensity
+
+	// Увеличиваем масштаб всех цветовых каналов с усилением эффекта
+	// Формула: оригинальный цвет * (1 + intensity * 5)
+	// При intensity=1.0: цвет умножается на 6 (ярко-белый эффект!)
+	// При intensity=0.0: цвет остается неизменным
+	scale := 1.0 + intensity*5.0 // Усиление эффекта в 5 раз
+
+	op.ColorScale.Scale(scale, scale, scale, 1.0) // R, G, B увеличиваются, A остается
 }

@@ -79,9 +79,9 @@ func printSimulationParameters(cfg *config.Config) {
 // runSimulation запускает основной цикл симуляции
 func runSimulation(cfg *config.Config) {
 	terrain := generateTerrain(cfg)
-	world, systemManager, wolfAnimSystem, rabbitAnimSystem := initializeWorldAndSystems(cfg, terrain)
-	populateWorld(cfg, world, terrain)
-	runMainLoop(world, systemManager, wolfAnimSystem, rabbitAnimSystem)
+	components := initializeWorldAndSystems(cfg, terrain)
+	populateWorld(cfg, components.World, terrain)
+	runMainLoop(components.World, components.SystemManager, components.WolfAnimSystem, components.RabbitAnimSystem)
 }
 
 // generateTerrain генерирует ландшафт мира
@@ -98,8 +98,18 @@ func generateTerrain(cfg *config.Config) *generator.Terrain {
 	return terrain
 }
 
+// GameComponents содержит основные компоненты игры
+type GameComponents struct {
+	World                            *core.World
+	SystemManager                    *core.SystemManager
+	WolfAnimSystem, RabbitAnimSystem *animation.AnimationSystem
+}
+
 // initializeWorldAndSystems инициализирует мир и системы
-func initializeWorldAndSystems(cfg *config.Config, terrain *generator.Terrain) (*core.World, *core.SystemManager, *animation.AnimationSystem, *animation.AnimationSystem) {
+func initializeWorldAndSystems(
+	cfg *config.Config,
+	terrain *generator.Terrain,
+) GameComponents {
 	worldSizePixels := float32(cfg.World.Size * 32)
 	world := core.NewWorld(worldSizePixels, worldSizePixels, cfg.World.Seed)
 	systemManager := core.NewSystemManager()
@@ -122,13 +132,24 @@ func initializeWorldAndSystems(cfg *config.Config, terrain *generator.Terrain) (
 	// Добавляем системы в правильном порядке (ВАЖНО для корректной работы еды!)
 	// Используем адаптеры для систем с ISP интерфейсами
 	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})                                                   // 1. Создаёт EatingState для едящих животных
-	systemManager.AddSystem(grassEatingSystem)                                                                                       // 2. Дискретное поедание травы по кадрам анимации
-	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})                                           // 3. Проверяет EatingState и не мешает еде
-	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: simulation.NewMovementSystem(worldSizePixels, worldSizePixels)}) // 4. Сбрасывает скорость едящих животных
-	systemManager.AddSystem(combatSystem)                                                                                            // 5. Система боя работает после движения
+	// 1. Создаёт EatingState для едящих животных
+	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
+	// 2. Дискретное поедание травы по кадрам анимации
+	systemManager.AddSystem(grassEatingSystem)
+	// 3. Проверяет EatingState и не мешает еде
+	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
+	// 4. Сбрасывает скорость едящих животных
+	movementSystem := simulation.NewMovementSystem(worldSizePixels, worldSizePixels)
+	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
+	// 5. Система боя работает после движения
+	systemManager.AddSystem(combatSystem)
 
-	return world, systemManager, wolfAnimationSystem, rabbitAnimationSystem
+	return GameComponents{
+		World:            world,
+		SystemManager:    systemManager,
+		WolfAnimSystem:   wolfAnimationSystem,
+		RabbitAnimSystem: rabbitAnimationSystem,
+	}
 }
 
 // populateWorld размещает животных в мире
@@ -137,14 +158,9 @@ func populateWorld(cfg *config.Config, world *core.World, terrain *generator.Ter
 	popGen := generator.NewPopulationGenerator(cfg, terrain)
 	placements := popGen.Generate()
 
-	// Создаём животных на основе сгенерированных позиций
+	// Создаём животных на основе сгенерированных позиций (унифицированная система)
 	for _, placement := range placements {
-		switch placement.Type {
-		case core.TypeRabbit:
-			simulation.CreateRabbit(world, placement.X, placement.Y)
-		case core.TypeWolf:
-			simulation.CreateWolf(world, placement.X, placement.Y)
-		}
+		simulation.CreateAnimal(world, placement.Type, placement.X, placement.Y)
 	}
 
 	// Проверяем корректность размещения
@@ -188,7 +204,11 @@ func initializeSimulation(world *core.World) *simulationState {
 	return state
 }
 
-func runMainLoop(world *core.World, systemManager *core.SystemManager, wolfAnimationSystem, rabbitAnimationSystem *animation.AnimationSystem) {
+func runMainLoop(
+	world *core.World,
+	systemManager *core.SystemManager,
+	wolfAnimationSystem, rabbitAnimationSystem *animation.AnimationSystem,
+) {
 	state := initializeSimulation(world)
 	defer state.ticker.Stop()
 

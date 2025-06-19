@@ -11,6 +11,8 @@ import (
 )
 
 // TestFullSystemsOrder проверяет работу всех систем в том же порядке что в большом тесте
+//
+//nolint:revive // function-length: Полный интеграционный тест всех систем
 func TestFullSystemsOrder(t *testing.T) {
 	t.Parallel()
 
@@ -47,15 +49,17 @@ func TestFullSystemsOrder(t *testing.T) {
 
 	// Добавляем системы в ТОМ ЖЕ порядке что в большом тесте
 	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})         // 1. Создаёт EatingState
-	systemManager.AddSystem(grassEatingSystem)                                             // 2. Дискретное поедание травы по кадрам анимации
-	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem}) // 3. Проверяет EatingState и не мешает еде
-	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})       // 4. Сбрасывает скорость едящих
-	systemManager.AddSystem(combatSystem)                                                  // 5. Система боя
+	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem}) // 1. Создаёт EatingState
+	// 2. Дискретное поедание травы по кадрам анимации
+	systemManager.AddSystem(grassEatingSystem)
+	// 3. Проверяет EatingState и не мешает еде
+	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
+	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem}) // 4. Сбрасывает скорость едящих
+	systemManager.AddSystem(combatSystem)                                            // 5. Система боя
 
 	// Создаём зайца в центре где есть трава
 	rabbitX, rabbitY := float32(centerX*32+16), float32(centerY*32+16) // Центр тайла
-	rabbit := simulation.CreateRabbit(world, rabbitX, rabbitY)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, rabbitX, rabbitY)
 
 	// Делаем зайца голодным чтобы он точно ел
 	world.SetHunger(rabbit, core.Hunger{Value: 70.0}) // 70% - точно будет есть (порог 90%)

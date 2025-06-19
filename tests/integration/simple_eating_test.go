@@ -12,6 +12,8 @@ import (
 )
 
 // TestSimpleEating максимально простой тест: 1 заяц на 1x1 карте ест траву
+//
+//nolint:gocognit,revive,funlen // Комплексный интеграционный тест базового питания зайцев
 func TestSimpleEating(t *testing.T) {
 	t.Parallel()
 
@@ -76,7 +78,7 @@ func TestSimpleEating(t *testing.T) {
 	animationResolver := animation.NewAnimationResolver()
 
 	// Создаём зайца в центре единственного тайла
-	rabbit := simulation.CreateRabbit(world, 16, 16) // Центр 32x32 тайла
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 16, 16) // Центр 32x32 тайла
 
 	// Делаем зайца ОЧЕНЬ голодным чтобы он точно ел
 	world.SetHunger(rabbit, core.Hunger{Value: 50.0})    // 50% голода - точно будет есть

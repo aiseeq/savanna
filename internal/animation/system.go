@@ -14,9 +14,6 @@ const (
 	AnimIdle AnimationType = iota
 	AnimWalk
 	AnimRun
-	AnimSleepFalling
-	AnimSleepLoop
-	AnimSleepWaking
 	AnimDeathDying
 	AnimDeathDecay
 	AnimEat
@@ -52,12 +49,6 @@ func (at AnimationType) String() string {
 		return "Walk"
 	case AnimRun:
 		return "Run"
-	case AnimSleepFalling:
-		return "Sleep Falling"
-	case AnimSleepLoop:
-		return "Sleep Loop"
-	case AnimSleepWaking:
-		return "Sleep Waking"
 	case AnimDeathDying:
 		return "Death Dying"
 	case AnimDeathDecay:

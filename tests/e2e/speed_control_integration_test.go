@@ -101,6 +101,8 @@ func (tm *RealTimeManager) Update() {
 }
 
 // simulateKeyPress имитирует нажатие клавиши для тестирования
+//
+//nolint:gocognit // Имитация полной логики обработки клавиш
 func (tm *RealTimeManager) simulateKeyPress(key ebiten.Key) {
 	// Копируем реальную логику из TimeManager
 	switch key {

@@ -10,6 +10,8 @@ import (
 )
 
 // TestWolfEatsRabbit простой тест: голодный волк рядом с зайцем должен его съесть
+//
+//nolint:gocognit,revive,funlen // Комплексный интеграционный тест питания волка
 func TestWolfEatsRabbit(t *testing.T) {
 	t.Parallel()
 	cfg := config.LoadDefaultConfig()
@@ -22,8 +24,9 @@ func TestWolfEatsRabbit(t *testing.T) {
 	combatSystem := simulation.NewCombatSystem()
 
 	// Создаём зайца и волка рядом (в радиусе атаки)
-	rabbit := simulation.CreateRabbit(world, 300, 300)
-	wolf := simulation.CreateWolf(world, 302, 300) // На расстоянии 2 пикселя (гарантированно в радиусе 12)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
+	// На расстоянии 2 пикселя (гарантированно в радиусе 12)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 302, 300)
 
 	// Делаем волка очень голодным
 	world.SetHunger(wolf, core.Hunger{Value: 30.0}) // 30% < 60% = голодный
@@ -53,13 +56,22 @@ func TestWolfEatsRabbit(t *testing.T) {
 			t.Logf("AttackState создан на тике %d", i)
 		}
 
-		// Эмулируем анимационную систему для тестов
-		if world.HasComponent(wolf, core.MaskAttackState) {
-			attackState, _ := world.GetAttackState(wolf)
+		// ИСПРАВЛЕНИЕ: Используем современную анимационную систему
+		// Создаем анимационную систему для обработки атак
+		if !world.HasComponent(wolf, core.MaskAnimation) {
+			world.AddAnimation(wolf, core.Animation{
+				CurrentAnim: int(animation.AnimIdle),
+				Frame:       0,
+				Timer:       0,
+				Playing:     true,
+				FacingRight: true,
+			})
+		}
 
-			// В тесте мы управляем анимацией вручную
-			if attackState.Phase == core.AttackPhaseWindup {
-				// Устанавливаем анимацию ATTACK кадр 0
+		// Если есть AttackState, устанавливаем анимацию атаки
+		if world.HasComponent(wolf, core.MaskAttackState) {
+			anim, _ := world.GetAnimation(wolf)
+			if anim.CurrentAnim != int(animation.AnimAttack) {
 				world.SetAnimation(wolf, core.Animation{
 					CurrentAnim: int(animation.AnimAttack),
 					Frame:       0,
@@ -67,13 +79,10 @@ func TestWolfEatsRabbit(t *testing.T) {
 					Playing:     true,
 					FacingRight: true,
 				})
-			}
-
-			// После нескольких тиков переходим к кадру 1
-			if i > 5 && attackState.Phase == core.AttackPhaseWindup {
+			} else if i > 5 { // Через несколько тиков переходим к кадру удара
 				world.SetAnimation(wolf, core.Animation{
-					CurrentAnim: 9, // ANIM_ATTACK = 9
-					Frame:       1,
+					CurrentAnim: int(animation.AnimAttack),
+					Frame:       1, // Кадр удара
 					Timer:       0,
 					Playing:     true,
 					FacingRight: true,

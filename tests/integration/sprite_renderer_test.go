@@ -18,7 +18,7 @@ func TestSpriteRenderer(t *testing.T) {
 
 	// Создаём простой мир для тестирования
 	world := core.NewWorld(1600, 1600, 12345)
-	rabbit := simulation.CreateRabbit(world, 100.0, 100.0)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 100.0, 100.0)
 
 	// Проверяем что у зайца есть анимация
 	anim, hasAnim := world.GetAnimation(rabbit)

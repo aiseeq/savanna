@@ -6,6 +6,7 @@ import (
 	"github.com/aiseeq/savanna/internal/physics"
 )
 
+//nolint:gocognit // Комплексный unit тест создания пространственной сетки
 func TestNewSpatialGrid(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -40,7 +41,8 @@ func TestNewSpatialGrid(t *testing.T) {
 
 			gridWidth, gridHeight := grid.GetGridDimensions()
 			if gridWidth != tt.expectedGridWidth || gridHeight != tt.expectedGridHeight {
-				t.Errorf("Expected grid dimensions (%d, %d), got (%d, %d)", tt.expectedGridWidth, tt.expectedGridHeight, gridWidth, gridHeight)
+				t.Errorf("Expected grid dimensions (%d, %d), got (%d, %d)",
+					tt.expectedGridWidth, tt.expectedGridHeight, gridWidth, gridHeight)
 			}
 
 			if grid.GetCellCount() != tt.expectedCellCount {
@@ -200,6 +202,7 @@ func TestSpatialGridUpdateNonExistent(t *testing.T) {
 	}
 }
 
+//nolint:gocognit // Комплексный unit тест пространственных запросов по диапазону
 func TestSpatialGridQueryRange(t *testing.T) {
 	t.Parallel()
 
@@ -264,6 +267,7 @@ func TestSpatialGridQueryRange(t *testing.T) {
 	}
 }
 
+//nolint:gocognit // Комплексный unit тест пространственных запросов
 func TestSpatialGridQueryRadius(t *testing.T) {
 	t.Parallel()
 
@@ -356,6 +360,7 @@ func TestSpatialGridQueryRadius(t *testing.T) {
 	}
 }
 
+//nolint:gocognit // Комплексный unit тест поиска ближайших сущностей
 func TestSpatialGridQueryNearest(t *testing.T) {
 	t.Parallel()
 	grid := physics.NewSpatialGrid(20, 20, 4)

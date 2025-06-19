@@ -11,6 +11,8 @@ import (
 )
 
 // TestWolfFullSatiation проверяет что волки едят до полного насыщения (100%), а не до 60%
+//
+//nolint:gocognit,revive,funlen // Комплексный тест системы насыщения волков
 func TestWolfFullSatiation(t *testing.T) {
 	t.Parallel()
 
@@ -43,8 +45,8 @@ func TestWolfFullSatiation(t *testing.T) {
 	animationResolver := animation.NewAnimationResolver()
 
 	// Создаём волка и зайца
-	wolf := simulation.CreateWolf(world, 200, 200)
-	rabbit := simulation.CreateRabbit(world, 200, 200)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 200, 200)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 200, 200)
 
 	// Делаем волка очень голодным
 	initialWolfHunger := float32(30.0) // 30% - очень голоден, должен охотиться
@@ -65,7 +67,8 @@ func TestWolfFullSatiation(t *testing.T) {
 	t.Logf("Начальное состояние:")
 	t.Logf("  Голод волка: %.1f%%", initialWolfHunger)
 	t.Logf("  Питательность трупа: %.1f единиц", corpse.NutritionalValue)
-	t.Logf("  Порог сытости: %.1f%% (волк должен прекратить есть)", float32(simulation.MaxHungerLimit-simulation.SatietyTolerance))
+	t.Logf("  Порог сытости: %.1f%% (волк должен прекратить есть)",
+		float32(simulation.MaxHungerLimit-simulation.SatietyTolerance))
 
 	eatingStarted := false
 	maxHungerReached := float32(0.0)
@@ -112,7 +115,7 @@ func TestWolfFullSatiation(t *testing.T) {
 			currentHunger, _ := world.GetHunger(wolf)
 			isEating := world.HasComponent(wolf, core.MaskEatingState)
 			currentAnimType := animation.AnimationType(anim.CurrentAnim)
-			
+
 			// Получаем текущую питательность трупа
 			var currentNutrition float32
 			if corpseData, hasCorpse := world.GetCorpse(rabbit); hasCorpse {

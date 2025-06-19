@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/aiseeq/savanna/internal/animation"
 	"github.com/aiseeq/savanna/internal/core"
+	"github.com/aiseeq/savanna/internal/simulation"
 )
 
 // AnimationManager управляет всеми анимационными системами
@@ -71,7 +72,11 @@ func (am *AnimationManager) UpdateAnimalAnimations(world *core.World, deltaTime 
 }
 
 // updateAnimationIfNeeded обновляет тип анимации если он изменился
-func (am *AnimationManager) updateAnimationIfNeeded(world *core.World, entity core.EntityID, newAnimType animation.AnimationType) {
+func (am *AnimationManager) updateAnimationIfNeeded(
+	world *core.World,
+	entity core.EntityID,
+	newAnimType animation.AnimationType,
+) {
 	anim, ok := world.GetAnimation(entity)
 	if !ok {
 		return
@@ -103,9 +108,9 @@ func (am *AnimationManager) updateAnimationDirection(world *core.World, entity c
 	}
 
 	// Определяем направление по скорости
-	if vel.X > 0.1 {
+	if vel.X > simulation.MovementThreshold {
 		anim.FacingRight = true
-	} else if vel.X < -0.1 {
+	} else if vel.X < -simulation.MovementThreshold {
 		anim.FacingRight = false
 	}
 
@@ -113,7 +118,12 @@ func (am *AnimationManager) updateAnimationDirection(world *core.World, entity c
 }
 
 // processAnimationUpdate обрабатывает обновление кадров анимации
-func (am *AnimationManager) processAnimationUpdate(world *core.World, entity core.EntityID, animSystem *animation.AnimationSystem, deltaTime float32) {
+func (am *AnimationManager) processAnimationUpdate(
+	world *core.World,
+	entity core.EntityID,
+	animSystem *animation.AnimationSystem,
+	deltaTime float32,
+) {
 	anim, ok := world.GetAnimation(entity)
 	if !ok {
 		return
@@ -141,6 +151,8 @@ func (am *AnimationManager) processAnimationUpdate(world *core.World, entity cor
 
 // LoadAnimationsFromConfig загружает анимации из конфигурации
 // Позволяет легко добавлять новые типы животных через конфигурацию
+//
+//nolint:unparam // error может быть добавлен в будущем для обработки ошибок загрузки
 func (am *AnimationManager) LoadAnimationsFromConfig() error {
 	// Создаём и регистрируем систему анимаций для зайцев
 	rabbitSystem := animation.NewAnimationSystem()
@@ -156,7 +168,6 @@ func (am *AnimationManager) LoadAnimationsFromConfig() error {
 		{"hare_run", 2, 12.0, true, animation.AnimRun},
 		{"hare_attack", 2, 5.0, false, animation.AnimAttack},
 		{"hare_eat", 2, 4.0, true, animation.AnimEat},
-		{"hare_sleep", 2, 1.5, true, animation.AnimSleepLoop},
 		{"hare_dead", 2, 3.0, false, animation.AnimDeathDying},
 	}
 
@@ -179,7 +190,6 @@ func (am *AnimationManager) LoadAnimationsFromConfig() error {
 		{"wolf_run", 2, 8.0, true, animation.AnimRun},
 		{"wolf_attack", 4, 8.0, false, animation.AnimAttack},
 		{"wolf_eat", 2, 4.0, true, animation.AnimEat},
-		{"wolf_sleep", 2, 1.5, true, animation.AnimSleepLoop},
 		{"wolf_dead", 2, 3.0, false, animation.AnimDeathDying},
 	}
 

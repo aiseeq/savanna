@@ -26,8 +26,8 @@ func TestWolfVsStationaryTarget(t *testing.T) {
 	movementSystem := simulation.NewMovementSystem(320, 320)
 
 	// Создаем животных дальше от границ (мир 320x320, ставим в центр)
-	rabbit := simulation.CreateRabbit(world, 160, 160)
-	wolf := simulation.CreateWolf(world, 140, 160) // 20 единиц от зайца
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 160, 160)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 140, 160) // 20 единиц от зайца
 
 	// Делаем волка голодным
 	world.SetHunger(wolf, core.Hunger{Value: 20.0})
@@ -52,7 +52,9 @@ func TestWolfVsStationaryTarget(t *testing.T) {
 		rabbitPos, _ := world.GetPosition(rabbit)
 		wolfVel, _ := world.GetVelocity(wolf)
 
-		distance := math.Sqrt(float64((wolfPos.X-rabbitPos.X)*(wolfPos.X-rabbitPos.X) + (wolfPos.Y-rabbitPos.Y)*(wolfPos.Y-rabbitPos.Y)))
+		dx := wolfPos.X - rabbitPos.X
+		dy := wolfPos.Y - rabbitPos.Y
+		distance := math.Sqrt(float64(dx*dx + dy*dy))
 
 		if i%20 == 0 {
 			t.Logf("%.1fс: волк (%.1f,%.1f) vel(%.1f,%.1f) | дистанция %.1f",

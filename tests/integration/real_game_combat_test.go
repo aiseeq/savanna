@@ -10,6 +10,8 @@ import (
 )
 
 // TestRealGameCombat тест боя в условиях реальной игры (с полными системами)
+//
+//nolint:gocognit,revive,funlen // Комплексный тест боевой системы в реальных условиях
 func TestRealGameCombat(t *testing.T) {
 	t.Parallel()
 	world := core.NewWorld(1600, 1600, 42) // Больший мир
@@ -33,8 +35,8 @@ func TestRealGameCombat(t *testing.T) {
 	wolfAnimationSystem.RegisterAnimation(animation.AnimEat, 2, 2.0, true, nil)
 
 	// Создаём животных рядом друг с другом
-	rabbit := simulation.CreateRabbit(world, 800, 800)
-	wolf := simulation.CreateWolf(world, 810, 800) // Очень близко
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 800, 800)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 810, 800) // Очень близко
 
 	// Делаем волка очень голодным
 	world.SetHunger(wolf, core.Hunger{Value: 10.0}) // 10% - очень голодный
@@ -139,7 +141,11 @@ func TestRealGameCombat(t *testing.T) {
 }
 
 // updateWolfAnimation обновляет анимацию волка как в реальной игре
-func updateWolfAnimation(world *core.World, wolf core.EntityID, animSystem *animation.AnimationSystem, deltaTime float32) {
+//
+//nolint:gocognit,revive // Вспомогательная функция теста для анимации волка
+func updateWolfAnimation(
+	world *core.World, wolf core.EntityID, animSystem *animation.AnimationSystem, deltaTime float32,
+) {
 	if anim, hasAnim := world.GetAnimation(wolf); hasAnim {
 		// Определяем нужную анимацию как в main.go
 		var newAnimType animation.AnimationType

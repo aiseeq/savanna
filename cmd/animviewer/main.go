@@ -62,7 +62,6 @@ func NewAnimationViewer(animalType string) *AnimationViewer {
 		animation.AnimRun,
 		animation.AnimAttack,
 		animation.AnimEat,
-		animation.AnimSleepLoop,
 		animation.AnimDeathDying,
 	}
 
@@ -78,16 +77,16 @@ func NewAnimationViewer(animalType string) *AnimationViewer {
 // createTestAnimations создает тестовые анимации-заглушки
 func (av *AnimationViewer) createTestAnimations(animalType string) {
 	// Создаем все спрайты для волка
-	var idleSprite, walkSprite, runSprite, attackSprite, eatSprite, sleepSprite, deathSprite *ebiten.Image
+	var idleSprite, walkSprite, runSprite, attackSprite, eatSprite, deathSprite *ebiten.Image
 
 	if animalType == "wolf" {
 		sprites := av.loadAnimalAnimations("wolf")
-		idleSprite, walkSprite, runSprite, attackSprite, eatSprite, sleepSprite, deathSprite =
-			sprites.Idle, sprites.Walk, sprites.Run, sprites.Attack, sprites.Eat, sprites.Sleep, sprites.Death
+		idleSprite, walkSprite, runSprite, attackSprite, eatSprite, deathSprite =
+			sprites.Idle, sprites.Walk, sprites.Run, sprites.Attack, sprites.Eat, sprites.Death
 	} else if animalType == "hare" || animalType == "rabbit" {
 		sprites := av.loadAnimalAnimations("rabbit")
-		idleSprite, walkSprite, runSprite, attackSprite, eatSprite, sleepSprite, deathSprite =
-			sprites.Idle, sprites.Walk, sprites.Run, sprites.Attack, sprites.Eat, sprites.Sleep, sprites.Death
+		idleSprite, walkSprite, runSprite, attackSprite, eatSprite, deathSprite =
+			sprites.Idle, sprites.Walk, sprites.Run, sprites.Attack, sprites.Eat, sprites.Death
 	} else {
 		// Тестовые спрайты для других животных
 		idleSprite = av.createTestSpriteSheet(color.RGBA{100, 100, 255, 255})
@@ -95,7 +94,6 @@ func (av *AnimationViewer) createTestAnimations(animalType string) {
 		runSprite = av.createTestSpriteSheet(color.RGBA{255, 255, 100, 255})
 		attackSprite = av.createTestSpriteSheet(color.RGBA{255, 100, 100, 255})
 		eatSprite = av.createTestSpriteSheet(color.RGBA{255, 150, 100, 255})
-		sleepSprite = av.createTestSpriteSheet(color.RGBA{100, 150, 255, 255})
 		deathSprite = av.createTestSpriteSheet(color.RGBA{200, 50, 50, 255})
 	}
 
@@ -105,7 +103,6 @@ func (av *AnimationViewer) createTestAnimations(animalType string) {
 	av.animSystem.RegisterAnimation(animation.AnimRun, 2, 12.0, true, runSprite)
 	av.animSystem.RegisterAnimation(animation.AnimAttack, 2, 5.0, true, attackSprite)
 	av.animSystem.RegisterAnimation(animation.AnimEat, 2, 4.0, true, eatSprite)
-	av.animSystem.RegisterAnimation(animation.AnimSleepLoop, 2, 1.5, true, sleepSprite)
 	av.animSystem.RegisterAnimation(animation.AnimDeathDying, 2, 3.0, true, deathSprite)
 }
 

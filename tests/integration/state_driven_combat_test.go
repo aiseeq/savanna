@@ -9,14 +9,16 @@ import (
 )
 
 // TestStateDrivenCombat проверяет новую архитектуру где каждый кадр соответствует состоянию
+//
+//nolint:revive // function-length: Комплексный тест state-driven боевой системы
 func TestStateDrivenCombat(t *testing.T) {
 	t.Parallel()
 	world := core.NewWorld(96, 96, 42)
 	combatSystem := simulation.NewCombatSystem()
 
 	// Создаём животных рядом (в радиусе атаки 12 пикселей)
-	rabbit := simulation.CreateRabbit(world, 48, 48)
-	wolf := simulation.CreateWolf(world, 50, 48) // Расстояние = 2 пикселя
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 48, 48)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 50, 48) // Расстояние = 2 пикселя
 
 	// Волк голоден
 	world.SetHunger(wolf, core.Hunger{Value: 5.0})

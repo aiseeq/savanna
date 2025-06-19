@@ -249,7 +249,6 @@ func BenchmarkFullGameLoop(b *testing.B) {
 		world.AddVelocity(entity, core.Velocity{X: 0, Y: 0})
 		world.AddHealth(entity, core.Health{Current: 50, Max: 50})
 		world.AddHunger(entity, core.Hunger{Value: 80})
-		world.AddAge(entity, core.Age{Seconds: 0})
 		world.AddAnimalType(entity, core.TypeRabbit)
 		world.AddSize(entity, core.Size{Radius: 5, AttackRange: 0})
 		world.AddSpeed(entity, core.Speed{Base: 20, Current: 20})
@@ -264,7 +263,6 @@ func BenchmarkFullGameLoop(b *testing.B) {
 		world.AddVelocity(entity, core.Velocity{X: 0, Y: 0})
 		world.AddHealth(entity, core.Health{Current: 100, Max: 100})
 		world.AddHunger(entity, core.Hunger{Value: 60})
-		world.AddAge(entity, core.Age{Seconds: 0})
 		world.AddAnimalType(entity, core.TypeWolf)
 		world.AddSize(entity, core.Size{Radius: 10, AttackRange: 0})
 		world.AddSpeed(entity, core.Speed{Base: 30, Current: 30})
@@ -287,13 +285,6 @@ func BenchmarkFullGameLoop(b *testing.B) {
 			pos.Y += vel.Y * deltaTime
 
 			world.SetPosition(entity, pos)
-		})
-
-		// Система старения
-		world.ForEachWith(core.MaskAge, func(entity core.EntityID) {
-			age, _ := world.GetAge(entity)
-			age.Seconds += deltaTime
-			world.SetAge(entity, age)
 		})
 
 		// Система голода

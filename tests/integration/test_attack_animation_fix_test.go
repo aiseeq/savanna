@@ -9,6 +9,8 @@ import (
 )
 
 // TestAttackAnimationFix проверяет что анимация атаки проигрывается до конца
+//
+//nolint:gocognit,revive,funlen // Комплексный тест анимационной системы атаки
 func TestAttackAnimationFix(t *testing.T) {
 	t.Parallel()
 	world := core.NewWorld(1600, 1600, 42)
@@ -19,8 +21,8 @@ func TestAttackAnimationFix(t *testing.T) {
 	animSystem.RegisterAnimation(animation.AnimAttack, 2, 6.0, false, nil) // не зацикленная!
 	animSystem.RegisterAnimation(animation.AnimIdle, 2, 1.0, true, nil)
 
-	rabbit := simulation.CreateRabbit(world, 800, 800)
-	wolf := simulation.CreateWolf(world, 810, 800)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 800, 800)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 810, 800)
 	world.SetHunger(wolf, core.Hunger{Value: 10.0})
 
 	initialHealth, _ := world.GetHealth(rabbit)

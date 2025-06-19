@@ -42,8 +42,8 @@ func TestWolfWithoutBoundaryInterference(t *testing.T) {
 	simpleMovementSystem := &SimpleMovementSystem{} // Без отражений
 
 	// Создаем животных в центре большого мира
-	rabbit := simulation.CreateRabbit(world, 800, 800)
-	wolf := simulation.CreateWolf(world, 780, 800) // 20 единиц от зайца
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 800, 800)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 780, 800) // 20 единиц от зайца
 
 	// Делаем волка голодным
 	world.SetHunger(wolf, core.Hunger{Value: 20.0})
@@ -68,7 +68,9 @@ func TestWolfWithoutBoundaryInterference(t *testing.T) {
 		rabbitPos, _ := world.GetPosition(rabbit)
 		wolfVel, _ := world.GetVelocity(wolf)
 
-		distance := math.Sqrt(float64((wolfPos.X-rabbitPos.X)*(wolfPos.X-rabbitPos.X) + (wolfPos.Y-rabbitPos.Y)*(wolfPos.Y-rabbitPos.Y)))
+		dx := wolfPos.X - rabbitPos.X
+		dy := wolfPos.Y - rabbitPos.Y
+		distance := math.Sqrt(float64(dx*dx + dy*dy))
 
 		if i%20 == 0 {
 			t.Logf("%.1fс: волк (%.1f,%.1f) vel(%.1f,%.1f) | дистанция %.1f",

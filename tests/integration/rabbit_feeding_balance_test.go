@@ -12,6 +12,8 @@ import (
 )
 
 // TestRabbitFeedingBalance проверяет что зайцы НЕ наедаются слишком быстро
+//
+//nolint:gocognit,revive,funlen // Комплексный интеграционный тест баланса системы питания
 func TestRabbitFeedingBalance(t *testing.T) {
 	t.Parallel()
 
@@ -48,7 +50,7 @@ func TestRabbitFeedingBalance(t *testing.T) {
 	animationResolver := animation.NewAnimationResolver()
 
 	// Создаём зайца и траву
-	rabbit := simulation.CreateRabbit(world, 200, 200)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 200, 200)
 	tileX := int(200 / 32)
 	tileY := int(200 / 32)
 	terrain.SetGrassAmount(tileX, tileY, 100.0)

@@ -12,6 +12,8 @@ import (
 )
 
 // TestRabbitSatiationE2E проверяет что зайцы могут правильно насыщаться
+//
+//nolint:gocognit,revive // E2E тест системы насыщения зайцев
 func TestRabbitSatiationE2E(t *testing.T) {
 	t.Parallel()
 
@@ -53,7 +55,7 @@ func TestRabbitSatiationE2E(t *testing.T) {
 	systemManager.AddSystem(&adapters.GrassEatingSystemAdapter{System: grassEatingSystem})
 
 	// Создаём зайца в центре тайла с травой
-	rabbit := simulation.CreateRabbit(world, 48, 48) // Центр тайла (1,1)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 48, 48) // Центр тайла (1,1)
 
 	// ТЕСТ СЦЕНАРИЯ ПОЛЬЗОВАТЕЛЯ: заяц с голодом 90% должен есть до 100%
 	initialHunger := float32(90.0) // Слегка голодный (как жаловался пользователь)
