@@ -9,6 +9,8 @@ import (
 )
 
 // TestWolfAnimationBehavior тестирует анимации волка до и после поедания зайца
+//
+//nolint:gocognit,revive,funlen // Комплексный тест анимационного поведения волка
 func TestWolfAnimationBehavior(t *testing.T) {
 	t.Parallel()
 	world := core.NewWorld(640, 640, 42)
@@ -25,8 +27,8 @@ func TestWolfAnimationBehavior(t *testing.T) {
 	wolfAnimationSystem.RegisterAnimation(animation.AnimEat, 2, 4.0, true, nil)
 
 	// Создаём зайца и волка в радиусе атаки
-	rabbit := simulation.CreateRabbit(world, 300, 300)
-	wolf := simulation.CreateWolf(world, 305, 300) // На расстоянии 5 единиц (в радиусе 12)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 305, 300) // На расстоянии 5 единиц (в радиусе 12)
 
 	// Добавляем анимационный компонент волку (как в GUI игре)
 	animComp := core.Animation{

@@ -159,16 +159,30 @@ func (g *Game) drawAnimals(screen *ebiten.Image, camera Camera, world *core.Worl
 		}
 
 		// Отрисовываем животное как спрайт с анимацией
-		g.spriteRenderer.DrawAnimal(screen, world, entity, screenX, screenY, camera.Zoom)
+		g.spriteRenderer.DrawAnimal(screen, world, entity, RenderParams{
+			ScreenX: screenX,
+			ScreenY: screenY,
+			Zoom:    camera.Zoom,
+		})
 
 		// Получаем размер для полоски здоровья
 		radius := g.getAnimalRadius(animalType) * camera.Zoom
 
 		// Отрисовываем полоску здоровья
-		g.drawHealthBar(screen, entity, world, screenX, screenY, radius)
+		g.drawHealthBar(screen, entity, world, HealthBarParams{
+			ScreenX: screenX,
+			ScreenY: screenY,
+			Radius:  radius,
+		})
 
 		// Отрисовываем значение голода над животным
-		g.drawHungerText(screen, entity, world, screenX, screenY, radius)
+		g.drawHungerText(screen, entity, world, HungerTextParams{
+			ScreenX: screenX,
+			ScreenY: screenY,
+			Radius:  radius,
+		})
+
+		// DamageFlash теперь применяется прямо к спрайту в SpriteRenderer
 	})
 }
 
@@ -225,6 +239,8 @@ func (g *Game) drawUI(screen *ebiten.Image, camera Camera) {
 }
 
 // drawText рендерит текст с использованием пользовательского или дефолтного шрифта
+//
+//nolint:unparam // x всегда 10 для UI элементов, но оставляем для гибкости
 func (g *Game) drawText(screen *ebiten.Image, textStr string, x, y float64, font *text.GoTextFace) {
 	if font != nil {
 		// Используем пользовательский шрифт
@@ -251,40 +267,50 @@ func (g *Game) getAnimalRadius(animalType core.AnimalType) float32 {
 	}
 }
 
-func (g *Game) getAnimalColor(animalType core.AnimalType) color.RGBA {
-	switch animalType {
-	case core.TypeRabbit:
-		return color.RGBA{139, 69, 19, 255} // Коричневый
-	case core.TypeWolf:
-		return color.RGBA{105, 105, 105, 255} // Серый
-	default:
-		return color.RGBA{255, 255, 255, 255} // Белый
-	}
+// HealthBarParams параметры отрисовки полоски здоровья
+type HealthBarParams struct {
+	ScreenX, ScreenY, Radius float32
 }
 
-func (g *Game) drawHealthBar(screen *ebiten.Image, entity core.EntityID, world *core.World, screenX, screenY, radius float32) {
+func (g *Game) drawHealthBar(
+	screen *ebiten.Image,
+	entity core.EntityID,
+	world *core.World,
+	params HealthBarParams,
+) {
 	health, hasHealth := world.GetHealth(entity)
 	if !hasHealth {
 		return
 	}
 
 	// Размеры полоски здоровья
-	barWidth := radius * 2
+	barWidth := params.Radius * 2
 	barHeight := float32(4)
-	barX := screenX - barWidth/2
-	barY := screenY - radius - barHeight - 2
+	barX := params.ScreenX - barWidth/2
+	barY := params.ScreenY - params.Radius - barHeight - 2
 
 	// Фон полоски (красный)
 	vector.DrawFilledRect(screen, barX, barY, barWidth, barHeight, color.RGBA{200, 50, 50, 255}, false)
 
+	//nolint:gocritic // commentedOutCode: Это описательный комментарий, не код
 	// Здоровье (зелёный)
 	healthPercent := float32(health.Current) / float32(health.Max)
 	healthWidth := barWidth * healthPercent
 	vector.DrawFilledRect(screen, barX, barY, healthWidth, barHeight, color.RGBA{50, 200, 50, 255}, false)
 }
 
+// HungerTextParams параметры отрисовки текста голода
+type HungerTextParams struct {
+	ScreenX, ScreenY, Radius float32
+}
+
 // drawHungerText отрисовывает значение голода над животным
-func (g *Game) drawHungerText(screen *ebiten.Image, entity core.EntityID, world *core.World, screenX, screenY, radius float32) {
+func (g *Game) drawHungerText(
+	screen *ebiten.Image,
+	entity core.EntityID,
+	world *core.World,
+	params HungerTextParams,
+) {
 	hunger, hasHunger := world.GetHunger(entity)
 	if !hasHunger {
 		return
@@ -294,8 +320,8 @@ func (g *Game) drawHungerText(screen *ebiten.Image, entity core.EntityID, world 
 	hungerText := fmt.Sprintf("%.0f%%", hunger.Value)
 
 	// Позиция текста (над полоской здоровья)
-	textX := float64(screenX)
-	textY := float64(screenY - radius - 25) // Над полоской здоровья
+	textX := float64(params.ScreenX)
+	textY := float64(params.ScreenY - params.Radius - 25) // Над полоской здоровья
 
 	// Определяем цвет в зависимости от уровня голода
 	var textColor color.Color

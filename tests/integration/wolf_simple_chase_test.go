@@ -33,8 +33,8 @@ func TestWolfSimpleChase(t *testing.T) {
 	movementSystem := simulation.NewMovementSystem(worldSizePixels, worldSizePixels)
 
 	// Создаем животных
-	rabbit := simulation.CreateRabbit(world, 160, 160) // Центр
-	wolf := simulation.CreateWolf(world, 140, 160)     // Слева от зайца
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 160, 160) // Центр
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 140, 160)     // Слева от зайца
 
 	// Волка делаем голодным
 	world.SetHunger(wolf, core.Hunger{Value: 20.0})
@@ -52,7 +52,9 @@ func TestWolfSimpleChase(t *testing.T) {
 		rabbitPos, _ := world.GetPosition(rabbit)
 		wolfVel, _ := world.GetVelocity(wolf)
 
-		distance := math.Sqrt(float64((wolfPos.X-rabbitPos.X)*(wolfPos.X-rabbitPos.X) + (wolfPos.Y-rabbitPos.Y)*(wolfPos.Y-rabbitPos.Y)))
+		dx := wolfPos.X - rabbitPos.X
+		dy := wolfPos.Y - rabbitPos.Y
+		distance := math.Sqrt(float64(dx*dx + dy*dy))
 
 		if i%30 == 0 { // Каждые 0.5 секунды
 			t.Logf("%.1fс: волк (%.1f,%.1f) vel(%.1f,%.1f) | заяц (%.1f,%.1f) | дистанция %.1f",

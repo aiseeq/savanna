@@ -38,8 +38,8 @@ func TestRabbitFleeAnimation(t *testing.T) {
 	animationManager := animation.NewAnimationManager(wolfAnimSystem, rabbitAnimSystem)
 
 	// Создаём зайца и волка близко друг к другу
-	rabbit := simulation.CreateRabbit(world, 200, 200)
-	wolf := simulation.CreateWolf(world, 220, 200) // Близко к зайцу
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 200, 200)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 220, 200) // Близко к зайцу
 
 	// Делаем волка голодным чтобы он охотился
 	world.SetHunger(wolf, core.Hunger{Value: 50.0})

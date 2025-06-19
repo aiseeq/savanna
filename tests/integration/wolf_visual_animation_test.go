@@ -9,6 +9,8 @@ import (
 )
 
 // TestWolfVisualAnimationProblem воспроизводит проблему с 1 кадром у волка
+//
+//nolint:gocognit,revive,funlen // Диагностический тест проблем анимации волка
 func TestWolfVisualAnimationProblem(t *testing.T) {
 	t.Parallel()
 	world := core.NewWorld(640, 640, 42)
@@ -45,8 +47,8 @@ func TestWolfVisualAnimationProblem(t *testing.T) {
 	}
 
 	// Создаём зайца и волка
-	rabbit := simulation.CreateRabbit(world, 300, 300)
-	wolf := simulation.CreateWolf(world, 305, 300) // Очень близко для атаки
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 305, 300) // Очень близко для атаки
 
 	// Добавляем анимацию волку
 	animComp := core.Animation{
@@ -146,19 +148,18 @@ func TestWolfVisualAnimationProblem(t *testing.T) {
 					newAnimType := getWolfAnimationType(world, wolf)
 
 					if anim.CurrentAnim != int(newAnimType) {
-						t.Logf("  Тик %d: Переключение %s -> %s", j, animation.AnimationType(anim.CurrentAnim).String(), newAnimType.String())
+						t.Logf("  Тик %d: Переключение %s -> %s", j,
+							animation.AnimationType(anim.CurrentAnim).String(), newAnimType.String())
 						anim.CurrentAnim = int(newAnimType)
 						anim.Frame = 0
 						anim.Timer = 0
 						anim.Playing = true
 						// ВАЖНО: Сохраняем изменения сразу
 						world.SetAnimation(wolf, anim)
-					} else {
+					} else if j < 10 {
 						// ОТЛАДКА: Почему происходит постоянное переключение?
-						if j < 10 {
-							t.Logf("  Тик %d: Анимация НЕ изменилась, остается %s (текущая: %d, новая: %d)",
-								j, newAnimType.String(), anim.CurrentAnim, int(newAnimType))
-						}
+						t.Logf("  Тик %d: Анимация НЕ изменилась, остается %s (текущая: %d, новая: %d)",
+							j, newAnimType.String(), anim.CurrentAnim, int(newAnimType))
 					}
 
 					// Читаем ОБНОВЛЕННОЕ состояние после возможного изменения

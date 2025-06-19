@@ -10,6 +10,8 @@ import (
 )
 
 // TestWolfFullCycle тестирует полный цикл: атака -> смерть -> поедание -> исчезновение трупа
+//
+//nolint:gocognit,revive,funlen // Комплексный тест полного жизненного цикла волка
 func TestWolfFullCycle(t *testing.T) {
 	t.Parallel()
 	world := core.NewWorld(640, 640, 42)
@@ -30,8 +32,8 @@ func TestWolfFullCycle(t *testing.T) {
 	animManager := animation.NewAnimationManager(wolfAnimSystem, rabbitAnimSystem)
 
 	// Создаём зайца и волка рядом
-	rabbit := simulation.CreateRabbit(world, 300, 300)
-	wolf := simulation.CreateWolf(world, 310, 300)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 310, 300)
 
 	// Делаем волка очень голодным
 	world.SetHunger(wolf, core.Hunger{Value: 30.0})

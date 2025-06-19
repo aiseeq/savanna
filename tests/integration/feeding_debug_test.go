@@ -11,6 +11,8 @@ import (
 )
 
 // TestFeedingDebug отлаживает почему заяц не ест
+//
+//nolint:gocognit,revive,funlen // Комплексный дебаг-тест системы питания зайцев
 func TestFeedingDebug(t *testing.T) {
 	t.Parallel()
 
@@ -49,7 +51,7 @@ func TestFeedingDebug(t *testing.T) {
 	t.Logf("Лучшее место с травой: (%.0f, %.0f) = %.1f единиц", grassX, grassY, maxGrass)
 
 	// Создаём зайца и настраиваем его для еды
-	rabbit := simulation.CreateRabbit(world, grassX, grassY)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, grassX, grassY)
 	world.SetHunger(rabbit, core.Hunger{Value: 85.0})    // Голодный
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0}) // Стоит
 

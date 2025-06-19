@@ -167,12 +167,14 @@ func (vs *VegetationSystem) CanGrassGrowAt(worldX, worldY float32) bool {
 
 // FindNearestGrass ищет ближайший тайл с травой (количество > minAmount)
 // Рефакторинг: разбито на вспомогательные функции для снижения когнитивной сложности
-func (vs *VegetationSystem) FindNearestGrass(worldX, worldY, searchRadius, minAmount float32) (grassX, grassY float32, found bool) {
+func (vs *VegetationSystem) FindNearestGrass(
+	worldX, worldY, searchRadius, minAmount float32,
+) (grassX, grassY float32, found bool) {
 	centerTileX := int(worldX / TileSizeVegetation)
 	centerTileY := int(worldY / TileSizeVegetation)
 	searchRadiusTiles := int(searchRadius / TileSizeVegetation)
 
-	bestDistance := float32(1e9) // Большое число для поиска минимума
+	bestDistance := float32(1e9) //nolint:gomnd // Большое число для поиска минимума
 	var bestX, bestY float32
 	found = false
 

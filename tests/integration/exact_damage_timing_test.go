@@ -15,8 +15,8 @@ func TestExactDamageTiming(t *testing.T) {
 	combatSystem := simulation.NewCombatSystem()
 
 	// Создаём животных рядом
-	rabbit := simulation.CreateRabbit(world, 40, 48)
-	wolf := simulation.CreateWolf(world, 45, 48)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 40, 48)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 45, 48)
 
 	// Волк голоден
 	world.SetHunger(wolf, core.Hunger{Value: 5.0})

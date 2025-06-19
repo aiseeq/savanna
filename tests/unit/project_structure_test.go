@@ -7,6 +7,8 @@ import (
 )
 
 // TestProjectStructure проверяет что все необходимые папки и файлы существуют
+//
+//nolint:gocognit // Комплексный unit тест структуры проекта
 func TestProjectStructure(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

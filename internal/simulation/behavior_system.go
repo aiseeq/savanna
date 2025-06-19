@@ -1,8 +1,6 @@
 package simulation
 
 import (
-	"math"
-
 	"github.com/aiseeq/savanna/internal/core"
 )
 
@@ -51,7 +49,8 @@ func (abs *AnimalBehaviorSystem) Update(world core.BehaviorSystemAccess, deltaTi
 	abs.updateBehaviorTimers(world, deltaTime)
 
 	// Обрабатываем поведение всех животных через универсальную логику
-	world.ForEachWith(core.MaskBehavior|core.MaskPosition|core.MaskVelocity|core.MaskSpeed|core.MaskHunger, func(entity core.EntityID) {
+	behaviorMask := core.MaskBehavior | core.MaskPosition | core.MaskVelocity | core.MaskSpeed | core.MaskHunger
+	world.ForEachWith(behaviorMask, func(entity core.EntityID) {
 		abs.updateAnimalBehavior(world, entity, deltaTime)
 	})
 
@@ -78,8 +77,13 @@ func (abs *AnimalBehaviorSystem) updateBehaviorTimers(world core.BehaviorSystemA
 	})
 }
 
-// updateAnimalBehavior универсальная система поведения животных (устраняет нарушение Open/Closed Principle)
-func (abs *AnimalBehaviorSystem) updateAnimalBehavior(world core.BehaviorSystemAccess, entity core.EntityID, _ float32) {
+// updateAnimalBehavior универсальная система поведения животных
+// (устраняет нарушение Open/Closed Principle)
+func (abs *AnimalBehaviorSystem) updateAnimalBehavior(
+	world core.BehaviorSystemAccess,
+	entity core.EntityID,
+	_ float32,
+) {
 	// ВАЖНО: Только атакующие животные не меняют поведение
 	// Травоядные должны прекратить есть и убегать при виде хищника!
 	if world.HasComponent(entity, core.MaskAttackState) {
@@ -98,7 +102,13 @@ func (abs *AnimalBehaviorSystem) updateAnimalBehavior(world core.BehaviorSystemA
 	// Используем стратегию поведения (Strategy pattern)
 	strategy, hasStrategy := abs.strategies[behavior.Type]
 	if hasStrategy {
-		targetVel := strategy.UpdateBehavior(world, entity, behavior, pos, speed, hunger)
+		components := AnimalComponents{
+			Behavior: behavior,
+			Position: pos,
+			Speed:    speed,
+			Hunger:   hunger,
+		}
+		targetVel := strategy.UpdateBehavior(world, entity, components)
 		world.SetVelocity(entity, targetVel)
 	} else {
 		// Fallback для неизвестных типов поведения
@@ -108,43 +118,6 @@ func (abs *AnimalBehaviorSystem) updateAnimalBehavior(world core.BehaviorSystemA
 }
 
 // УДАЛЕНО: getRandomWalkVelocityWithBehavior заменена на RandomWalk.GetRandomWalkVelocity
-
-// getRandomWalkVelocity возвращает скорость для случайного блуждания
-func (abs *AnimalBehaviorSystem) getRandomWalkVelocity(
-	world core.BehaviorSystemAccess, entity core.EntityID, maxSpeed float32,
-) core.Velocity {
-	// Проверяем нужно ли сменить направление
-	timeLeft, exists := abs.directionChangeTimers[entity]
-	if !exists || timeLeft <= 0 {
-		// Время сменить направление
-		rng := world.GetRNG()
-
-		// Случайный угол от 0 до 2π
-		angle := rng.Float64() * 2 * math.Pi
-
-		// Случайная скорость в диапазоне RandomSpeedMin до RandomSpeedMax
-		speedMultiplier := RandomSpeedMin + rng.Float64()*(RandomSpeedMax-RandomSpeedMin)
-
-		vel := core.Velocity{
-			X: float32(math.Cos(angle)) * maxSpeed * float32(speedMultiplier),
-			Y: float32(math.Sin(angle)) * maxSpeed * float32(speedMultiplier),
-		}
-
-		// Устанавливаем новый таймер
-		newTime := RandomWalkMinTime + rng.Float64()*(RandomWalkMaxTime-RandomWalkMinTime)
-		abs.directionChangeTimers[entity] = float32(newTime)
-
-		return vel
-	}
-
-	// Сохраняем текущую скорость
-	if world.HasComponent(entity, core.MaskVelocity) {
-		vel, _ := world.GetVelocity(entity)
-		return vel
-	}
-
-	return core.Velocity{X: 0, Y: 0}
-}
 
 // cleanupTimers очищает таймеры для несуществующих сущностей
 func (abs *AnimalBehaviorSystem) cleanupTimers(world core.BehaviorSystemAccess) {

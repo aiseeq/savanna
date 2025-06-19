@@ -10,6 +10,8 @@ import (
 )
 
 // TestRabbitStopsWhenEating проверяет что заяц останавливается когда ест траву
+//
+//nolint:gocognit,revive,funlen // Комплексный тест поведения зайца при поедании
 func TestRabbitStopsWhenEating(t *testing.T) {
 	t.Parallel()
 
@@ -44,7 +46,7 @@ func TestRabbitStopsWhenEating(t *testing.T) {
 	}
 
 	// Создаём голодного зайца там где есть трава
-	rabbit := simulation.CreateRabbit(world, grassX, grassY)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, grassX, grassY)
 
 	// Делаем зайца очень голодным (80%) чтобы он обязательно искал еду
 	world.SetHunger(rabbit, core.Hunger{Value: 80.0})

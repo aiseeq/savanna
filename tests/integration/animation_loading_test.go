@@ -51,7 +51,6 @@ func TestAnimationLoading(t *testing.T) {
 		{"hare_run", 2, 12.0, true, animation.AnimRun},
 		{"hare_attack", 2, 5.0, false, animation.AnimAttack},
 		{"hare_eat", 2, 4.0, true, animation.AnimEat},
-		{"hare_sleep", 2, 1.5, true, animation.AnimSleepLoop},
 		{"hare_dead", 2, 3.0, false, animation.AnimDeathDying},
 	}
 

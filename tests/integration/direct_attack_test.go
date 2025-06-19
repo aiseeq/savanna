@@ -22,8 +22,8 @@ func TestDirectAttack(t *testing.T) {
 	combatSystem := simulation.NewCombatSystem()
 
 	// Создаём зайца и волка рядом (в радиусе атаки)
-	rabbit := simulation.CreateRabbit(world, 300, 300)
-	wolf := simulation.CreateWolf(world, 310, 300) // На расстоянии 10 пикселей (в радиусе атаки)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 310, 300) // На расстоянии 10 пикселей (в радиусе атаки)
 
 	// Проверяем начальное здоровье
 	initialHealth, _ := world.GetHealth(rabbit)

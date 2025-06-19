@@ -19,10 +19,9 @@ const (
 
 	// ПАРАМЕТРЫ ПОЕДАНИЯ (перенесены в game_balance.go)
 	// EatingRange, CorpseNutritionPerTick, NutritionToHungerRatio теперь в game_balance.go
-	EatingHungerThreshold  = 100.0       // Волк перестаёт есть при полной сытости (100%) - DEPRECATED
 
 	// ПАРАМЕТРЫ УРОНА
-	DamageFlashDuration = 0.8 // Длительность эффекта мигания при уроне (сек) - увеличено для лучшей видимости
+	DamageFlashDuration = 0.16 // Длительность эффекта мигания при уроне (сек) - быстрое угасание в 5 раз
 
 	// КЛЮЧЕВЫЕ КАДРЫ АНИМАЦИИ АТАКИ (устраняет магические числа)
 	AttackFrameWindup = 0 // Кадр 0: замах перед атакой

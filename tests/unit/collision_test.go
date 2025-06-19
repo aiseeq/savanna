@@ -140,6 +140,7 @@ func TestCircleCircleCollision(t *testing.T) {
 	}
 }
 
+//nolint:gocognit // Комплексный unit тест коллизий круг-круг
 func TestCircleCircleCollisionWithDetails(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -268,6 +269,7 @@ func TestCircleRectangleCollision(t *testing.T) {
 	}
 }
 
+//nolint:gocognit // Комплексный unit тест коллизий круг-прямоугольник
 func TestCircleRectangleCollisionWithDetails(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -430,7 +432,10 @@ func TestPointInRectangle(t *testing.T) {
 		{"corner point", physics.NewVec2(0, 0), physics.NewRectangle(physics.NewVec2(0, 0), physics.NewVec2(2, 2)), true},
 		{"edge point", physics.NewVec2(1, 0), physics.NewRectangle(physics.NewVec2(0, 0), physics.NewVec2(2, 2)), true},
 		{"outside point", physics.NewVec2(3, 3), physics.NewRectangle(physics.NewVec2(0, 0), physics.NewVec2(2, 2)), false},
-		{"negative coordinates", physics.NewVec2(-1, -1), physics.NewRectangle(physics.NewVec2(-2, -2), physics.NewVec2(0, 0)), true},
+		{
+			"negative coordinates", physics.NewVec2(-1, -1),
+			physics.NewRectangle(physics.NewVec2(-2, -2), physics.NewVec2(0, 0)), true,
+		},
 	}
 
 	for _, tt := range tests {

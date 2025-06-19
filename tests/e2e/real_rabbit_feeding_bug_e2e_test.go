@@ -13,6 +13,8 @@ import (
 )
 
 // TestRealRabbitFeedingBugE2E проверяет РЕАЛЬНУЮ проблему: зайцы едят но сытость не восстанавливается
+//
+//nolint:gocognit,revive // E2E тест воспроизведения реального бага
 func TestRealRabbitFeedingBugE2E(t *testing.T) {
 	t.Parallel()
 
@@ -66,7 +68,7 @@ func TestRealRabbitFeedingBugE2E(t *testing.T) {
 	t.Logf("Создали ВСЕ системы точно как в cmd/game/game_world.go")
 
 	// Создаём зайца на позиции с большим количеством травы
-	rabbit := simulation.CreateRabbit(world, 200, 200)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 200, 200)
 
 	// Устанавливаем траву под зайцем
 	tileX := int(200 / 32)
@@ -255,7 +257,6 @@ func (tam *TestAnimationManager) LoadAnimationsFromConfig() error {
 		{animation.AnimRun, 2, 12.0, true},
 		{animation.AnimAttack, 2, 5.0, false},
 		{animation.AnimEat, 2, 4.0, true}, // КРИТИЧЕСКИ ВАЖНАЯ АНИМАЦИЯ!
-		{animation.AnimSleepLoop, 2, 1.5, true},
 		{animation.AnimDeathDying, 2, 3.0, false},
 	}
 
@@ -277,7 +278,6 @@ func (tam *TestAnimationManager) LoadAnimationsFromConfig() error {
 		{animation.AnimRun, 2, 8.0, true},
 		{animation.AnimAttack, 4, 8.0, false},
 		{animation.AnimEat, 2, 4.0, true},
-		{animation.AnimSleepLoop, 2, 1.5, true},
 		{animation.AnimDeathDying, 2, 3.0, false},
 	}
 
@@ -319,7 +319,9 @@ func (tam *TestAnimationManager) UpdateAnimalAnimations(world *core.World, delta
 }
 
 // updateAnimationIfNeeded обновляет тип анимации если он изменился
-func (tam *TestAnimationManager) updateAnimationIfNeeded(world *core.World, entity core.EntityID, newAnimType animation.AnimationType) {
+func (tam *TestAnimationManager) updateAnimationIfNeeded(
+	world *core.World, entity core.EntityID, newAnimType animation.AnimationType,
+) {
 	anim, ok := world.GetAnimation(entity)
 	if !ok {
 		return
@@ -361,7 +363,9 @@ func (tam *TestAnimationManager) updateAnimationDirection(world *core.World, ent
 }
 
 // processAnimationUpdate обрабатывает обновление кадров анимации
-func (tam *TestAnimationManager) processAnimationUpdate(world *core.World, entity core.EntityID, animSystem *animation.AnimationSystem, deltaTime float32) {
+func (tam *TestAnimationManager) processAnimationUpdate(
+	world *core.World, entity core.EntityID, animSystem *animation.AnimationSystem, deltaTime float32,
+) {
 	anim, ok := world.GetAnimation(entity)
 	if !ok {
 		return

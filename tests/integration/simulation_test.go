@@ -39,14 +39,20 @@ func TestBasicSimulation(t *testing.T) {
 
 	// Добавляем системы
 	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: simulation.NewAnimalBehaviorSystem(vegetationSystem)})
-	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: simulation.NewMovementSystem(TestWorldSize, TestWorldSize)})
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: simulation.NewFeedingSystem(vegetationSystem)})
+	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{
+		System: simulation.NewAnimalBehaviorSystem(vegetationSystem),
+	})
+	systemManager.AddSystem(&adapters.MovementSystemAdapter{
+		System: simulation.NewMovementSystem(TestWorldSize, TestWorldSize),
+	})
+	systemManager.AddSystem(&adapters.FeedingSystemAdapter{
+		System: simulation.NewFeedingSystem(vegetationSystem),
+	})
 
 	// Создаем несколько животных
-	rabbit1 := simulation.CreateRabbit(world, 100, 100)
-	rabbit2 := simulation.CreateRabbit(world, 200, 200)
-	wolf1 := simulation.CreateWolf(world, 300, 300)
+	rabbit1 := simulation.CreateAnimal(world, core.TypeRabbit, 100, 100)
+	rabbit2 := simulation.CreateAnimal(world, core.TypeRabbit, 200, 200)
+	wolf1 := simulation.CreateAnimal(world, core.TypeWolf, 300, 300)
 
 	// Проверяем что животные созданы
 	if world.GetEntityCount() != 3 {
@@ -91,22 +97,28 @@ func TestDeterministicSimulation(t *testing.T) {
 		// Создаём vegetation систему для детерминированного теста
 		vegetationSystem := createTestVegetationSystem()
 		systemManager.AddSystem(vegetationSystem)
-		systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: simulation.NewAnimalBehaviorSystem(vegetationSystem)})
-		systemManager.AddSystem(&adapters.MovementSystemAdapter{System: simulation.NewMovementSystem(TestWorldSize, TestWorldSize)})
-		systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: simulation.NewFeedingSystem(vegetationSystem)})
+		systemManager.AddSystem(&adapters.BehaviorSystemAdapter{
+			System: simulation.NewAnimalBehaviorSystem(vegetationSystem),
+		})
+		systemManager.AddSystem(&adapters.MovementSystemAdapter{
+			System: simulation.NewMovementSystem(TestWorldSize, TestWorldSize),
+		})
+		systemManager.AddSystem(&adapters.FeedingSystemAdapter{
+			System: simulation.NewFeedingSystem(vegetationSystem),
+		})
 
 		// Создаем 10 зайцев и 2 волков
 		rng := world.GetRNG()
 		for i := 0; i < 10; i++ {
 			x := rng.Float32()*TestWorldSize*0.8 + TestWorldSize*0.1
 			y := rng.Float32()*TestWorldSize*0.8 + TestWorldSize*0.1
-			simulation.CreateRabbit(world, x, y)
+			simulation.CreateAnimal(world, core.TypeRabbit, x, y)
 		}
 
 		for i := 0; i < 2; i++ {
 			x := rng.Float32()*TestWorldSize*0.8 + TestWorldSize*0.1
 			y := rng.Float32()*TestWorldSize*0.8 + TestWorldSize*0.1
-			simulation.CreateWolf(world, x, y)
+			simulation.CreateAnimal(world, core.TypeWolf, x, y)
 		}
 
 		// Симулируем 10 секунд
@@ -152,7 +164,7 @@ func TestHungerSystem(t *testing.T) {
 	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 
 	// Создаем зайца с низким голодом
-	rabbit := simulation.CreateRabbit(world, 100, 100)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 100, 100)
 
 	// Устанавливаем очень низкий голод
 	world.SetHunger(rabbit, core.Hunger{Value: 1.0})
@@ -190,13 +202,19 @@ func TestAnimalInteraction(t *testing.T) {
 	// Создаём vegetation систему для взаимодействия
 	vegetationSystem := createTestVegetationSystem()
 	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: simulation.NewAnimalBehaviorSystem(vegetationSystem)})
-	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: simulation.NewMovementSystem(TestWorldSize, TestWorldSize)})
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: simulation.NewFeedingSystem(vegetationSystem)})
+	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{
+		System: simulation.NewAnimalBehaviorSystem(vegetationSystem),
+	})
+	systemManager.AddSystem(&adapters.MovementSystemAdapter{
+		System: simulation.NewMovementSystem(TestWorldSize, TestWorldSize),
+	})
+	systemManager.AddSystem(&adapters.FeedingSystemAdapter{
+		System: simulation.NewFeedingSystem(vegetationSystem),
+	})
 
 	// Создаем зайца и волка на дистанции видимости
-	rabbit := simulation.CreateRabbit(world, 200, 200)
-	wolf := simulation.CreateWolf(world, 280, 200) // На расстоянии 80 единиц (в пределах видимости волка)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 200, 200)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 280, 200) // На расстоянии 80 единиц (в пределах видимости волка)
 
 	// Делаем волка голодным
 	world.SetHunger(wolf, core.Hunger{Value: 30.0}) // Ниже порога охоты (60%)
@@ -254,7 +272,7 @@ func TestBoundaryConstraints(t *testing.T) {
 	movementSystem := simulation.NewMovementSystem(TestWorldSize, TestWorldSize)
 
 	// Создаем зайца у края мира
-	rabbit := simulation.CreateRabbit(world, 5, 5) // Близко к левому верхнему углу
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 5, 5) // Близко к левому верхнему углу
 
 	// Устанавливаем скорость в сторону границы
 	world.SetVelocity(rabbit, core.Velocity{X: -100, Y: -100}) // Движение к границе
@@ -298,9 +316,10 @@ func TestStarvationDeath(t *testing.T) {
 	combatSystem := simulation.NewCombatSystem() // Отвечает за удаление мертвых животных
 
 	// Создаем зайца с минимальным здоровьем и голодом
-	rabbit := simulation.CreateRabbit(world, 100, 100)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 100, 100)
 	world.SetHealth(rabbit, core.Health{Current: 2, Max: 50}) // Минимальное здоровье
-	world.SetHunger(rabbit, core.Hunger{Value: 0})            // Голод = 0
+	//nolint:gocritic // commentedOutCode: Это описательный комментарий
+	world.SetHunger(rabbit, core.Hunger{Value: 0}) // Голод = 0
 
 	if !world.IsAlive(rabbit) {
 		t.Fatal("Rabbit should be alive initially")

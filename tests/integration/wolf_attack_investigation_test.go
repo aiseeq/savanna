@@ -12,6 +12,8 @@ import (
 )
 
 // TestWolfAttackBehavior исследует поведение волка при атаке зайца
+//
+//nolint:revive // Интеграционный тест может быть длинным
 func TestWolfAttackBehavior(t *testing.T) {
 	t.Parallel()
 	// Создаем минимальную симуляцию
@@ -45,8 +47,8 @@ func TestWolfAttackBehavior(t *testing.T) {
 	rabbitX, rabbitY := float32(160), float32(160) // Центр мира
 	wolfX, wolfY := float32(140), float32(160)     // Слева от зайца на расстоянии 20 единиц
 
-	rabbit := simulation.CreateRabbit(world, rabbitX, rabbitY)
-	wolf := simulation.CreateWolf(world, wolfX, wolfY)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, rabbitX, rabbitY)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, wolfX, wolfY)
 
 	// Делаем волка голодным для охоты
 	world.SetHunger(wolf, core.Hunger{Value: 30.0}) // Меньше 60% - будет охотиться
@@ -74,7 +76,9 @@ func TestWolfAttackBehavior(t *testing.T) {
 		wolfVel, _ := world.GetVelocity(wolf)
 
 		// Вычисляем расстояние
-		distance := math.Sqrt(float64((wolfPos.X-rabbitPos.X)*(wolfPos.X-rabbitPos.X) + (wolfPos.Y-rabbitPos.Y)*(wolfPos.Y-rabbitPos.Y)))
+		dx := wolfPos.X - rabbitPos.X
+		dy := wolfPos.Y - rabbitPos.Y
+		distance := math.Sqrt(float64(dx*dx + dy*dy))
 
 		// Логируем каждые несколько тиков
 		if tickCount%logInterval == 0 {
@@ -121,8 +125,8 @@ func TestWolfOvershooting(t *testing.T) {
 	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
 
 	// Зайца ставим неподвижно, волка близко
-	rabbit := simulation.CreateRabbit(world, 160, 160)
-	wolf := simulation.CreateWolf(world, 145, 160) // Расстояние 15 единиц
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 160, 160)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 145, 160) // Расстояние 15 единиц
 
 	// Зайца делаем неподвижным
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0})
@@ -139,7 +143,9 @@ func TestWolfOvershooting(t *testing.T) {
 		wolfPos, _ := world.GetPosition(wolf)
 		rabbitPos, _ := world.GetPosition(rabbit)
 
-		distance := math.Sqrt(float64((wolfPos.X-rabbitPos.X)*(wolfPos.X-rabbitPos.X) + (wolfPos.Y-rabbitPos.Y)*(wolfPos.Y-rabbitPos.Y)))
+		dx := wolfPos.X - rabbitPos.X
+		dy := wolfPos.Y - rabbitPos.Y
+		distance := math.Sqrt(float64(dx*dx + dy*dy))
 
 		if i%12 == 0 { // Каждые 0.2 секунды
 			t.Logf("Сек %.1f: волк (%.1f,%.1f) | заяц (%.1f,%.1f) | дистанция %.1f",

@@ -12,6 +12,8 @@ import (
 )
 
 // TestEatingSleepAnimationBug воспроизводит баг когда заяц показывает анимацию сна вместо поедания
+//
+//nolint:gocognit,revive,funlen // Комплексный интеграционный тест анимационной системы питания
 func TestEatingSleepAnimationBug(t *testing.T) {
 	t.Parallel()
 
@@ -63,7 +65,7 @@ func TestEatingSleepAnimationBug(t *testing.T) {
 	t.Logf("Лучшее место с травой: (%.0f, %.0f) = %.1f единиц", grassX, grassY, maxGrass)
 
 	// Создаём голодного зайца точно на траве
-	rabbit := simulation.CreateRabbit(world, grassX, grassY)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, grassX, grassY)
 	world.SetHunger(rabbit, core.Hunger{Value: 85.0})    // Голодный
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0}) // Стоит
 
@@ -93,9 +95,9 @@ func TestEatingSleepAnimationBug(t *testing.T) {
 				float32(i)*deltaTime, hunger.Value, isEating, grassAmount, speed, animType.String(), anim.Frame)
 		}
 
-		// КРИТИЧЕСКАЯ ПРОВЕРКА: если заяц ест, анимация должна быть Eat, НЕ Sleep*
+		// КРИТИЧЕСКАЯ ПРОВЕРКА: если заяц ест, анимация должна быть Eat
 		if isEating {
-			if animType == animation.AnimSleepFalling || animType == animation.AnimSleepLoop || animType == animation.AnimSleepWaking {
+			if animType.String() == "SleepFalling" || animType.String() == "SleepLoop" || animType.String() == "SleepWaking" {
 				t.Errorf("❌ БАГ НАЙДЕН на тике %d: Заяц ест (EatingState=true) но показывает анимацию сна %s!",
 					i, animType.String())
 				t.Errorf("   Детали: голод=%.1f%% трава=%.1f скорость=%.2f кадр=%d",

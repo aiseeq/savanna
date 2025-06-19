@@ -100,6 +100,8 @@ func (tm *MockTimeManagerWithControls) IsPaused() bool {
 }
 
 // HandleKeyPress обрабатывает нажатие клавиши (имитирует реальную логику)
+//
+//nolint:gocognit // Mock объект с полной имитацией логики управления
 func (tm *MockTimeManagerWithControls) HandleKeyPress(key ebiten.Key) {
 	switch key {
 	case ebiten.KeyEqual: // '+' клавиша
@@ -131,6 +133,7 @@ func (tm *MockTimeManagerWithControls) HandleKeyPress(key ebiten.Key) {
 		} else if tm.timeScale > 0.25 {
 			tm.timeScale = 0.25
 		} else {
+			//nolint:gocritic // commentedOutCode: Это описательный комментарий
 			// Минимум = пауза
 			tm.timeScale = 0.0
 			tm.isPaused = true

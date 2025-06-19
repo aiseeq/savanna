@@ -10,6 +10,8 @@ import (
 )
 
 // TestEcosystemSurvival диагностирует проблемы с выживанием животных
+//
+//nolint:gocognit,revive // Комплексный тест выживания экосистемы
 func TestEcosystemSurvival(t *testing.T) {
 	t.Parallel()
 	// Создаём минимальную симуляцию
@@ -41,10 +43,10 @@ func TestEcosystemSurvival(t *testing.T) {
 	for _, placement := range placements {
 		switch placement.Type {
 		case core.TypeRabbit:
-			rabbit := simulation.CreateRabbit(world, placement.X, placement.Y)
+			rabbit := simulation.CreateAnimal(world, core.TypeRabbit, placement.X, placement.Y)
 			rabbits = append(rabbits, rabbit)
 		case core.TypeWolf:
-			wolf := simulation.CreateWolf(world, placement.X, placement.Y)
+			wolf := simulation.CreateAnimal(world, core.TypeWolf, placement.X, placement.Y)
 			wolves = append(wolves, wolf)
 		}
 	}
@@ -183,7 +185,7 @@ func TestAnimalHealthAndHunger(t *testing.T) {
 	world := core.NewWorld(1000, 1000, 42)
 
 	// Создаём зайца и проверяем его параметры
-	rabbit := simulation.CreateRabbit(world, 500, 500)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 500, 500)
 
 	health, hasHealth := world.GetHealth(rabbit)
 	hunger, hasHunger := world.GetHunger(rabbit)
@@ -227,7 +229,7 @@ func TestFeedingSystemIsolated(t *testing.T) {
 	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 
 	// Создаём зайца с хорошими параметрами
-	rabbit := simulation.CreateRabbit(world, 320, 320)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 320, 320)
 
 	health, _ := world.GetHealth(rabbit)
 	hunger, _ := world.GetHunger(rabbit)

@@ -48,28 +48,52 @@ const (
 func main() {
 	fmt.Println("=== ДИАГНОСТИКА СИСТЕМЫ ПОЕДАНИЯ ТРУПОВ ===")
 
-	// ТОЧНО такая же инициализация как в реальной headless игре
+	// Инициализируем конфигурацию и мир
+	cfg, world, systemManager := initializeDebugWorld()
+
+	// Создаём системы симуляции
+	terrain, wolfAnimationSystem, rabbitAnimationSystem := setupDebugSystems(cfg, systemManager)
+
+	// Размещаем животных
+	_, _ = populateDebugWorld(cfg, world, terrain)
+
+	// Запускаем диагностический цикл
+	runDiagnosticLoop(world, systemManager, wolfAnimationSystem, rabbitAnimationSystem)
+}
+
+// initializeDebugWorld инициализирует конфигурацию и создаёт мир
+func initializeDebugWorld() (*config.Config, *core.World, *core.SystemManager) {
+	// Создаём конфигурацию
 	cfg := config.LoadDefaultConfig()
 	cfg.World.Seed = WorldSeed
 	cfg.World.Size = WorldSize
 	cfg.Population.Rabbits = RabbitCount
 	cfg.Population.Wolves = WolfCount
 
-	// Генерируем мир ТОЧНО как в headless
-	terrainGen := generator.NewTerrainGenerator(cfg)
-	terrain := terrainGen.Generate()
-
+	// Создаём мир
 	worldSizePixels := float32(cfg.World.Size * TileSizePixels)
 	world := core.NewWorld(worldSizePixels, worldSizePixels, cfg.World.Seed)
 	systemManager := core.NewSystemManager()
 
-	// КРИТИЧЕСКИ ВАЖНО: создаём анимационные системы для headless режима
-	wolfAnimationSystem := animation.NewAnimationSystem()
-	rabbitAnimationSystem := animation.NewAnimationSystem()
+	return cfg, world, systemManager
+}
 
-	// Загружаем анимации через общий загрузчик (устраняет дублирование)
+// setupDebugSystems создаёт и настраивает все системы симуляции
+func setupDebugSystems(
+	cfg *config.Config,
+	systemManager *core.SystemManager,
+) (terrain *generator.Terrain, wolfAnimSystem, rabbitAnimSystem *animation.AnimationSystem) {
+	// Генерируем ландшафт
+	terrainGen := generator.NewTerrainGenerator(cfg)
+	terrain = terrainGen.Generate()
+
+	// Создаём анимационные системы
+	wolfAnimSystem = animation.NewAnimationSystem()
+	rabbitAnimSystem = animation.NewAnimationSystem()
+
+	// Загружаем анимации
 	loader := animation.NewAnimationLoader()
-	loader.LoadHeadlessAnimations(wolfAnimationSystem, rabbitAnimationSystem)
+	loader.LoadHeadlessAnimations(wolfAnimSystem, rabbitAnimSystem)
 
 	// Создаём системы с зависимостями ТОЧНО как в headless
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
@@ -78,32 +102,48 @@ func main() {
 	combatSystem := simulation.NewCombatSystem()
 
 	// Добавляем системы в правильном порядке ТОЧНО как в headless
+	worldSizePixels := float32(cfg.World.Size * TileSizePixels)
 	systemManager.AddSystem(vegetationSystem)
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
-	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: simulation.NewMovementSystem(worldSizePixels, worldSizePixels)})
+	movementSystem := simulation.NewMovementSystem(worldSizePixels, worldSizePixels)
+	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
 	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
 	systemManager.AddSystem(combatSystem)
 
+	return
+}
+
+// populateDebugWorld размещает животных в мире
+func populateDebugWorld(
+	cfg *config.Config,
+	world *core.World,
+	terrain *generator.Terrain,
+) (wolves, rabbits []core.EntityID) {
 	// Размещаем животных ТОЧНО как в headless
 	popGen := generator.NewPopulationGenerator(cfg, terrain)
 	placements := popGen.Generate()
 
-	var wolves []core.EntityID
-	var rabbits []core.EntityID
-
 	for _, placement := range placements {
 		switch placement.Type {
 		case core.TypeRabbit:
-			rabbit := simulation.CreateRabbit(world, placement.X, placement.Y)
+			rabbit := simulation.CreateAnimal(world, core.TypeRabbit, placement.X, placement.Y)
 			rabbits = append(rabbits, rabbit)
 		case core.TypeWolf:
-			wolf := simulation.CreateWolf(world, placement.X, placement.Y)
+			wolf := simulation.CreateAnimal(world, core.TypeWolf, placement.X, placement.Y)
 			wolves = append(wolves, wolf)
 		}
 	}
 
 	fmt.Printf("Размещено: %d зайцев, %d волков\n", len(rabbits), len(wolves))
+	return
+}
 
+// runDiagnosticLoop запускает основной диагностический цикл
+func runDiagnosticLoop(
+	world *core.World,
+	systemManager *core.SystemManager,
+	wolfAnimationSystem, rabbitAnimationSystem *animation.AnimationSystem,
+) {
 	// Создаём менеджер анимаций (устраняет дублирование логики)
 	animationManager := animation.NewAnimationManager(wolfAnimationSystem, rabbitAnimationSystem)
 
@@ -126,89 +166,116 @@ func main() {
 
 		// Каждую секунду выводим диагностику
 		if tick%DiagnosticInterval == 0 {
-			second := tick / DiagnosticInterval
-
-			// Подсчитываем живых животных и их состояния
-			currentWolves := 0
-			currentRabbits := 0
-			attackingWolves := 0
-			eatingWolves := 0
-			corpses := 0
-
-			world.ForEachWith(core.MaskAnimalType, func(entity core.EntityID) {
-				animalType, ok := world.GetAnimalType(entity)
-				if !ok {
-					return
-				}
-
-				if animalType == core.TypeWolf {
-					currentWolves++
-
-					// Проверяем состояния волка
-					if world.HasComponent(entity, core.MaskAttackState) {
-						attackingWolves++
-					}
-					if world.HasComponent(entity, core.MaskEatingState) {
-						eatingWolves++
-					}
-				} else if animalType == core.TypeRabbit {
-					if world.HasComponent(entity, core.MaskCorpse) {
-						corpses++
-					} else {
-						currentRabbits++
-					}
-				}
-			})
-
-			fmt.Printf("[%2ds] Живые зайцы: %2d, Трупы: %2d, Волки: %d (атакуют: %d, едят: %d)\n",
-				second, currentRabbits, corpses, currentWolves, attackingWolves, eatingWolves)
-
-			// Детальная информация о волках
-			if currentWolves > 0 {
-				fmt.Printf("      Детали волков:\n")
-				wolfIndex := 0
-				world.ForEachWith(core.MaskAnimalType|core.MaskHunger, func(entity core.EntityID) {
-					animalType, ok := world.GetAnimalType(entity)
-					if !ok || animalType != core.TypeWolf {
-						return
-					}
-
-					hunger, _ := world.GetHunger(entity)
-					health, _ := world.GetHealth(entity)
-
-					status := "Живой"
-					if health.Current <= 0 {
-						status = "МЁРТВ"
-					}
-
-					// Детальная диагностика состояний
-					attackState := world.HasComponent(entity, core.MaskAttackState)
-					eatingState := world.HasComponent(entity, core.MaskEatingState)
-
-					var eatingTarget core.EntityID = 0
-					if eatingState {
-						if eating, hasEating := world.GetEatingState(entity); hasEating {
-							eatingTarget = eating.Target
-						}
-					}
-
-					fmt.Printf("        Волк #%d: %s, голод %.1f%%, здоровье %d\n",
-						wolfIndex+1, status, hunger.Value, health.Current)
-					fmt.Printf("                  AttackState: %t, EatingState: %t (цель: %d)\n",
-						attackState, eatingState, eatingTarget)
-					wolfIndex++
-				})
-			}
-
-			// Остановка если все волки мертвы
-			if currentWolves == 0 {
-				fmt.Printf("❌ ВСЕ ВОЛКИ МЕРТВЫ на %d секунде!\n", second)
-				break
-			}
+			printDiagnostics(world, tick)
 		}
 
 		time.Sleep(time.Microsecond * SleepMicroseconds)
 	}
 
 	fmt.Println("\n=== ДИАГНОСТИКА ЗАВЕРШЕНА ===")
+}
+
+// AnimalStats содержит статистику животных для диагностики
+type AnimalStats struct {
+	CurrentWolves   int
+	CurrentRabbits  int
+	AttackingWolves int
+	EatingWolves    int
+	Corpses         int
+}
+
+// printDiagnostics выводит диагностическую информацию о состоянии мира
+func printDiagnostics(world *core.World, tick int) {
+	second := tick / DiagnosticInterval
+	stats := countAnimals(world)
+
+	fmt.Printf("[%2ds] Живые зайцы: %2d, Трупы: %2d, Волки: %d (атакуют: %d, едят: %d)\n",
+		second, stats.CurrentRabbits, stats.Corpses, stats.CurrentWolves, stats.AttackingWolves, stats.EatingWolves)
+
+	// Детальная информация о волках
+	if stats.CurrentWolves > 0 {
+		printWolfDetails(world)
+	}
+
+	// Остановка если все волки мертвы
+	if stats.CurrentWolves == 0 {
+		fmt.Printf("❌ ВСЕ ВОЛКИ МЕРТВЫ на %d секунде!\n", second)
+	}
+}
+
+// countAnimals подсчитывает животных и их состояния
+func countAnimals(world *core.World) AnimalStats {
+	var stats AnimalStats
+
+	world.ForEachWith(core.MaskAnimalType, func(entity core.EntityID) {
+		animalType, ok := world.GetAnimalType(entity)
+		if !ok {
+			return
+		}
+
+		if animalType == core.TypeWolf {
+			stats.CurrentWolves++
+			countWolfStates(world, entity, &stats)
+		} else if animalType == core.TypeRabbit {
+			countRabbitStates(world, entity, &stats)
+		}
+	})
+
+	return stats
+}
+
+// countWolfStates подсчитывает состояния волков
+func countWolfStates(world *core.World, entity core.EntityID, stats *AnimalStats) {
+	if world.HasComponent(entity, core.MaskAttackState) {
+		stats.AttackingWolves++
+	}
+	if world.HasComponent(entity, core.MaskEatingState) {
+		stats.EatingWolves++
+	}
+}
+
+// countRabbitStates подсчитывает состояния зайцев
+func countRabbitStates(world *core.World, entity core.EntityID, stats *AnimalStats) {
+	if world.HasComponent(entity, core.MaskCorpse) {
+		stats.Corpses++
+	} else {
+		stats.CurrentRabbits++
+	}
+}
+
+// printWolfDetails выводит детальную информацию о волках
+func printWolfDetails(world *core.World) {
+	fmt.Printf("      Детали волков:\n")
+	wolfIndex := 0
+	world.ForEachWith(core.MaskAnimalType|core.MaskHunger, func(entity core.EntityID) {
+		animalType, ok := world.GetAnimalType(entity)
+		if !ok || animalType != core.TypeWolf {
+			return
+		}
+
+		hunger, _ := world.GetHunger(entity)
+		health, _ := world.GetHealth(entity)
+
+		status := "Живой"
+		if health.Current <= 0 {
+			status = "МЁРТВ"
+		}
+
+		// Детальная диагностика состояний
+		attackState := world.HasComponent(entity, core.MaskAttackState)
+		eatingState := world.HasComponent(entity, core.MaskEatingState)
+
+		var eatingTarget core.EntityID = 0
+		if eatingState {
+			if eating, hasEating := world.GetEatingState(entity); hasEating {
+				eatingTarget = eating.Target
+			}
+		}
+
+		fmt.Printf("        Волк #%d: %s, голод %.1f%%, здоровье %d\n",
+			wolfIndex+1, status, hunger.Value, health.Current)
+		fmt.Printf("                  AttackState: %t, EatingState: %t (цель: %d)\n",
+			attackState, eatingState, eatingTarget)
+		wolfIndex++
+	})
 }

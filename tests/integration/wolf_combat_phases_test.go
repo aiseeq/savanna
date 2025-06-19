@@ -15,8 +15,8 @@ func TestAttackPhaseWindup(t *testing.T) {
 	combatSystem := simulation.NewCombatSystem()
 
 	// Создаём зайца и волка рядом
-	rabbit := simulation.CreateRabbit(world, 300, 300)
-	wolf := simulation.CreateWolf(world, 310, 300)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 310, 300)
 
 	// Делаем волка голодным
 	world.SetHunger(wolf, core.Hunger{Value: 30.0})
@@ -64,8 +64,8 @@ func TestAttackPhaseStrike(t *testing.T) {
 	combatSystem := simulation.NewCombatSystem()
 
 	// Создаём зайца и волка рядом
-	rabbit := simulation.CreateRabbit(world, 300, 300)
-	wolf := simulation.CreateWolf(world, 310, 300)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 310, 300)
 
 	// Делаем волка голодным
 	world.SetHunger(wolf, core.Hunger{Value: 30.0})
@@ -139,8 +139,8 @@ func TestMultipleAttacksUntilDeath(t *testing.T) {
 	combatSystem := simulation.NewCombatSystem()
 
 	// Создаём зайца и волка рядом БЕЗ анимаций (для быстрого тестирования)
-	rabbit := simulation.CreateRabbit(world, 300, 300)
-	wolf := simulation.CreateWolf(world, 310, 300)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 310, 300)
 
 	// Убираем анимации для таймер-режима
 	world.RemoveAnimation(rabbit)

@@ -12,6 +12,8 @@ import (
 )
 
 // TestRabbitAnimationSwitching проверяет проблему переключения idle 0 ↔ eat 0
+//
+//nolint:gocognit,revive,funlen // Комплексный тест переключения анимаций зайца
 func TestRabbitAnimationSwitching(t *testing.T) {
 	t.Parallel()
 
@@ -48,7 +50,7 @@ func TestRabbitAnimationSwitching(t *testing.T) {
 	animationResolver := animation.NewAnimationResolver()
 
 	// Создаём зайца и траву
-	rabbit := simulation.CreateRabbit(world, 200, 200)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 200, 200)
 	tileX := int(200 / 32)
 	tileY := int(200 / 32)
 	terrain.SetGrassAmount(tileX, tileY, 100.0)
@@ -66,8 +68,7 @@ func TestRabbitAnimationSwitching(t *testing.T) {
 	t.Logf("\n=== ОТСЛЕЖИВАНИЕ АНИМАЦИЙ ===")
 
 	// Отслеживаем анимации для выявления паттерна
-	prevAnimType := animation.AnimIdle
-	_ = 0 // prevFrame
+	var prevAnimType animation.AnimationType
 	animationSwitches := 0
 	idleToEatSwitches := 0
 	eatToIdleSwitches := 0

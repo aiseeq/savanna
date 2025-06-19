@@ -12,6 +12,8 @@ import (
 )
 
 // TestEatingFrameValidation проверяет что зайцы получают сытость ТОЛЬКО на кадре 1
+//
+//nolint:revive // function-length: Критический тест валидации кадров анимации
 func TestEatingFrameValidation(t *testing.T) {
 	t.Parallel()
 
@@ -43,7 +45,7 @@ func TestEatingFrameValidation(t *testing.T) {
 	_ = animation.NewAnimationResolver() // Для полноты игровой среды
 
 	// Создаём зайца и траву
-	rabbit := simulation.CreateRabbit(world, 200, 200)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 200, 200)
 	tileX := int(200 / 32)
 	tileY := int(200 / 32)
 	terrain.SetGrassAmount(tileX, tileY, 100.0)

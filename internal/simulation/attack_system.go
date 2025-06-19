@@ -165,6 +165,11 @@ func (as *AttackSystem) canStartAttack(world *core.World, predator core.EntityID
 		return false
 	}
 
+	// ИСПРАВЛЕНИЕ БАГА: Проверяем что не ест уже (волк должен доесть текущий труп)
+	if world.HasComponent(predator, core.MaskEatingState) {
+		return false // Волк занят поеданием - не может атаковать
+	}
+
 	// Проверяем кулдаун
 	if !as.canAttack(predator) {
 		return false
@@ -218,8 +223,10 @@ func (as *AttackSystem) updateAttackState(world *core.World, predator core.Entit
 		return // Состояние удалено
 	}
 
-	// ВАЖНО: Сохраняем обновленное состояние в конце
-	world.SetAttackState(predator, attackState)
+	// ВАЖНО: Сохраняем обновленное состояние в конце, ТОЛЬКО если состояние ещё существует
+	if world.HasComponent(predator, core.MaskAttackState) {
+		world.SetAttackState(predator, attackState)
+	}
 }
 
 // updateAttackStateWithAnimation обновляет атаку по анимации (снижает сложность)
@@ -233,7 +240,7 @@ func (as *AttackSystem) updateAttackStateWithAnimation(
 			// Переходим в фазу удара
 			attackState.Phase = core.AttackPhaseStrike
 			attackState.PhaseTimer = 0.0
-			world.SetAttackState(predator, *attackState)
+			// НЕ сохраняем состояние здесь - будет сохранено в конце updateAttackState
 		}
 
 	case core.AttackPhaseStrike:
@@ -241,7 +248,7 @@ func (as *AttackSystem) updateAttackStateWithAnimation(
 		if !attackState.HasStruck {
 			as.executeStrike(world, predator, attackState.Target)
 			attackState.HasStruck = true
-			world.SetAttackState(predator, *attackState)
+			// НЕ сохраняем состояние здесь - будет сохранено в конце updateAttackState
 		}
 
 		// Проверяем завершение атаки
@@ -249,6 +256,7 @@ func (as *AttackSystem) updateAttackStateWithAnimation(
 			// Анимация завершена - устанавливаем кулдаун и удаляем состояние атаки
 			as.setAttackCooldown(predator)
 			world.RemoveAttackState(predator)
+			return // ВАЖНО: выходим чтобы не перезаписать удалённое состояние
 		}
 	}
 }
@@ -257,12 +265,12 @@ func (as *AttackSystem) updateAttackStateWithAnimation(
 func (as *AttackSystem) updateAttackStateWithTimer(
 	world *core.World, predator core.EntityID, attackState *core.AttackState,
 ) bool {
-	const WINDUP_DURATION = 0.08 // 5 тиков (примерно 0.083 сек)
-	const STRIKE_DURATION = 0.2  // 0.2 секунды на удар
+	const WindupDuration = 0.08 // 5 тиков (примерно 0.083 сек)
+	const StrikeDuration = 0.2  // 0.2 секунды на удар
 
 	switch attackState.Phase {
 	case core.AttackPhaseWindup:
-		if attackState.PhaseTimer >= WINDUP_DURATION {
+		if attackState.PhaseTimer >= WindupDuration {
 			// Время перейти к удару
 			attackState.Phase = core.AttackPhaseStrike
 			attackState.PhaseTimer = 0.0
@@ -276,7 +284,7 @@ func (as *AttackSystem) updateAttackStateWithTimer(
 		}
 
 		// Завершаем атаку по таймеру
-		if attackState.PhaseTimer >= STRIKE_DURATION {
+		if attackState.PhaseTimer >= StrikeDuration {
 			// Атака завершена - устанавливаем кулдаун и удаляем состояние
 			as.setAttackCooldown(predator)
 			world.RemoveAttackState(predator)
@@ -334,24 +342,29 @@ func (as *AttackSystem) performStrikeAttempt(world *core.World, attacker, target
 	// Проверяем шанс попадания
 	rng := world.GetRNG()
 	if rng.Float32() < config.HitChance {
-		as.dealDamageToTarget(world, target, config.AttackDamage)
+		as.dealDamageToTarget(world, attacker, target, config.AttackDamage)
 	}
 }
 
 // dealDamageToTarget наносит урон цели
-func (as *AttackSystem) dealDamageToTarget(world *core.World, target core.EntityID, damage int16) {
+func (as *AttackSystem) dealDamageToTarget(world *core.World, attacker, target core.EntityID, damage int16) {
 	health, hasHealth := world.GetHealth(target)
 	if !hasHealth {
 		return
 	}
 
 	// Наносим урон
+	oldHealth := health.Current
 	health.Current -= damage
 	if health.Current < 0 {
 		health.Current = 0
 	}
 
 	world.SetHealth(target, health)
+
+	if damage > 0 {
+		_ = oldHealth // Избегаем warning о неиспользуемой переменной
+	}
 
 	// Добавляем эффект мигания
 	world.AddDamageFlash(target, core.DamageFlash{
@@ -362,7 +375,19 @@ func (as *AttackSystem) dealDamageToTarget(world *core.World, target core.Entity
 
 	// Если цель умерла, превращаем её в труп
 	if health.Current == 0 {
-		createCorpse(world, target)
+		// ИСПРАВЛЕНИЕ: Сначала создаём труп, потом создаём EatingState для трупа
+		// createCorpse() возвращает ID новой сущности-трупа
+		corpseEntity := CreateCorpseAndGetID(world, target)
+
+		// ИСПРАВЛЕНИЕ БАГА: Автоматически начинаем поедание ТРУПА АТАКУЮЩИМ
+		// Это предотвращает переключение на других целей
+		if corpseEntity != 0 && !world.HasComponent(attacker, core.MaskEatingState) {
+			world.AddEatingState(attacker, core.EatingState{
+				Target:          corpseEntity, // Атакующий ест ТРУП (новая сущность)
+				EatingProgress:  0.0,          // Начальный прогресс
+				NutritionGained: 0.0,          // Начальная питательность
+			})
+		}
 	}
 }
 

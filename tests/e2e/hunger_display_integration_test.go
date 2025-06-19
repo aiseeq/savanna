@@ -28,8 +28,8 @@ func TestHungerDisplayIntegrationE2E(t *testing.T) {
 	terrain := terrainGen.Generate()
 
 	// Создаём животных
-	rabbit := simulation.CreateRabbit(world, 80, 80)
-	wolf := simulation.CreateWolf(world, 120, 80)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 80, 80)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 120, 80)
 
 	// Устанавливаем разные уровни голода
 	world.SetHunger(rabbit, core.Hunger{Value: 25.0}) // Голодный заяц

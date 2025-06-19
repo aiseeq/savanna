@@ -9,6 +9,8 @@ import (
 )
 
 // TestFrameByFrameCombat детальный TDD тест покадрового боя
+//
+//nolint:gocognit,revive // Покадровый тест боевой системы с детальной валидацией
 func TestFrameByFrameCombat(t *testing.T) {
 	t.Parallel()
 	world := core.NewWorld(640, 640, 42) // Фиксированный seed для детерминизма
@@ -29,8 +31,8 @@ func TestFrameByFrameCombat(t *testing.T) {
 	animManager := animation.NewAnimationManager(wolfAnimSystem, rabbitAnimSystem)
 
 	// Создаём зайца и волка рядом
-	rabbit := simulation.CreateRabbit(world, 300, 300)
-	wolf := simulation.CreateWolf(world, 310, 300)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 310, 300)
 
 	// Делаем волка голодным
 	world.SetHunger(wolf, core.Hunger{Value: 30.0})
@@ -96,13 +98,21 @@ func TestFrameByFrameCombat(t *testing.T) {
 	combatSystem.Update(world, deltaTime)
 	healthAfterFrame1, _ := world.GetHealth(rabbit)
 
-	expectedDamage := int16(25) // 25 урона согласно коду
-	if healthAfterFrame1.Current != initialHealth.Current-expectedDamage {
+	// ИСПРАВЛЕНИЕ: Проверяем реальный урон волка из конфигурации
+	config, hasConfig := world.GetAnimalConfig(wolf)
+	realDamage := int16(15) // Дефолтное значение если нет конфигурации
+	if hasConfig {
+		realDamage = config.AttackDamage
+		t.Logf("DEBUG: Реальный урон волка из конфигурации: %d", realDamage)
+	}
+
+	actualDamage := initialHealth.Current - healthAfterFrame1.Current
+	if actualDamage != realDamage {
 		t.Errorf("ОШИБКА: Неправильный урон на кадре 1 (Strike)! Ожидали %d, получили %d",
-			initialHealth.Current-expectedDamage, healthAfterFrame1.Current)
+			realDamage, actualDamage)
 	} else {
 		t.Logf("✅ Кадр 1: ЕСТЬ урон %d (здоровье %d -> %d)",
-			expectedDamage, initialHealth.Current, healthAfterFrame1.Current)
+			actualDamage, initialHealth.Current, healthAfterFrame1.Current)
 	}
 
 	// Проверяем что блинк ЕСТЬ
@@ -334,8 +344,8 @@ func TestMissChance(t *testing.T) {
 	world := core.NewWorld(640, 640, 123) // Другой seed
 	combatSystem := simulation.NewCombatSystem()
 
-	rabbit := simulation.CreateRabbit(world, 300, 300)
-	wolf := simulation.CreateWolf(world, 310, 300)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 310, 300)
 	world.SetHunger(wolf, core.Hunger{Value: 30.0})
 
 	initialHealth, _ := world.GetHealth(rabbit)

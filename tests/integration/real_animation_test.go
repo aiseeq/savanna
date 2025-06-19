@@ -9,6 +9,8 @@ import (
 )
 
 // TestRealAnimationBehavior тест РЕАЛЬНОГО поведения анимации как в игре
+//
+//nolint:gocognit,revive,funlen // Комплексный тест имитации реального поведения анимаций
 func TestRealAnimationBehavior(t *testing.T) {
 	t.Parallel()
 	// Создаём маленький мир 3x3 клетки (96x96 пикселей)
@@ -36,8 +38,8 @@ func TestRealAnimationBehavior(t *testing.T) {
 	rabbitAnimationSystem.RegisterAnimation(animation.AnimDeathDying, 1, 1.0, false, nil)
 
 	// Создаём животных В ЦЕНТРЕ маленькой карты
-	rabbit := simulation.CreateRabbit(world, 40, 48) // Центр
-	wolf := simulation.CreateWolf(world, 56, 48)     // Рядом с зайцем, на расстоянии 16 пикселей
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 40, 48) // Центр
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 56, 48)     // Рядом с зайцем, на расстоянии 16 пикселей
 
 	// Делаем волка ОЧЕНЬ голодным чтобы он точно атаковал
 	world.SetHunger(wolf, core.Hunger{Value: 5.0})
@@ -84,7 +86,8 @@ func TestRealAnimationBehavior(t *testing.T) {
 					t.Logf("  [ANIM] Entity %d: НЕ сбрасываем ATTACK анимацию (кадр %d)", entity, anim.Frame)
 				} else {
 					// Обычная смена анимации
-					t.Logf("  [ANIM] Entity %d: %s -> %s", entity, animation.AnimationType(anim.CurrentAnim).String(), newAnimType.String())
+					t.Logf("  [ANIM] Entity %d: %s -> %s", entity,
+						animation.AnimationType(anim.CurrentAnim).String(), newAnimType.String())
 					anim.CurrentAnim = int(newAnimType)
 					anim.Frame = 0
 					anim.Timer = 0

@@ -9,6 +9,8 @@ import (
 )
 
 // TestDamageFrameValidation проверяет что DamageFlash работает как в реальной игре
+//
+//nolint:revive // function-length: Критический тест валидации урона по кадрам
 func TestDamageFrameValidation(t *testing.T) {
 	t.Parallel()
 
@@ -27,8 +29,8 @@ func TestDamageFrameValidation(t *testing.T) {
 	systemManager.AddSystem(damageSystem)
 
 	// Создаём животных рядом
-	rabbit := simulation.CreateRabbit(world, 40, 48)
-	wolf := simulation.CreateWolf(world, 45, 48) // На расстоянии 5 пикселей
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 40, 48)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 45, 48) // На расстоянии 5 пикселей
 
 	// Волк очень голоден
 	world.SetHunger(wolf, core.Hunger{Value: 5.0})

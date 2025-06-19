@@ -11,6 +11,8 @@ import (
 )
 
 // TestSystemManagerExecution проверяет что SystemManager вызывает системы
+//
+//nolint:revive // function-length: Детальный тест системного менеджера
 func TestSystemManagerExecution(t *testing.T) {
 	t.Parallel()
 
@@ -28,7 +30,7 @@ func TestSystemManagerExecution(t *testing.T) {
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
 
 	// Создаём зайца
-	rabbit := simulation.CreateRabbit(world, 816.0, 816.0)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 816.0, 816.0)
 	world.SetHunger(rabbit, core.Hunger{Value: 70.0}) // Голодный
 
 	// Создаём систему и менеджер

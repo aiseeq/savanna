@@ -33,7 +33,8 @@ func (ges *GrassEatingSystem) Update(world *core.World, deltaTime float32) {
 	}
 
 	// Ищем травоядных которые едят траву (устраняет нарушение OCP - было core.TypeRabbit)
-	world.ForEachWith(core.MaskEatingState|core.MaskPosition|core.MaskHunger|core.MaskBehavior, func(entity core.EntityID) {
+	grassEatingMask := core.MaskEatingState | core.MaskPosition | core.MaskHunger | core.MaskBehavior
+	world.ForEachWith(grassEatingMask, func(entity core.EntityID) {
 		// Проверяем что это травоядное через поведение, а НЕ через захардкоженный тип
 		behavior, hasBehavior := world.GetBehavior(entity)
 		if !hasBehavior || behavior.Type != core.BehaviorHerbivore {
@@ -106,7 +107,9 @@ func (ges *GrassEatingSystem) isEatingAnimationFrameComplete(world *core.World, 
 }
 
 // processGrassEatingTick обрабатывает один "укус" травы
-func (ges *GrassEatingSystem) processGrassEatingTick(world *core.World, entity core.EntityID, eatingState core.EatingState, pos core.Position) {
+func (ges *GrassEatingSystem) processGrassEatingTick(
+	world *core.World, entity core.EntityID, eatingState core.EatingState, pos core.Position,
+) {
 	// Количество травы съедаемое за один кадр анимации (как у волка - дискретно)
 	grassPerTick := float32(GrassPerEatingTick) // 1.0 единица травы за кадр анимации
 
@@ -121,7 +124,8 @@ func (ges *GrassEatingSystem) processGrassEatingTick(world *core.World, entity c
 	}
 
 	// Обновляем состояние поедания
-	eatingState.EatingProgress += consumedGrass / 10.0 // Прогресс от 0 до 1
+	//nolint:gomnd // Прогресс от 0 до 1 (10 единиц травы = 100% прогресса)
+	eatingState.EatingProgress += consumedGrass / 10.0
 	eatingState.NutritionGained += consumedGrass
 	world.SetEatingState(entity, eatingState)
 

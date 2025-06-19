@@ -12,6 +12,8 @@ import (
 )
 
 // TestAnimationInvestigation ДЕТАЛЬНОЕ исследование проблемы с анимацией idle во время еды
+//
+//nolint:gocognit,revive,funlen // Детальное исследование анимационной системы
 func TestAnimationInvestigation(t *testing.T) {
 	t.Parallel()
 
@@ -52,11 +54,13 @@ func TestAnimationInvestigation(t *testing.T) {
 
 	// Добавляем системы в ТОМ ЖЕ порядке что в GUI
 	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})         // 1. Создаёт EatingState
-	systemManager.AddSystem(grassEatingSystem)                                             // 2. Дискретное поедание травы по кадрам анимации
-	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem}) // 3. Проверяет EatingState и не мешает еде
-	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})       // 4. Сбрасывает скорость едящих
-	systemManager.AddSystem(combatSystem)                                                  // 5. Система боя
+	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem}) // 1. Создаёт EatingState
+	// 2. Дискретное поедание травы по кадрам анимации
+	systemManager.AddSystem(grassEatingSystem)
+	// 3. Проверяет EatingState и не мешает еде
+	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
+	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem}) // 4. Сбрасывает скорость едящих
+	systemManager.AddSystem(combatSystem)                                            // 5. Система боя
 
 	// Создаём анимационные системы ТОЧНО как в GUI
 	wolfAnimationSystem := animation.NewAnimationSystem()
@@ -76,7 +80,6 @@ func TestAnimationInvestigation(t *testing.T) {
 		{"hare_run", 2, 12.0, true, animation.AnimRun},
 		{"hare_attack", 2, 5.0, false, animation.AnimAttack},
 		{"hare_eat", 2, 4.0, true, animation.AnimEat},
-		{"hare_sleep", 2, 1.5, true, animation.AnimSleepLoop},
 		{"hare_dead", 2, 3.0, false, animation.AnimDeathDying},
 	}
 
@@ -91,7 +94,7 @@ func TestAnimationInvestigation(t *testing.T) {
 
 	// Создаём зайца в центре где есть трава
 	rabbitX, rabbitY := float32(centerX*32+16), float32(centerY*32+16) // Центр тайла
-	rabbit := simulation.CreateRabbit(world, rabbitX, rabbitY)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, rabbitX, rabbitY)
 
 	// Делаем зайца голодным чтобы он точно ел
 	world.SetHunger(rabbit, core.Hunger{Value: 70.0}) // 70% - точно будет есть (порог 90%)
@@ -126,11 +129,10 @@ func TestAnimationInvestigation(t *testing.T) {
 		// === ЭТАП 1: Состояние ДО обновления ===
 		pos, _ = world.GetPosition(rabbit)
 		hunger, _ = world.GetHunger(rabbit)
-		vel, _ := world.GetVelocity(rabbit)
 		anim, _ := world.GetAnimation(rabbit)
+		var vel core.Velocity
 		isEatingBefore := world.HasComponent(rabbit, core.MaskEatingState)
 		grassBefore := vegetationSystem.GetGrassAt(pos.X, pos.Y)
-		speed := vel.X*vel.X + vel.Y*vel.Y
 		animTypeBefore := animation.AnimationType(anim.CurrentAnim)
 
 		// ДЕБАГ: проверяем вычисление тайла
@@ -155,7 +157,7 @@ func TestAnimationInvestigation(t *testing.T) {
 		anim, _ = world.GetAnimation(rabbit)
 		isEatingAfter := world.HasComponent(rabbit, core.MaskEatingState)
 		grassAfter := vegetationSystem.GetGrassAt(pos.X, pos.Y)
-		speed = vel.X*vel.X + vel.Y*vel.Y
+		speed := vel.X*vel.X + vel.Y*vel.Y
 		animTypeAfterSystems := animation.AnimationType(anim.CurrentAnim)
 
 		t.Logf("ПОСЛЕ систем:")

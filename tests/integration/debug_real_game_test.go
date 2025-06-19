@@ -10,6 +10,8 @@ import (
 )
 
 // TestDebugRealGame диагностический тест для поиска проблемы в реальной игре
+//
+//nolint:gocognit,revive,funlen // Диагностический тест реальной игровой логики
 func TestDebugRealGame(t *testing.T) {
 	t.Parallel()
 	world := core.NewWorld(1600, 1600, 42)
@@ -29,8 +31,8 @@ func TestDebugRealGame(t *testing.T) {
 	systemManager.AddSystem(combatSystem)
 
 	// Создаём животных
-	rabbit := simulation.CreateRabbit(world, 800, 800)
-	wolf := simulation.CreateWolf(world, 810, 800) // на расстоянии 10 единиц
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 800, 800)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 810, 800) // на расстоянии 10 единиц
 
 	// Проверяем начальное расстояние
 	wolfPos, _ := world.GetPosition(wolf)

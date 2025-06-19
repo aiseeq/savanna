@@ -15,8 +15,8 @@ func TestSoftCollisions(t *testing.T) {
 	movementSystem := simulation.NewMovementSystem(320, 320)
 
 	// Создаем двух зайцев движущихся друг на друга
-	rabbit1 := simulation.CreateRabbit(world, 150, 160) // Слева
-	rabbit2 := simulation.CreateRabbit(world, 170, 160) // Справа
+	rabbit1 := simulation.CreateAnimal(world, core.TypeRabbit, 150, 160) // Слева
+	rabbit2 := simulation.CreateAnimal(world, core.TypeRabbit, 170, 160) // Справа
 
 	// Заставляем их двигаться друг на друга
 	world.SetVelocity(rabbit1, core.Velocity{X: 10, Y: 0})  // Движется вправо

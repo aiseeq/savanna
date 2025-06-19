@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
@@ -26,8 +27,8 @@ type CameraController struct {
 func NewCameraController() *CameraController {
 	return &CameraController{
 		camera: Camera{
-			X:    400, // Начальная позиция
-			Y:    300,
+			X:    constants.DefaultCameraX, // Начальная позиция
+			Y:    constants.DefaultCameraY,
 			Zoom: 1.0,
 		},
 		isDragging: false,
@@ -50,7 +51,7 @@ func (cc *CameraController) Update() {
 
 // handleMovement обрабатывает движение камеры клавишами
 func (cc *CameraController) handleMovement() {
-	moveSpeed := float32(20.0 / cc.camera.Zoom)
+	moveSpeed := float32(constants.CameraMoveSpeed / cc.camera.Zoom)
 
 	if ebiten.IsKeyPressed(ebiten.KeyW) || ebiten.IsKeyPressed(ebiten.KeyArrowUp) {
 		cc.camera.Y -= moveSpeed
@@ -70,7 +71,7 @@ func (cc *CameraController) handleMovement() {
 func (cc *CameraController) handleZoom() {
 	_, scrollY := ebiten.Wheel()
 	if scrollY != 0 {
-		zoomFactor := float32(1.1)
+		zoomFactor := float32(constants.CameraZoomFactor)
 		if scrollY > 0 {
 			cc.camera.Zoom *= zoomFactor
 		} else {
@@ -78,11 +79,11 @@ func (cc *CameraController) handleZoom() {
 		}
 
 		// Ограничиваем зум
-		if cc.camera.Zoom < 0.2 {
-			cc.camera.Zoom = 0.2
+		if cc.camera.Zoom < constants.MinCameraZoom {
+			cc.camera.Zoom = constants.MinCameraZoom
 		}
-		if cc.camera.Zoom > 5.0 {
-			cc.camera.Zoom = 5.0
+		if cc.camera.Zoom > constants.MaxCameraZoom {
+			cc.camera.Zoom = constants.MaxCameraZoom
 		}
 	}
 }

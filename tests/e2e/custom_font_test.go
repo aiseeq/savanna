@@ -94,7 +94,7 @@ func (fm *FontManager) HasCustomFont() bool {
 }
 
 // DrawTextWithCustomFont рендерит текст с пользовательским шрифтом
-func (fm *FontManager) DrawTextWithCustomFont(img *ebiten.Image, text string, x, y int) image.Rectangle {
+func (fm *FontManager) DrawTextWithCustomFont(img *ebiten.Image, textStr string, x, y int) image.Rectangle {
 	if fm.customFont == nil {
 		return image.Rectangle{}
 	}
@@ -108,7 +108,7 @@ func (fm *FontManager) DrawTextWithCustomFont(img *ebiten.Image, text string, x,
 	maxChars := 0
 	currentChars := 0
 
-	for _, char := range text {
+	for _, char := range textStr {
 		if char == '\n' {
 			lines++
 			if currentChars > maxChars {
@@ -131,7 +131,7 @@ func (fm *FontManager) DrawTextWithCustomFont(img *ebiten.Image, text string, x,
 }
 
 // DrawTextWithDefaultFont рендерит текст с дефолтным шрифтом для сравнения
-func (fm *FontManager) DrawTextWithDefaultFont(img *ebiten.Image, text string, x, y int) image.Rectangle {
+func (fm *FontManager) DrawTextWithDefaultFont(img *ebiten.Image, textStr string, x, y int) image.Rectangle {
 	// Имитируем размеры дефолтного шрифта ebitenutil
 	// Дефолтный шрифт обычно другого размера
 
@@ -139,7 +139,7 @@ func (fm *FontManager) DrawTextWithDefaultFont(img *ebiten.Image, text string, x
 	maxChars := 0
 	currentChars := 0
 
-	for _, char := range text {
+	for _, char := range textStr {
 		if char == '\n' {
 			lines++
 			if currentChars > maxChars {

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/aiseeq/savanna/internal/simulation"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
@@ -19,6 +20,8 @@ func NewFontManager() *FontManager {
 }
 
 // LoadFonts загружает все необходимые шрифты
+//
+//nolint:unparam // Возвращает error для consistency с интерфейсом, хотя не критично
 func (fm *FontManager) LoadFonts() error {
 	// Загружаем пользовательский шрифт DejaVuSansMono для дебаг информации
 	fontPath := filepath.Join("assets", "fonts", "DejaVuSansMono.ttf")
@@ -41,7 +44,7 @@ func (fm *FontManager) LoadFonts() error {
 	// Создаём text.GoTextFace
 	fm.debugFont = &text.GoTextFace{
 		Source: source,
-		Size:   14,
+		Size:   simulation.DefaultFontSize,
 	}
 
 	return nil
@@ -58,7 +61,7 @@ func (fm *FontManager) HasCustomFont() bool {
 }
 
 // DrawDebugText рендерит дебаг текст с правильным шрифтом
-func (fm *FontManager) DrawDebugText(screen interface{}, text string, x, y int) {
+func (fm *FontManager) DrawDebugText(screen interface{}, textStr string, x, y int) {
 	// Эта функция будет использоваться в drawUI для отрисовки текста
 	// Реализация будет добавлена в следующем коммите
 }

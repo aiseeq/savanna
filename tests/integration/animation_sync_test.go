@@ -11,6 +11,8 @@ import (
 )
 
 // TestAnimationVelocitySync проверяет синхронизацию анимации и скорости
+//
+//nolint:revive // function-length: Комплексный тест синхронизации анимаций
 func TestAnimationVelocitySync(t *testing.T) {
 	t.Parallel()
 
@@ -41,7 +43,7 @@ func TestAnimationVelocitySync(t *testing.T) {
 
 	// СЦЕНАРИЙ 1: Заяц стоит на месте
 	t.Logf("\n--- Сценарий 1: Заяц стоит на месте ---")
-	rabbit1 := simulation.CreateRabbit(world, 100, 100)
+	rabbit1 := simulation.CreateAnimal(world, core.TypeRabbit, 100, 100)
 	world.SetVelocity(rabbit1, core.Velocity{X: 0, Y: 0}) // Принудительно стоит
 
 	deltaTime := float32(1.0 / 60.0)
@@ -63,7 +65,7 @@ func TestAnimationVelocitySync(t *testing.T) {
 
 	// СЦЕНАРИЙ 2: Заяц быстро бежит, потом резко останавливается
 	t.Logf("\n--- Сценарий 2: Заяц бежит, потом останавливается ---")
-	rabbit2 := simulation.CreateRabbit(world, 200, 200)
+	rabbit2 := simulation.CreateAnimal(world, core.TypeRabbit, 200, 200)
 
 	// Заставляем зайца быстро бежать
 	world.SetVelocity(rabbit2, core.Velocity{X: 20, Y: 0}) // Быстрый бег
@@ -101,9 +103,9 @@ func TestAnimationVelocitySync(t *testing.T) {
 
 	// СЦЕНАРИЙ 3: Заяц убегает от волка, потом волк уходит
 	t.Logf("\n--- Сценарий 3: Заяц убегает от волка, потом волк уходит ---")
-	rabbit3 := simulation.CreateRabbit(world, 300, 300)
-	wolf := simulation.CreateWolf(world, 310, 300)  // Близко к зайцу
-	world.SetHunger(wolf, core.Hunger{Value: 50.0}) // Голодный волк
+	rabbit3 := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 310, 300) // Близко к зайцу
+	world.SetHunger(wolf, core.Hunger{Value: 50.0})                 // Голодный волк
 
 	// Симулируем поведение
 	for i := 0; i < 5; i++ {

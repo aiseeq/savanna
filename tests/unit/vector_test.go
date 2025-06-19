@@ -345,7 +345,10 @@ func TestVec2Rotate(t *testing.T) {
 		{"180 degrees", physics.NewVec2(1, 0), float32(math.Pi), physics.NewVec2(-1, 0)},
 		{"270 degrees", physics.NewVec2(1, 0), float32(3 * math.Pi / 2), physics.NewVec2(0, -1)},
 		{"360 degrees", physics.NewVec2(1, 0), float32(2 * math.Pi), physics.NewVec2(1, 0)},
-		{"45 degrees", physics.NewVec2(1, 0), float32(math.Pi / 4), physics.NewVec2(float32(1.0/math.Sqrt(2)), float32(1.0/math.Sqrt(2)))},
+		{
+			"45 degrees", physics.NewVec2(1, 0), float32(math.Pi / 4),
+			physics.NewVec2(float32(1.0/math.Sqrt(2)), float32(1.0/math.Sqrt(2))),
+		},
 	}
 
 	for _, tt := range tests {
@@ -537,7 +540,11 @@ func TestVec2Reflect(t *testing.T) {
 	}{
 		{"horizontal surface", physics.NewVec2(1, -1), physics.NewVec2(0, 1), physics.NewVec2(1, 1)},
 		{"vertical surface", physics.NewVec2(1, 1), physics.NewVec2(1, 0), physics.NewVec2(-1, 1)},
-		{"45 degree surface", physics.NewVec2(1, 0), physics.NewVec2(float32(1.0/math.Sqrt(2)), float32(1.0/math.Sqrt(2))), physics.NewVec2(0, -1)},
+		{
+			"45 degree surface", physics.NewVec2(1, 0),
+			physics.NewVec2(float32(1.0/math.Sqrt(2)), float32(1.0/math.Sqrt(2))),
+			physics.NewVec2(0, -1),
+		},
 		{"perpendicular hit", physics.NewVec2(0, -1), physics.NewVec2(0, 1), physics.NewVec2(0, 1)},
 		{"parallel to surface", physics.NewVec2(1, 0), physics.NewVec2(0, 1), physics.NewVec2(1, 0)},
 	}

@@ -10,6 +10,8 @@ import (
 )
 
 // TestWolfContinuousHunting проверяет что волк продолжает охотиться после поедания зайца
+//
+//nolint:gocognit,revive,funlen // Комплексный интеграционный тест охотничьего поведения волков
 func TestWolfContinuousHunting(t *testing.T) {
 	t.Parallel()
 	cfg := config.LoadDefaultConfig()
@@ -21,10 +23,10 @@ func TestWolfContinuousHunting(t *testing.T) {
 	combatSystem := simulation.NewCombatSystem()
 
 	// Создаём несколько зайцев и одного волка в одной точке
-	rabbit1 := simulation.CreateRabbit(world, 300, 300)
-	rabbit2 := simulation.CreateRabbit(world, 300, 300)
-	rabbit3 := simulation.CreateRabbit(world, 300, 300)
-	wolf := simulation.CreateWolf(world, 300, 300)
+	rabbit1 := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
+	rabbit2 := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
+	rabbit3 := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 300, 300)
 
 	// Делаем волка очень голодным
 	world.SetHunger(wolf, core.Hunger{Value: 20.0}) // 20% = очень голодный

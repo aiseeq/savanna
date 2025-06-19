@@ -9,13 +9,15 @@ import (
 )
 
 // TestDisappearingRabbit диагностика исчезающего зайца
+//
+//nolint:gocognit,revive,funlen // Комплексный диагностический тест исчезновения зайца
 func TestDisappearingRabbit(t *testing.T) {
 	t.Parallel()
 	world := core.NewWorld(1600, 1600, 42)
 	combatSystem := simulation.NewCombatSystem()
 
-	rabbit := simulation.CreateRabbit(world, 800, 800)
-	wolf := simulation.CreateWolf(world, 810, 800)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 800, 800)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 810, 800)
 	world.SetHunger(wolf, core.Hunger{Value: 10.0})
 
 	// Проверяем начальное здоровье

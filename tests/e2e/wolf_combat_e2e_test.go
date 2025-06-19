@@ -16,6 +16,8 @@ import (
 )
 
 // WolfCombatE2E полный E2E тест боевой системы волков с РЕАЛЬНОЙ анимацией
+//
+//nolint:gocognit,revive,funlen // Комплексный E2E тест полного цикла атаки волка
 func TestWolfCombatE2E(t *testing.T) {
 	t.Parallel()
 	t.Logf("=== E2E ТЕСТ: ПОЛНЫЙ ЦИКЛ АТАКИ ВОЛКА ===")
@@ -61,8 +63,8 @@ func TestWolfCombatE2E(t *testing.T) {
 	offscreenImage := ebiten.NewImage(int(worldSizePixels), int(worldSizePixels))
 
 	// Создаём животных рядом друг с другом
-	rabbit := simulation.CreateRabbit(world, 48, 48) // Центр мира
-	wolf := simulation.CreateWolf(world, 52, 48)     // Рядом с зайцем
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 48, 48) // Центр мира
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 52, 48)     // Рядом с зайцем
 
 	// Делаем волка голодным
 	world.SetHunger(wolf, core.Hunger{Value: 5.0})
@@ -107,7 +109,8 @@ func TestWolfCombatE2E(t *testing.T) {
 				if anim.CurrentAnim == int(animation.AnimAttack) && anim.Playing {
 					t.Logf("    [ANIM] Entity %d: НЕ сбрасываем ATTACK анимацию (кадр %d)", entity, anim.Frame)
 				} else {
-					t.Logf("    [ANIM] Entity %d (%s): %s -> %s", entity, animalType.String(), oldAnimType.String(), newAnimType.String())
+					t.Logf("    [ANIM] Entity %d (%s): %s -> %s", entity,
+						animalType.String(), oldAnimType.String(), newAnimType.String())
 					anim.CurrentAnim = int(newAnimType)
 					anim.Frame = 0
 					anim.Timer = 0

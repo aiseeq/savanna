@@ -127,7 +127,10 @@ func (al *AnimationLoader) LoadHeadlessAnimations(wolfSystem, rabbitSystem *Anim
 }
 
 // LoadGUIAnimations загружает анимации для GUI режима с реальными спрайтами
-func (al *AnimationLoader) LoadGUIAnimations(wolfSystem, rabbitSystem *AnimationSystem, wolfSprite, rabbitSprite *ebiten.Image) {
+func (al *AnimationLoader) LoadGUIAnimations(
+	wolfSystem, rabbitSystem *AnimationSystem,
+	wolfSprite, rabbitSprite *ebiten.Image,
+) {
 	al.LoadWolfAnimations(wolfSystem, wolfSprite)
 	al.LoadRabbitAnimations(rabbitSystem, rabbitSprite)
 }

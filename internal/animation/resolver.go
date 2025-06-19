@@ -11,7 +11,11 @@ func NewAnimationResolver() *AnimationResolver {
 }
 
 // ResolveAnimalAnimationType определяет тип анимации для животного (устраняет дублирование логики)
-func (ar *AnimationResolver) ResolveAnimalAnimationType(world *core.World, entity core.EntityID, animalType core.AnimalType) AnimationType {
+func (ar *AnimationResolver) ResolveAnimalAnimationType(
+	world *core.World,
+	entity core.EntityID,
+	animalType core.AnimalType,
+) AnimationType {
 	switch animalType {
 	case core.TypeWolf:
 		return ar.resolveWolfAnimationType(world, entity)

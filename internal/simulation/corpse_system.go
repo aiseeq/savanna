@@ -35,13 +35,28 @@ func (cs *CorpseSystem) updateCorpseDecay(world *core.World, deltaTime float32) 
 			return
 		}
 
-		// Уменьшаем таймер разложения
-		corpseData.DecayTimer -= deltaTime
-		if corpseData.DecayTimer <= 0 {
+		// ИСПРАВЛЕНИЕ: Труп гниёт только если его НЕ едят активно
+		// Ищем животных которые едят этот труп
+		isBeingEaten := false
+		world.ForEachWith(core.MaskEatingState, func(predator core.EntityID) {
+			eatingState, hasEating := world.GetEatingState(predator)
+			if hasEating && eatingState.Target == corpse {
+				isBeingEaten = true
+			}
+		})
+
+		// Уменьшаем таймер разложения только если труп НЕ поедается
+		if !isBeingEaten {
+			corpseData.DecayTimer -= deltaTime
+		}
+
+		// ИСПРАВЛЕНИЕ: Труп исчезает когда питательность = 0 ИЛИ таймер = 0
+		if corpseData.NutritionalValue <= 0 || corpseData.DecayTimer <= 0 {
 			corpsesToRemove = append(corpsesToRemove, corpse)
 		} else {
 			world.SetCorpse(corpse, corpseData)
 		}
+		// Если труп поедается - таймер НЕ уменьшается (консервация)
 	})
 
 	// Удаляем разложившиеся трупы
@@ -58,22 +73,23 @@ func (cs *CorpseSystem) handleAnimalDeaths(world *core.World) {
 
 	world.ForEachWith(core.MaskHealth|core.MaskAnimalType, func(entity core.EntityID) {
 		health, hasHealth := world.GetHealth(entity)
-		animalType, hasType := world.GetAnimalType(entity)
+		_, hasType := world.GetAnimalType(entity)
 
 		if !hasHealth || !hasType || health.Current > 0 {
 			return
 		}
 
-		// Если это заяц И он уже превращен в труп - оставляем
-		if animalType == core.TypeRabbit && world.HasComponent(entity, core.MaskCorpse) {
+		// ИСПРАВЛЕНИЕ: Если животное уже превращено в труп - оставляем
+		// Теперь работает для ЛЮБЫХ животных, не только зайцев
+		if world.HasComponent(entity, core.MaskCorpse) {
 			return
 		}
 
-		// Иначе удаляем мертвое животное
+		// Иначе удаляем мертвое животное которое НЕ является трупом
 		deadAnimals = append(deadAnimals, entity)
 	})
 
-	// Удаляем мертвых животных (кроме трупов зайцев)
+	// Удаляем мертвых животных (кроме тех что уже стали трупами)
 	for _, entity := range deadAnimals {
 		world.DestroyEntity(entity)
 	}
@@ -81,10 +97,12 @@ func (cs *CorpseSystem) handleAnimalDeaths(world *core.World) {
 
 // createCorpse превращает мёртвое животное в труп (глобальная функция для других систем)
 func createCorpse(world *core.World, animal core.EntityID) {
-	// Удаляем компоненты живого животного
-	world.RemoveVelocity(animal)
-	world.RemoveHunger(animal)
-	world.RemoveSpeed(animal)
+	CreateCorpseAndGetID(world, animal)
+}
+
+// CreateCorpseAndGetID превращает мёртвое животное в труп НА МЕСТЕ, сохраняя анимацию
+func CreateCorpseAndGetID(world *core.World, animal core.EntityID) core.EntityID {
+	// ИСПРАВЛЕНИЕ: НЕ уничтожаем животное, а превращаем его в труп на месте
 
 	// Добавляем компонент трупа
 	world.AddCorpse(animal, core.Corpse{
@@ -93,17 +111,34 @@ func createCorpse(world *core.World, animal core.EntityID) {
 		DecayTimer:       CorpseDecayTime,
 	})
 
-	// Устанавливаем анимацию смерти если есть анимационный компонент
+	// Переключаем анимацию на смерть и ОСТАНАВЛИВАЕМ на последнем кадре
 	if world.HasComponent(animal, core.MaskAnimation) {
-		anim, hasAnim := world.GetAnimation(animal)
-		if hasAnim {
-			anim.CurrentAnim = int(animation.AnimDeathDying)
-			anim.Frame = 0
-			anim.Timer = 0
-			anim.Playing = true
-			world.SetAnimation(animal, anim)
-		}
+		world.SetAnimation(animal, core.Animation{
+			CurrentAnim: int(animation.AnimDeathDying),
+			Frame:       1,     // ПОСЛЕДНИЙ кадр анимации смерти (застывает)
+			Timer:       999.0, // Большой таймер чтобы не переключалась
+			Playing:     false, // НЕ играет - застыла на последнем кадре
+			FacingRight: true,
+		})
 	}
+
+	// ВАЖНО: Удаляем компоненты которые делают его "живым животным"
+	// Но оставляем Position, Animation, AnimalType для правильного рендеринга
+	if world.HasComponent(animal, core.MaskVelocity) {
+		world.RemoveVelocity(animal)
+	}
+	if world.HasComponent(animal, core.MaskBehavior) {
+		world.RemoveBehavior(animal)
+	}
+	if world.HasComponent(animal, core.MaskSize) {
+		world.RemoveSize(animal)
+	}
+	if world.HasComponent(animal, core.MaskHunger) {
+		world.RemoveHunger(animal)
+	}
+	// Оставляем Health=0 для индикации что это труп
+
+	return animal // Возвращаем ТОТ ЖЕ EntityID - животное стало трупом
 }
 
 // updateCarrionDecay обновляет разложение падали
@@ -118,7 +153,19 @@ func (cs *CorpseSystem) updateCarrionDecay(world *core.World, deltaTime float32)
 
 		// Уменьшаем таймер разложения
 		carrionData.DecayTimer -= deltaTime
-		if carrionData.DecayTimer <= 0 {
+
+		// ИСПРАВЛЕНИЕ: Падаль теряет питательность во время естественного гниения
+		// Скорость потери питательности: полная потеря за время DecayTime
+		nutritionLossPerSecond := carrionData.MaxNutritional / CorpseDecayTime
+		carrionData.NutritionalValue -= nutritionLossPerSecond * deltaTime
+
+		// Не даем питательности стать отрицательной
+		if carrionData.NutritionalValue < 0 {
+			carrionData.NutritionalValue = 0
+		}
+
+		// ИСПРАВЛЕНИЕ: Падаль исчезает когда питательность = 0 ИЛИ таймер = 0
+		if carrionData.NutritionalValue <= 0 || carrionData.DecayTimer <= 0 {
 			carrionToRemove = append(carrionToRemove, carrion)
 		} else {
 			world.SetCarrion(carrion, carrionData)

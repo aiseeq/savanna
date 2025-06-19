@@ -92,12 +92,12 @@ func (fs *FeedingSystem) updateSpeedBasedOnHunger(world core.FeedingSystemAccess
 	if hunger.Value > OverfedSpeedThreshold {
 		// Сытые животные замедляются: скорость *= (1 + 0.8 - сытость)
 		// где сытость в долях от 1.0 (90% = 0.9, 95% = 0.95)
-		satietyRatio := hunger.Value / 100.0 // Переводим проценты в доли (90% → 0.9)
-		speedMultiplier = 1.0 + 0.8 - satietyRatio
-		
+		satietyRatio := hunger.Value / 100.0       //nolint:gomnd // Переводим проценты в доли (90% → 0.9)
+		speedMultiplier = 1.0 + 0.8 - satietyRatio //nolint:gomnd // Формула замедления сытых животных
+
 		// Минимальная скорость не меньше 0.1 (для безопасности)
-		if speedMultiplier < 0.1 {
-			speedMultiplier = 0.1
+		if speedMultiplier < 0.1 { //nolint:gomnd // Минимальная скорость для безопасности
+			speedMultiplier = 0.1 //nolint:gomnd // Минимальная скорость для безопасности
 		}
 	}
 	// Голодные (< 80%) бегают с полной скоростью (speedMultiplier = 1.0)
@@ -142,7 +142,7 @@ func (fs *FeedingSystem) damageStarvingAnimals(world core.FeedingSystemAccess) {
 }
 
 // FeedAnimal восстанавливает голод животного (для будущего - поедание травы/добычи)
-func FeedAnimal(world core.HungerAccess, entity core.EntityID, foodValue float32) bool {
+func FeedAnimal(world core.ECSAccess, entity core.EntityID, foodValue float32) bool {
 	hunger, ok := world.GetHunger(entity)
 	if !ok {
 		return false
@@ -160,7 +160,7 @@ func FeedAnimal(world core.HungerAccess, entity core.EntityID, foodValue float32
 }
 
 // GetHungerPercentage возвращает процент голода (0-100)
-func GetHungerPercentage(world core.HungerAccess, entity core.EntityID) float32 {
+func GetHungerPercentage(world core.ECSAccess, entity core.EntityID) float32 {
 	hunger, ok := world.GetHunger(entity)
 	if !ok {
 		return 0
@@ -169,97 +169,114 @@ func GetHungerPercentage(world core.HungerAccess, entity core.EntityID) float32 
 }
 
 // IsStarving проверяет голодает ли животное
-func IsStarving(world core.HungerAccess, entity core.EntityID) bool {
+func IsStarving(world core.ECSAccess, entity core.EntityID) bool {
 	return GetHungerPercentage(world, entity) <= 0
 }
 
 // IsHungry проверяет голодно ли животное (универсальная функция)
 // Устраняет нарушение OCP - теперь использует AnimalConfig вместо захардкоженных типов
-func IsHungry(world core.HungerAccess, entity core.EntityID) bool {
+func IsHungry(world core.ECSAccess, entity core.EntityID) bool {
 	hunger := GetHungerPercentage(world, entity)
 
 	// Получаем конфигурацию животного для порога голода (устраняет захардкоженные типы)
-	if configAccess, ok := world.(interface {
-		GetAnimalConfig(core.EntityID) (core.AnimalConfig, bool)
-	}); ok {
-		if config, hasConfig := configAccess.GetAnimalConfig(entity); hasConfig {
-			return hunger < config.HungerThreshold
-		}
+	if config, hasConfig := world.GetAnimalConfig(entity); hasConfig {
+		return hunger < config.HungerThreshold
 	}
 
 	// Fallback: используем умеренный порог
-	return hunger < 75.0
+	return hunger < 75.0 //nolint:gomnd // Fallback порог голода для неизвестных животных
 }
 
 // handleRabbitFeeding обрабатывает питание зайцев травой
-func (fs *FeedingSystem) handleRabbitFeeding(world core.FeedingSystemAccess, deltaTime float32) {
+func (fs *FeedingSystem) handleRabbitFeeding(world core.FeedingSystemAccess, _ float32) {
 	if fs.vegetation == nil {
 		return
 	}
 
 	// Обрабатываем ВСЕХ травоядных животных (устраняет захардкоженность TypeRabbit)
-	world.ForEachWith(core.MaskBehavior|core.MaskAnimalConfig|core.MaskPosition|core.MaskHunger, func(entity core.EntityID) {
-		// Проверяем что это травоядное
-		behavior, hasBehavior := world.GetBehavior(entity)
-		if !hasBehavior || behavior.Type != core.BehaviorHerbivore {
-			return
-		}
-
-		pos, hasPos := world.GetPosition(entity)
-		if !hasPos {
-			return
-		}
-
-		// Проверяем голод животного
-		hunger, hasHunger := world.GetHunger(entity)
-		if !hasHunger {
-			return
-		}
-
-		// Получаем конфигурацию для порога голода (устраняет RabbitHungryThreshold)
-		config, hasConfig := world.GetAnimalConfig(entity)
-		if !hasConfig {
-			return
-		}
-
-		// ИСПРАВЛЕНИЕ: Правильная логика гистерезиса для поедания
-		isCurrentlyEating := world.HasComponent(entity, core.MaskEatingState)
-
-		if isCurrentlyEating {
-			// Если уже ест - прекращаем только при полном насыщении (99.9% с допуском для float32)
-			const satietyThreshold = MaxHungerLimit - SatietyTolerance // Используем константы из game_balance.go
-			if hunger.Value >= satietyThreshold {
-				world.RemoveEatingState(entity)
-				return
-			}
-		} else {
-			// Если не ест - начинаем есть только если голод < HungerThreshold
-			if hunger.Value >= config.HungerThreshold {
-				return // Ещё не голоден - не начинаем есть
-			}
-		}
-
-		// Проверка скорости не нужна - BehaviorSystem уже устанавливает скорость 0 для еды
-		// MovementSystem проверяет EatingState и останавливает движение
-
-		// Проверяем есть ли рядом трава для начала поедания
-		grassAmount := fs.vegetation.GetGrassAt(pos.X, pos.Y)
-		if grassAmount >= MinGrassAmountToFind {
-			// Создаём состояние поедания для анимации (Target = 0 означает поедание травы)
-			// НЕ даём сытость здесь - это будет делать GrassEatingSystem дискретно по завершении кадров анимации
-			if !world.HasComponent(entity, core.MaskEatingState) {
-				eatingState := core.EatingState{
-					Target:          GrassEatingTarget, // 0 = поедание травы (не сущность)
-					EatingProgress:  0.0,
-					NutritionGained: 0.0,
-				}
-				world.AddEatingState(entity, eatingState)
-			}
-		} else {
-			// Нет травы - убираем состояние поедания
-			if world.HasComponent(entity, core.MaskEatingState) {
-				world.RemoveEatingState(entity)
-			}
-		}
+	herbivoreMask := core.MaskBehavior | core.MaskAnimalConfig | core.MaskPosition | core.MaskHunger
+	world.ForEachWith(herbivoreMask, func(entity core.EntityID) {
+		fs.processHerbivoreFeeding(world, entity)
 	})
+}
+
+// processHerbivoreFeeding обрабатывает питание одного травоядного
+func (fs *FeedingSystem) processHerbivoreFeeding(world core.FeedingSystemAccess, entity core.EntityID) {
+	// Проверяем что это травоядное
+	behavior, hasBehavior := world.GetBehavior(entity)
+	if !hasBehavior || behavior.Type != core.BehaviorHerbivore {
+		return
+	}
+
+	pos, hasPos := world.GetPosition(entity)
+	if !hasPos {
+		return
+	}
+
+	// Проверяем голод животного
+	hunger, hasHunger := world.GetHunger(entity)
+	if !hasHunger {
+		return
+	}
+
+	// Получаем конфигурацию для порога голода (устраняет RabbitHungryThreshold)
+	config, hasConfig := world.GetAnimalConfig(entity)
+	if !hasConfig {
+		return
+	}
+
+	// Проверяем логику гистерезиса для поедания
+	if !fs.shouldContinueOrStartEating(world, entity, hunger, config) {
+		return
+	}
+
+	// Проверяем наличие травы и управляем состоянием поедания
+	fs.manageGrassEating(world, entity, pos)
+}
+
+// shouldContinueOrStartEating проверяет должно ли животное продолжать или начать есть
+func (fs *FeedingSystem) shouldContinueOrStartEating(
+	world core.FeedingSystemAccess, entity core.EntityID, hunger core.Hunger, config core.AnimalConfig,
+) bool {
+	// ИСПРАВЛЕНИЕ: Правильная логика гистерезиса для поедания
+	isCurrentlyEating := world.HasComponent(entity, core.MaskEatingState)
+
+	if isCurrentlyEating {
+		// Если уже ест - прекращаем только при полном насыщении (99.9% с допуском для float32)
+		const satietyThreshold = MaxHungerLimit - SatietyTolerance // Используем константы из game_balance.go
+		if hunger.Value >= satietyThreshold {
+			world.RemoveEatingState(entity)
+			return false
+		}
+		return true
+	}
+
+	// Если не ест - начинаем есть только если голод < HungerThreshold
+	return hunger.Value < config.HungerThreshold
+}
+
+// manageGrassEating управляет состоянием поедания травы
+func (fs *FeedingSystem) manageGrassEating(world core.FeedingSystemAccess, entity core.EntityID, pos core.Position) {
+	// Проверка скорости не нужна - BehaviorSystem уже устанавливает скорость 0 для еды
+	// MovementSystem проверяет EatingState и останавливает движение
+
+	// Проверяем есть ли рядом трава для начала поедания
+	grassAmount := fs.vegetation.GetGrassAt(pos.X, pos.Y)
+	if grassAmount >= MinGrassAmountToFind {
+		// Создаём состояние поедания для анимации (Target = 0 означает поедание травы)
+		// НЕ даём сытость здесь - это будет делать GrassEatingSystem дискретно по завершении кадров анимации
+		if !world.HasComponent(entity, core.MaskEatingState) {
+			eatingState := core.EatingState{
+				Target:          GrassEatingTarget, // 0 = поедание травы (не сущность)
+				EatingProgress:  0.0,               //nolint:gomnd // Начальный прогресс
+				NutritionGained: 0.0,               //nolint:gomnd // Начальная питательность
+			}
+			world.AddEatingState(entity, eatingState)
+		}
+	} else {
+		// Нет травы - убираем состояние поедания
+		if world.HasComponent(entity, core.MaskEatingState) {
+			world.RemoveEatingState(entity)
+		}
+	}
 }
