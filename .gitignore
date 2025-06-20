@@ -69,6 +69,7 @@ headless
 *.manifest
 *.rc
 
-# Font files that should only be in assets/
-cmd/*/*.ttf
-cmd/*/*.woff2
+# Font files that should only be in assets/ (except embedded ones)
+cmd/game/*.ttf
+cmd/game/*.woff2
+# cmd/animviewer/DejaVuSansMono.ttf is allowed for embedding
