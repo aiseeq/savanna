@@ -2,24 +2,25 @@ package simulation
 
 import (
 	"github.com/aiseeq/savanna/internal/animation"
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 )
 
 // GrassEatingSystem отвечает за дискретное поедание травы травоядными по завершении анимации
 // Работает аналогично EatingSystem для волков - питательность даётся только по завершении кадра
 //
-// ВАЖНАЯ ЛОГИКА Target в EatingState:
-// - Target = 0: поедание травы (обрабатывает GrassEatingSystem)
-// - Target = EntityID: поедание животного (игнорируется, обрабатывает EatingSystem)
+// ВАЖНАЯ ЛОГИКА TargetType в EatingState:
+// - TargetType = EatingTargetGrass: поедание травы (обрабатывает GrassEatingSystem)
+// - TargetType = EatingTargetAnimal: поедание животного (игнорируется, обрабатывает EatingSystem)
 //
-// Эта система работает ТОЛЬКО с EatingState где Target = 0
+// Эта система работает ТОЛЬКО с EatingState где TargetType = EatingTargetGrass
 type GrassEatingSystem struct {
-	vegetation     *VegetationSystem
-	previousFrames map[core.EntityID]int // Память предыдущих кадров для обнаружения смены
+	vegetation     core.VegetationProvider // Интерфейс для работы с растительностью (соблюдение DIP)
+	previousFrames map[core.EntityID]int   // Память предыдущих кадров для обнаружения смены
 }
 
 // NewGrassEatingSystem создаёт новую систему поедания травы
-func NewGrassEatingSystem(vegetation *VegetationSystem) *GrassEatingSystem {
+func NewGrassEatingSystem(vegetation core.VegetationProvider) *GrassEatingSystem {
 	return &GrassEatingSystem{
 		vegetation:     vegetation,
 		previousFrames: make(map[core.EntityID]int),
@@ -42,7 +43,7 @@ func (ges *GrassEatingSystem) Update(world *core.World, deltaTime float32) {
 		}
 
 		eatingState, hasEating := world.GetEatingState(entity)
-		if !hasEating || eatingState.Target != GrassEatingTarget { // Target = 0 означает поедание травы
+		if !hasEating || eatingState.TargetType != core.EatingTargetGrass { // Работаем только с поеданием травы
 			return
 		}
 
@@ -124,8 +125,7 @@ func (ges *GrassEatingSystem) processGrassEatingTick(
 	}
 
 	// Обновляем состояние поедания
-	//nolint:gomnd // Прогресс от 0 до 1 (10 единиц травы = 100% прогресса)
-	eatingState.EatingProgress += consumedGrass / 10.0
+	eatingState.EatingProgress += consumedGrass / GrassEatingProgressDivisor
 	eatingState.NutritionGained += consumedGrass
 	world.SetEatingState(entity, eatingState)
 
@@ -141,7 +141,7 @@ func (ges *GrassEatingSystem) processGrassEatingTick(
 		hunger, _ = world.GetHunger(entity)
 
 		// ИСПРАВЛЕНИЕ: Заяц прекращает есть когда почти полностью сыт (допуск для float32)
-		const satietyThreshold = MaxHungerLimit - SatietyTolerance // Используем константы из game_balance.go
+		const satietyThreshold = MaxHungerLimit - constants.SatietyTolerance // Используем константы из game_balance.go
 		if hunger.Value >= satietyThreshold {
 			// Заяц полностью наелся - заканчиваем поедание
 			world.RemoveEatingState(entity)

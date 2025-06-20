@@ -174,7 +174,7 @@ func (vs *VegetationSystem) FindNearestGrass(
 	centerTileY := int(worldY / TileSizeVegetation)
 	searchRadiusTiles := int(searchRadius / TileSizeVegetation)
 
-	bestDistance := float32(1e9) //nolint:gomnd // Большое число для поиска минимума
+	bestDistance := float32(LargeDistanceValue)
 	var bestX, bestY float32
 	found = false
 
@@ -330,6 +330,39 @@ func (vs *VegetationSystem) calculateDistanceSquared(x1, y1, x2, y2 float32) flo
 	dx := x1 - x2
 	dy := y1 - y2
 	return dx*dx + dy*dy
+}
+
+// UpdateGrassAt обновляет количество травы в указанной позиции в пикселях
+func (vs *VegetationSystem) UpdateGrassAt(worldX, worldY, delta float32) {
+	tileX := int(worldX / TileSizeVegetation)
+	tileY := int(worldY / TileSizeVegetation)
+
+	if tileX < 0 || tileX >= vs.worldSize || tileY < 0 || tileY >= vs.worldSize {
+		return
+	}
+
+	currentGrass := vs.terrain.GetGrassAmount(tileX, tileY)
+	newAmount := currentGrass + delta
+
+	// Ограничиваем в пределах [0, GrassMaxAmount]
+	if newAmount < 0 {
+		newAmount = 0
+	} else if newAmount > GrassMaxAmount {
+		newAmount = GrassMaxAmount
+	}
+
+	vs.terrain.SetGrassAmount(tileX, tileY, newAmount)
+}
+
+// IsPassable проверяет можно ли пройти через тайл (реализация интерфейса VegetationProvider)
+func (vs *VegetationSystem) IsPassable(tileX, tileY int) bool {
+	if tileX < 0 || tileX >= vs.worldSize || tileY < 0 || tileY >= vs.worldSize {
+		return false
+	}
+
+	tileType := vs.terrain.GetTileType(tileX, tileY)
+	// Проходимы все типы кроме воды
+	return tileType != generator.TileWater
 }
 
 // abs возвращает абсолютное значение integer

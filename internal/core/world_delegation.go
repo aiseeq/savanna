@@ -1,7 +1,5 @@
 package core
 
-import "github.com/aiseeq/savanna/internal/physics"
-
 // Файл с методами делегирования World к специализированным менеджерам
 // Применяем паттерн Facade для скрытия сложности композиции
 
@@ -20,8 +18,9 @@ func (w *World) HasComponents(entity EntityID, mask ComponentMask) bool {
 // Position component delegation
 func (w *World) AddPosition(entity EntityID, position Position) bool {
 	w.componentManager.AddPosition(entity, position)
-	// Обновляем пространственную систему
-	w.worldState.GetSpatialProvider().UpdateEntity(uint32(entity), physics.Vec2{X: position.X, Y: position.Y}, 0)
+	// При создании новой сущности автоматически добавляем в пространственную систему
+	// (это логично, так как новая позиция должна быть известна пространственной системе)
+	w.updateSpatialEntity(entity, position.X, position.Y)
 	return true
 }
 
@@ -30,18 +29,21 @@ func (w *World) GetPosition(entity EntityID) (Position, bool) {
 }
 
 func (w *World) SetPosition(entity EntityID, position Position) bool {
-	if w.componentManager.SetPosition(entity, position) {
-		// Обновляем пространственную систему
-		w.worldState.GetSpatialProvider().UpdateEntity(uint32(entity), physics.Vec2{X: position.X, Y: position.Y}, 0)
-		return true
-	}
-	return false
+	// ИСПРАВЛЕНИЕ: Убираем побочный эффект - только обновляем компонент
+	// Пространственная система должна обновляется явно через UpdateSpatialPosition
+	return w.componentManager.SetPosition(entity, position)
+}
+
+// UpdateSpatialPosition обновляет позицию сущности в пространственной системе
+// Должен вызываться системами после изменения Position компонента
+func (w *World) UpdateSpatialPosition(entity EntityID, position Position) {
+	w.updateSpatialEntity(entity, position.X, position.Y)
 }
 
 func (w *World) RemovePosition(entity EntityID) bool {
 	if w.componentManager.RemovePosition(entity) {
 		// Удаляем из пространственной системы
-		w.worldState.GetSpatialProvider().RemoveEntity(uint32(entity))
+		w.removeSpatialEntity(entity)
 		return true
 	}
 	return false
@@ -370,15 +372,8 @@ func (w *World) FindNearestByType(x, y, radius float32, animalType AnimalType) (
 
 // QueryInRadius возвращает сущности в указанном радиусе (для SpatialQueries интерфейса)
 func (w *World) QueryInRadius(x, y, radius float32) []EntityID {
-	// Используем пространственную систему для эффективного поиска
-	entries := w.worldState.GetSpatialProvider().QueryRadius(physics.Vec2{X: x, Y: y}, radius)
-
-	// Конвертируем SpatialEntry в EntityID
-	result := make([]EntityID, len(entries))
-	for i, entry := range entries {
-		result[i] = EntityID(entry.ID)
-	}
-	return result
+	// Используем метод-фасад для скрытия сложности пространственной системы (LoD)
+	return w.querySpatialRadius(x, y, radius)
 }
 
 // GetStats возвращает статистику животных по типам

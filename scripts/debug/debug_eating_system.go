@@ -98,17 +98,38 @@ func setupDebugSystems(
 	// Создаём системы с зависимостями ТОЧНО как в headless
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
+
+	// НОВЫЕ СИСТЕМЫ (следуют принципу SRP):
+	hungerSystem := simulation.NewHungerSystem()                           // 1. Только управление голодом
+	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem) // 2. Только поиск травы и создание EatingState
+	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem()       // 3. Только влияние голода на скорость
+	starvationDamage := simulation.NewStarvationDamageSystem()             // 4. Только урон от голода
+
+	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
 	combatSystem := simulation.NewCombatSystem()
 
 	// Добавляем системы в правильном порядке ТОЧНО как в headless
 	worldSizePixels := float32(cfg.World.Size * TileSizePixels)
-	systemManager.AddSystem(vegetationSystem)
+	systemManager.AddSystem(vegetationSystem)              // 1. Рост травы
+	systemManager.AddSystem(&adapters.HungerSystemAdapter{ // 2. Управление голодом
+		System: hungerSystem,
+	})
+	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{ // 3. Создание EatingState
+		System: grassSearchSystem,
+	})
+	systemManager.AddSystem(grassEatingSystem) // 4. Дискретное поедание травы
+	// 5. Поведение (проверяет EatingState)
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
+	systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{ // 6. Влияние голода на скорость
+		System: hungerSpeedModifier,
+	})
 	movementSystem := simulation.NewMovementSystem(worldSizePixels, worldSizePixels)
+	// 7. Движение (сбрасывает скорость едящих)
 	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
-	systemManager.AddSystem(combatSystem)
+	systemManager.AddSystem(combatSystem)                            // 8. Система боя
+	systemManager.AddSystem(&adapters.StarvationDamageSystemAdapter{ // 9. Урон от голода
+		System: starvationDamage,
+	})
 
 	return
 }

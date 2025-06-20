@@ -33,11 +33,10 @@ func TestEatingFrameValidation(t *testing.T) {
 	// Все системы как в реальной игре
 	systemManager := core.NewSystemManager()
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
 
 	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
+	systemManager.AddSystem(adapters.NewFeedingSystemAdapter(vegetationSystem))
 	systemManager.AddSystem(grassEatingSystem)
 
 	// Создаём анимационную систему
@@ -48,6 +47,7 @@ func TestEatingFrameValidation(t *testing.T) {
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 200, 200)
 	tileX := int(200 / 32)
 	tileY := int(200 / 32)
+	terrain.SetTileType(tileX, tileY, generator.TileGrass)
 	terrain.SetGrassAmount(tileX, tileY, 100.0)
 
 	// Делаем зайца голодным
@@ -58,6 +58,7 @@ func TestEatingFrameValidation(t *testing.T) {
 	// Принудительно создаём EatingState
 	world.AddEatingState(rabbit, core.EatingState{
 		Target:          0,
+		TargetType:      core.EatingTargetGrass, // Тип: поедание травы
 		EatingProgress:  0.0,
 		NutritionGained: 0.0,
 	})

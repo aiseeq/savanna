@@ -281,6 +281,14 @@ func (t *Terrain) GetTileType(x, y int) TileType {
 	return t.Tiles[y][x]
 }
 
+// SetTileType устанавливает тип тайла в указанной позиции (для тестов)
+func (t *Terrain) SetTileType(x, y int, tileType TileType) {
+	if x < 0 || x >= t.Size || y < 0 || y >= t.Size {
+		return // Игнорируем попытки изменить тайлы за границами
+	}
+	t.Tiles[y][x] = tileType
+}
+
 // GetGrassAmount возвращает количество травы в тайле
 func (t *Terrain) GetGrassAmount(x, y int) float32 {
 	if x < 0 || x >= t.Size || y < 0 || y >= t.Size {
@@ -352,6 +360,7 @@ func (t *Terrain) GetSize() int {
 // TerrainInterface интерфейс для доступа к ландшафту
 type TerrainInterface interface {
 	GetTileType(x, y int) TileType
+	SetTileType(x, y int, tileType TileType) // Для тестов
 	GetGrassAmount(x, y int) float32
 	SetGrassAmount(x, y int, amount float32)
 	GetSize() int

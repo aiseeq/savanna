@@ -2,16 +2,17 @@ package simulation
 
 import (
 	"github.com/aiseeq/savanna/internal/animation"
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 )
 
 // EatingSystem отвечает ТОЛЬКО за поедание трупов хищниками (устраняет нарушение SRP)
 //
-// ВАЖНАЯ ЛОГИКА Target в EatingState:
-// - Target = EntityID животного: поедание трупа/падали (обрабатывает EatingSystem)
-// - Target = 0: поедание травы травоядными (обрабатывает GrassEatingSystem)
+// ВАЖНАЯ ЛОГИКА TargetType в EatingState:
+// - TargetType = EatingTargetAnimal: поедание трупа/падали (обрабатывает EatingSystem)
+// - TargetType = EatingTargetGrass: поедание травы травоядными (обрабатывает GrassEatingSystem)
 //
-// Эта система игнорирует EatingState с Target = 0, оставляя их для GrassEatingSystem
+// Эта система игнорирует EatingState с TargetType = EatingTargetGrass, оставляя их для GrassEatingSystem
 type EatingSystem struct {
 	previousFrames map[core.EntityID]int // Память предыдущих кадров для дискретного поедания
 }
@@ -34,8 +35,8 @@ func (es *EatingSystem) Update(world *core.World, deltaTime float32) {
 
 		// Проверяем есть ли состояние поедания
 		if eatingState, hasEating := world.GetEatingState(animal); hasEating {
-			// ВАЖНО: Если Target = 0, это поедание травы - НЕ трогаем (обрабатывает GrassEatingSystem)
-			if eatingState.Target == GrassEatingTarget {
+			// ВАЖНО: Если TargetType = EatingTargetGrass, это поедание травы - НЕ трогаем (обрабатывает GrassEatingSystem)
+			if eatingState.TargetType == core.EatingTargetGrass {
 				return
 			}
 			// Животное уже ест труп/падаль - продолжаем процесс
@@ -83,11 +84,12 @@ func (es *EatingSystem) findCorpseToEat(world *core.World, predator core.EntityI
 	})
 
 	// Если нашли труп рядом, начинаем есть
-	if closestCorpse != NoTarget {
+	if closestCorpse != constants.NoTarget {
 		world.AddEatingState(predator, core.EatingState{
 			Target:          closestCorpse,
-			EatingProgress:  InitialProgress,
-			NutritionGained: InitialNutrition,
+			TargetType:      core.EatingTargetAnimal, // Тип: поедание животного
+			EatingProgress:  constants.InitialProgress,
+			NutritionGained: constants.InitialNutrition,
 		})
 	}
 }
@@ -106,7 +108,7 @@ func (es *EatingSystem) continueEating(
 	}
 
 	// Проверяем достигнуто ли полное насыщение (как у зайцев)
-	const satietyThreshold = MaxHungerLimit - SatietyTolerance // 99.9%
+	const satietyThreshold = MaxHungerLimit - constants.SatietyTolerance // 99.9%
 	if hunger.Value >= satietyThreshold {
 		// Хищник полностью наелся - превращаем недоеденный труп в падаль
 		es.convertCorpseToCarrion(world, eatingState.Target, predator)
@@ -190,7 +192,7 @@ func (es *EatingSystem) isEatingAnimationFrameComplete(world *core.World, entity
 
 	// ИСПРАВЛЕНИЕ: Питательность даётся при переходе на кадр 1 (как у зайцев)
 	// Пользователь просил "после второго кадра", но думаю он имел в виду кадр 1 (второй кадр в массиве 0,1)
-	frameChangedTo1 := (prevFrame == AnimationFrameZero && currentFrame == AnimationFrameOne)
+	frameChangedTo1 := (prevFrame == constants.AnimationFrameZero && currentFrame == constants.AnimationFrameOne)
 
 	// Обновляем память предыдущего кадра
 	es.previousFrames[entity] = currentFrame
@@ -240,7 +242,7 @@ func (es *EatingSystem) processCorpseEatingTick(
 	world.SetEatingState(predator, eatingState)
 
 	// Восстанавливаем голод животного
-	es.feedPredator(world, predator, nutritionEaten*NutritionToHungerRatio)
+	es.feedPredator(world, predator, nutritionEaten*constants.NutritionToHungerRatio)
 
 	// Если еда полностью съедена, убираем её
 	if params.NutritionalValue <= 0 {

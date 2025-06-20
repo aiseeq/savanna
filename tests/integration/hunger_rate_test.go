@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/aiseeq/savanna/config"
+	"github.com/aiseeq/savanna/internal/adapters"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
@@ -21,25 +22,26 @@ func TestHungerRate(t *testing.T) {
 	worldSizePixels := float32(cfg.World.Size * 32)
 	world := core.NewWorld(worldSizePixels, worldSizePixels, 42)
 
-	vegetationSystem := simulation.NewVegetationSystem(terrain)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
+	_ = simulation.NewVegetationSystem(terrain) // используется в системах
 
 	// Создаём зайца без травы чтобы проверить скорость голода
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
 
 	tileX, tileY := int(300/32), int(300/32)
+	terrain.SetTileType(tileX, tileY, generator.TileGrass)
 	terrain.SetGrassAmount(tileX, tileY, 0.0) // Нет травы - заяц будет голодать
 
 	// Устанавливаем начальный голод 100% (сытый)
 	world.SetHunger(rabbit, core.Hunger{Value: 100.0})
 
-	deltaTime := float32(1.0 / 60.0)
-
 	t.Log("=== Тест скорости голода без еды ===")
 
 	// Симулируем 5 секунд (300 тиков)
+	deltaTime := float32(1.0 / 60.0)
+	vegetationSystem := simulation.NewVegetationSystem(terrain)
+	feedingSystemAdapter := adapters.NewDeprecatedFeedingSystemAdapter(vegetationSystem)
 	for i := 0; i < 300; i++ {
-		feedingSystem.Update(world, deltaTime)
+		feedingSystemAdapter.Update(world, deltaTime)
 
 		// Отладка каждую секунду
 		if i%60 == 59 {

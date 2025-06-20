@@ -37,23 +37,42 @@ func TestRealRabbitFeedingBugE2E(t *testing.T) {
 	// Создаём GameWorld ТОЧНО как в реальной игре (game_world.go)
 	systemManager := core.NewSystemManager()
 
-	// Создаём системы ТОЧНО как в реальной игре (game_world.go:52-69)
+	// Создаём системы ТОЧНО как в реальной игре (game_world.go)
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
+
+	// НОВЫЕ СИСТЕМЫ (следуют принципу SRP):
+	hungerSystem := simulation.NewHungerSystem()                           // 1. Только управление голодом
+	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem) // 2. Только поиск травы и создание EatingState
+	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem()       // 3. Только влияние голода на скорость
+	starvationDamage := simulation.NewStarvationDamageSystem()             // 4. Только урон от голода
+
 	grassEatingSystem := NewDebugGrassEatingSystem(simulation.NewGrassEatingSystem(vegetationSystem))
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 	movementSystem := simulation.NewMovementSystem(worldWidth, worldHeight)
 	combatSystem := simulation.NewCombatSystem()
 
-	// Добавляем системы в ТОЧНО том же порядке как в игре
-	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
-	systemManager.AddSystem(grassEatingSystem)
+	// Добавляем системы в правильном порядке (КРИТИЧЕСКИ ВАЖЕН ДЛЯ ПИТАНИЯ!)
+	systemManager.AddSystem(vegetationSystem)              // 1. Рост травы
+	systemManager.AddSystem(&adapters.HungerSystemAdapter{ // 2. Управление голодом
+		System: hungerSystem,
+	})
+	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{ // 3. Создание EatingState
+		System: grassSearchSystem,
+	})
+	systemManager.AddSystem(grassEatingSystem) // 4. Дискретное поедание травы
+	// 5. Поведение (проверяет EatingState)
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
+	systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{ // 6. Влияние голода на скорость
+		System: hungerSpeedModifier,
+	})
+	// 7. Движение (сбрасывает скорость едящих)
 	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
-	systemManager.AddSystem(combatSystem)
+	systemManager.AddSystem(combatSystem)                            // 8. Система боя
+	systemManager.AddSystem(&adapters.StarvationDamageSystemAdapter{ // 9. Урон от голода
+		System: starvationDamage,
+	})
 
-	t.Logf("Добавлено систем в systemManager: 6 (включая GrassEatingSystem)")
+	t.Logf("Добавлено систем в systemManager: 9 (новая архитектура с разделёнными системами)")
 
 	// КРИТИЧЕСКИ ВАЖНО: Создаём AnimationManager как в реальной игре
 	animationManager := createTestAnimationManager()
@@ -73,6 +92,7 @@ func TestRealRabbitFeedingBugE2E(t *testing.T) {
 	// Устанавливаем траву под зайцем
 	tileX := int(200 / 32)
 	tileY := int(200 / 32)
+	terrain.SetTileType(tileX, tileY, generator.TileGrass)
 	terrain.SetGrassAmount(tileX, tileY, 100.0) // Много травы
 
 	// Делаем зайца голодным чтобы он точно хотел есть
@@ -107,7 +127,8 @@ func TestRealRabbitFeedingBugE2E(t *testing.T) {
 	// Принудительно создаём EatingState чтобы проверить что будет происходить когда заяц ест
 	t.Logf("Принудительно создаём EatingState для зайца (имитируем работу FeedingSystem)")
 	world.AddEatingState(rabbit, core.EatingState{
-		Target:          0, // Трава не имеет entity ID
+		Target:          0,                      // Трава не имеет entity ID
+		TargetType:      core.EatingTargetGrass, // Тип: поедание травы
 		EatingProgress:  0.0,
 		NutritionGained: 0.0,
 	})

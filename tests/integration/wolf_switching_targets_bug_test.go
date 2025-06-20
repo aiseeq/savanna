@@ -83,8 +83,8 @@ func TestWolfSwitchingTargetsBug(t *testing.T) {
 					}
 				} else {
 					// БАГ! Волк переключился на другую цель
-					t.Errorf("БАГ ОБНАРУЖЕН на тике %d: Волк переключился с первого убитого зайца (entity %d) на другую цель (entity %d)",
-						i, firstTargetEntity, eatingState.Target)
+					t.Errorf("БАГ ОБНАРУЖЕН на тике %d: Волк переключился с первого убитого зайца (entity %d) "+
+						"на другую цель (entity %d)", i, firstTargetEntity, eatingState.Target)
 					t.Errorf("Волк должен полностью съесть первого зайца перед атакой второго!")
 					return
 				}

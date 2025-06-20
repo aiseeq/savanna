@@ -43,7 +43,8 @@ func setupSystemOrderTest(_ *testing.T) (*core.World, *systemTestData, core.Enti
 	terrainGen := generator.NewTerrainGenerator(cfg)
 	terrain := terrainGen.Generate()
 
-	centerX, centerY := 25, 25                      //nolint:gomnd // Центр тестового мира
+	centerX, centerY := 25, 25 //nolint:gomnd // Центр тестового мира
+	terrain.SetTileType(centerX, centerY, generator.TileGrass)
 	terrain.SetGrassAmount(centerX, centerY, 100.0) //nolint:gomnd // Максимум травы
 
 	systems := &systemTestData{
@@ -86,7 +87,7 @@ func testSystemsStepByStep(t *testing.T, world *core.World, systems *systemTestD
 
 	// Система 2: FeedingSystem (через адаптер)
 	t.Logf("\n--- 2. FeedingSystem ---")
-	feedingAdapter := &adapters.FeedingSystemAdapter{System: systems.feedingSystem}
+	feedingAdapter := adapters.NewFeedingSystemAdapter(systems.vegetationSystem)
 	feedingAdapter.Update(world, deltaTime)
 	checkState("После FeedingSystem")
 

@@ -31,11 +31,10 @@ func TestHungerBalanceDebug(t *testing.T) {
 
 	// Создаём системы
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
 
 	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
+	systemManager.AddSystem(adapters.NewFeedingSystemAdapter(vegetationSystem))
 	systemManager.AddSystem(grassEatingSystem)
 
 	// Создаём анимационную систему как в игре
@@ -54,6 +53,7 @@ func TestHungerBalanceDebug(t *testing.T) {
 	// Устанавливаем траву
 	tileX := int(200 / 32)
 	tileY := int(200 / 32)
+	terrain.SetTileType(tileX, tileY, generator.TileGrass)
 	terrain.SetGrassAmount(tileX, tileY, 100.0)
 
 	// Делаем зайца голодным
@@ -64,6 +64,7 @@ func TestHungerBalanceDebug(t *testing.T) {
 	// Создаём EatingState принудительно
 	world.AddEatingState(rabbit, core.EatingState{
 		Target:          0,
+		TargetType:      core.EatingTargetGrass, // Тип: поедание травы
 		EatingProgress:  0.0,
 		NutritionGained: 0.0,
 	})

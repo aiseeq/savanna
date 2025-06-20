@@ -34,94 +34,153 @@ type AnimalComponents struct {
 	Hunger   core.Hunger
 }
 
-// UpdateBehavior реализует поведение травоядных (заменяет updateHerbivoreBehavior)
+// UpdateBehavior реализует поведение травоядных (KISS: упрощено разбиением на методы)
 func (h *HerbivoreBehaviorStrategy) UpdateBehavior(
 	world core.BehaviorSystemAccess,
 	entity core.EntityID,
 	components AnimalComponents,
 ) core.Velocity {
 	// ПРИОРИТЕТ 1: Если видит хищника - убегать (всегда)
+	if velocity := h.handlePredatorEscape(world, entity, components); velocity != nil {
+		return *velocity
+	}
+
+	// ПРИОРИТЕТ 2: Если голоден ИЛИ уже ест - обрабатываем поедание травы
+	if velocity := h.handleFeeding(world, entity, components); velocity != nil {
+		return *velocity
+	}
+
+	// ПРИОРИТЕТ 3: Если сыт - спокойное движение или отдых
+	return h.handleIdleBehavior(world, entity, components)
+}
+
+// handlePredatorEscape обрабатывает побег от хищника (KISS: выделено в отдельный метод)
+func (h *HerbivoreBehaviorStrategy) handlePredatorEscape(
+	world core.BehaviorSystemAccess,
+	entity core.EntityID,
+	components AnimalComponents,
+) *core.Velocity {
 	nearestPredator, foundPredator := world.FindNearestByType(
 		components.Position.X, components.Position.Y,
 		components.Behavior.VisionRange, core.TypeWolf,
 	)
-	if foundPredator {
-		// КРИТИЧЕСКИ ВАЖНО: прерываем поедание травы при побеге
-		if world.HasComponent(entity, core.MaskEatingState) {
-			world.RemoveEatingState(entity)
-		}
+	if !foundPredator {
+		return nil // Хищника нет
+	}
 
-		predatorPos, _ := world.GetPosition(nearestPredator)
-		escapeDir := physics.Vec2{X: components.Position.X - predatorPos.X, Y: components.Position.Y - predatorPos.Y}
-		escapeDir = escapeDir.Normalize()
+	// КРИТИЧЕСКИ ВАЖНО: прерываем поедание травы при побеге
+	if world.HasComponent(entity, core.MaskEatingState) {
+		world.RemoveEatingState(entity)
+	}
 
-		// Обновляем таймер направления в поведении
+	predatorPos, _ := world.GetPosition(nearestPredator)
+	escapeDir := physics.Vec2{X: components.Position.X - predatorPos.X, Y: components.Position.Y - predatorPos.Y}
+	escapeDir = escapeDir.Normalize()
+
+	// Обновляем таймер направления в поведении
+	components.Behavior.DirectionTimer = components.Behavior.MinDirectionTime
+	world.SetBehavior(entity, components.Behavior)
+
+	return &core.Velocity{
+		X: escapeDir.X * components.Speed.Current,
+		Y: escapeDir.Y * components.Speed.Current,
+	}
+}
+
+// handleFeeding обрабатывает поиск и поедание травы (KISS: выделено в отдельный метод)
+func (h *HerbivoreBehaviorStrategy) handleFeeding(
+	world core.BehaviorSystemAccess,
+	entity core.EntityID,
+	components AnimalComponents,
+) *core.Velocity {
+	isCurrentlyEating := world.HasComponent(entity, core.MaskEatingState)
+	if !(components.Hunger.Value < components.Behavior.HungerThreshold || isCurrentlyEating) || h.vegetation == nil {
+		return nil // Не голоден и не ест
+	}
+
+	// Получаем конфигурацию животного для размеров
+	config, hasConfig := world.GetAnimalConfig(entity)
+	if !hasConfig {
+		// Нет конфигурации - используем случайное движение
+		vel := RandomWalk.GetRandomWalkVelocity(
+			world, entity, components.Behavior,
+			components.Speed.Current*components.Behavior.WanderingSpeed,
+		)
+		return &vel
+	}
+
+	// Проверяем находимся ли мы рядом с травой
+	if velocity := h.checkLocalGrass(components, config); velocity != nil {
+		return velocity
+	}
+
+	// Ищем траву в радиусе видимости
+	return h.searchForGrass(world, entity, components)
+}
+
+// checkLocalGrass проверяет траву рядом с животным (KISS: выделено в отдельный метод)
+func (h *HerbivoreBehaviorStrategy) checkLocalGrass(
+	components AnimalComponents,
+	config core.AnimalConfig,
+) *core.Velocity {
+	localGrassX, localGrassY, hasLocalGrass := h.vegetation.FindNearestGrass(
+		components.Position.X, components.Position.Y,
+		config.CollisionRadius, MinGrassAmountToFind,
+	)
+	if !hasLocalGrass {
+		return nil
+	}
+
+	dx := components.Position.X - localGrassX
+	dy := components.Position.Y - localGrassY
+	distanceToLocalGrass := math.Sqrt(float64(dx*dx + dy*dy))
+
+	if distanceToLocalGrass <= float64(config.CollisionRadius*GrassProximityMultiplier) {
+		// Мы рядом с травой - останавливаемся и едим
+		return &core.Velocity{X: 0, Y: 0}
+	}
+
+	return nil
+}
+
+// searchForGrass ищет траву в радиусе видимости (KISS: выделено в отдельный метод)
+func (h *HerbivoreBehaviorStrategy) searchForGrass(
+	world core.BehaviorSystemAccess,
+	entity core.EntityID,
+	components AnimalComponents,
+) *core.Velocity {
+	grassX, grassY, foundGrass := h.vegetation.FindNearestGrass(
+		components.Position.X, components.Position.Y,
+		components.Behavior.VisionRange, MinGrassAmountToFind,
+	)
+	if foundGrass {
+		// Идём к траве
+		grassDir := physics.Vec2{X: grassX - components.Position.X, Y: grassY - components.Position.Y}
+		grassDir = grassDir.Normalize()
+
 		components.Behavior.DirectionTimer = components.Behavior.MinDirectionTime
 		world.SetBehavior(entity, components.Behavior)
 
-		return core.Velocity{
-			X: escapeDir.X * components.Speed.Current,
-			Y: escapeDir.Y * components.Speed.Current,
+		return &core.Velocity{
+			X: grassDir.X * components.Speed.Current * components.Behavior.SearchSpeed,
+			Y: grassDir.Y * components.Speed.Current * components.Behavior.SearchSpeed,
 		}
 	}
 
-	// ПРИОРИТЕТ 2: Если голоден ИЛИ уже ест - обрабатываем поедание травы
-	isCurrentlyEating := world.HasComponent(entity, core.MaskEatingState)
-	if (components.Hunger.Value < components.Behavior.HungerThreshold || isCurrentlyEating) && h.vegetation != nil {
-		// Получаем конфигурацию животного для размеров
-		// (устраняет нарушение OCP)
-		config, hasConfig := world.GetAnimalConfig(entity)
-		if !hasConfig {
-			// Нет конфигурации - используем случайное движение
-			return RandomWalk.GetRandomWalkVelocity(
-				world, entity, components.Behavior,
-				components.Speed.Current*components.Behavior.WanderingSpeed,
-			)
-		}
+	// Трава не найдена - продолжаем случайное движение в поисках
+	vel := RandomWalk.GetRandomWalkVelocity(
+		world, entity, components.Behavior,
+		components.Speed.Current*components.Behavior.WanderingSpeed,
+	)
+	return &vel
+}
 
-		// Сначала проверим - может быть мы уже на траве и едим?
-		localGrassX, localGrassY, hasLocalGrass := h.vegetation.FindNearestGrass(
-			components.Position.X, components.Position.Y,
-			config.CollisionRadius, MinGrassToFind,
-		)
-		dx := components.Position.X - localGrassX
-		dy := components.Position.Y - localGrassY
-		distanceToLocalGrass := math.Sqrt(float64(dx*dx + dy*dy))
-
-		if hasLocalGrass &&
-			distanceToLocalGrass <= float64(config.CollisionRadius*GrassProximityMultiplier) {
-			// Мы рядом с травой - останавливаемся и едим (возвращаем нулевую скорость)
-			return core.Velocity{X: 0, Y: 0}
-		}
-
-		// Ищем ближайшую траву в радиусе видимости
-		grassX, grassY, foundGrass := h.vegetation.FindNearestGrass(
-			components.Position.X, components.Position.Y,
-			components.Behavior.VisionRange, MinGrassToFind,
-		)
-		if foundGrass {
-			// Идём к траве
-			grassDir := physics.Vec2{X: grassX - components.Position.X, Y: grassY - components.Position.Y}
-			grassDir = grassDir.Normalize()
-
-			components.Behavior.DirectionTimer = components.Behavior.MinDirectionTime
-			world.SetBehavior(entity, components.Behavior)
-
-			return core.Velocity{
-				X: grassDir.X * components.Speed.Current * components.Behavior.SearchSpeed,
-				Y: grassDir.Y * components.Speed.Current * components.Behavior.SearchSpeed,
-			}
-		} else {
-			// Трава не найдена - продолжаем случайное движение
-			// в поисках
-			return RandomWalk.GetRandomWalkVelocity(
-				world, entity, components.Behavior,
-				components.Speed.Current*components.Behavior.WanderingSpeed,
-			)
-		}
-	}
-
-	// ПРИОРИТЕТ 3: Если сыт - спокойное движение или отдых
+// handleIdleBehavior обрабатывает спокойное поведение (KISS: выделено в отдельный метод)
+func (h *HerbivoreBehaviorStrategy) handleIdleBehavior(
+	world core.BehaviorSystemAccess,
+	entity core.EntityID,
+	components AnimalComponents,
+) core.Velocity {
 	return RandomWalk.GetRandomWalkVelocity(
 		world, entity, components.Behavior,
 		components.Speed.Current*components.Behavior.ContentSpeed,

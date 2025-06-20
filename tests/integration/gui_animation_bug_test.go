@@ -30,12 +30,11 @@ func TestGUIAnimationBug(t *testing.T) {
 	// Создаём системы точно как в GUI
 	systemManager := core.NewSystemManager()
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 	combatSystem := simulation.NewCombatSystem()
 
 	// Добавляем системы в том же порядке что в GUI
 	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
+	systemManager.AddSystem(adapters.NewFeedingSystemAdapter(vegetationSystem))
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
 	systemManager.AddSystem(&adapters.MovementSystemAdapter{
 		System: simulation.NewMovementSystem(TestWorldSize, TestWorldSize),

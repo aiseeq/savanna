@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/aiseeq/savanna/internal/animation"
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
-	"github.com/aiseeq/savanna/internal/simulation"
 )
 
 // AnimationManager управляет всеми анимационными системами
@@ -108,9 +108,9 @@ func (am *AnimationManager) updateAnimationDirection(world *core.World, entity c
 	}
 
 	// Определяем направление по скорости
-	if vel.X > simulation.MovementThreshold {
+	if vel.X > constants.MovementThreshold {
 		anim.FacingRight = true
-	} else if vel.X < -simulation.MovementThreshold {
+	} else if vel.X < -constants.MovementThreshold {
 		anim.FacingRight = false
 	}
 

@@ -92,24 +92,39 @@ func initGUIMode(t *testing.T, cfg *config.Config) []string {
 	// Игровые системы в порядке как в GUI
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
+
+	// НОВЫЕ СИСТЕМЫ (следуют принципу SRP):
+	hungerSystem := simulation.NewHungerSystem()                           // 1. Только управление голодом
+	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem) // 2. Только поиск травы и создание EatingState
+	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem()       // 3. Только влияние голода на скорость
+	starvationDamage := simulation.NewStarvationDamageSystem()             // 4. Только урон от голода
+
 	combatSystem := simulation.NewCombatSystem()
 	movementSystem := simulation.NewMovementSystem(worldSizePixels, worldSizePixels)
 
 	systemManager.AddSystem(vegetationSystem)
 	systems = append(systems, "VegetationSystem")
 
+	systemManager.AddSystem(&adapters.HungerSystemAdapter{System: hungerSystem})
+	systems = append(systems, "HungerSystem")
+
+	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{System: grassSearchSystem})
+	systems = append(systems, "GrassSearchSystem")
+
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
 	systems = append(systems, "AnimalBehaviorSystem")
+
+	systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{System: hungerSpeedModifier})
+	systems = append(systems, "HungerSpeedModifierSystem")
 
 	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
 	systems = append(systems, "MovementSystem")
 
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
-	systems = append(systems, "FeedingSystem")
-
 	systemManager.AddSystem(combatSystem)
 	systems = append(systems, "CombatSystem")
+
+	systemManager.AddSystem(&adapters.StarvationDamageSystemAdapter{System: starvationDamage})
+	systems = append(systems, "StarvationDamageSystem")
 
 	// Проверяем что системы добавлены
 	t.Logf("GUI режим инициализирован с %d системами", len(systems))
@@ -143,24 +158,39 @@ func initHeadlessMode(t *testing.T, cfg *config.Config) []string {
 	// Игровые системы в порядке как в headless
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
+
+	// НОВЫЕ СИСТЕМЫ (следуют принципу SRP):
+	hungerSystem := simulation.NewHungerSystem()                           // 1. Только управление голодом
+	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem) // 2. Только поиск травы и создание EatingState
+	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem()       // 3. Только влияние голода на скорость
+	starvationDamage := simulation.NewStarvationDamageSystem()             // 4. Только урон от голода
+
 	combatSystem := simulation.NewCombatSystem()
 
 	systemManager.AddSystem(vegetationSystem)
 	systems = append(systems, "VegetationSystem")
 
+	systemManager.AddSystem(&adapters.HungerSystemAdapter{System: hungerSystem})
+	systems = append(systems, "HungerSystem")
+
+	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{System: grassSearchSystem})
+	systems = append(systems, "GrassSearchSystem")
+
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
 	systems = append(systems, "AnimalBehaviorSystem")
+
+	systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{System: hungerSpeedModifier})
+	systems = append(systems, "HungerSpeedModifierSystem")
 
 	movementSystem := simulation.NewMovementSystem(worldSizePixels, worldSizePixels)
 	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
 	systems = append(systems, "MovementSystem")
 
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
-	systems = append(systems, "FeedingSystem")
-
 	systemManager.AddSystem(combatSystem)
 	systems = append(systems, "CombatSystem")
+
+	systemManager.AddSystem(&adapters.StarvationDamageSystemAdapter{System: starvationDamage})
+	systems = append(systems, "StarvationDamageSystem")
 
 	// Проверяем что системы добавлены
 	t.Logf("Headless режим инициализирован с %d системами", len(systems))

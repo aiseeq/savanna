@@ -26,6 +26,7 @@ func TestFeedingMask(t *testing.T) {
 
 	// Устанавливаем траву в центр
 	centerX, centerY := 25, 25
+	terrain.SetTileType(centerX, centerY, generator.TileGrass)
 	terrain.SetGrassAmount(centerX, centerY, 100.0)
 
 	// Создаём зайца

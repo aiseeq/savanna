@@ -30,9 +30,9 @@ func TestFeedingDebug(t *testing.T) {
 	animationSystem := animation.NewAnimationSystem()
 	animationSystem.RegisterAnimation(animation.AnimEat, 2, 4.0, true, nil)
 
-	// Создаём FeedingSystem и GrassEatingSystem
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
-	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
+	// ИСПРАВЛЕНИЕ: Создаём новые системы питания (после рефакторинга)
+	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem) // Создаёт EatingState
+	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem) // Потребляет траву
 
 	// Найдём место с хорошей травой
 	var grassX, grassY float32 = 100, 100
@@ -143,9 +143,9 @@ func TestFeedingDebug(t *testing.T) {
 			world.SetAnimation(rabbit, anim)
 		}
 
-		// Обновляем обе системы питания
-		feedingSystem.Update(world, deltaTime)
-		grassEatingSystem.Update(world, deltaTime)
+		// ИСПРАВЛЕНИЕ: Обновляем обе системы в правильном порядке
+		grassSearchSystem.Update(world, deltaTime) // 1. Создаёт EatingState если нужно
+		grassEatingSystem.Update(world, deltaTime) // 2. Потребляет траву если есть EatingState
 
 		// Состояние ПОСЛЕ обновления
 		hunger, _ = world.GetHunger(rabbit)

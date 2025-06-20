@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"github.com/aiseeq/savanna/internal/animation"
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 )
 
@@ -95,11 +96,6 @@ func (cs *CorpseSystem) handleAnimalDeaths(world *core.World) {
 	}
 }
 
-// createCorpse превращает мёртвое животное в труп (глобальная функция для других систем)
-func createCorpse(world *core.World, animal core.EntityID) {
-	CreateCorpseAndGetID(world, animal)
-}
-
 // CreateCorpseAndGetID превращает мёртвое животное в труп НА МЕСТЕ, сохраняя анимацию
 func CreateCorpseAndGetID(world *core.World, animal core.EntityID) core.EntityID {
 	// ИСПРАВЛЕНИЕ: НЕ уничтожаем животное, а превращаем его в труп на месте
@@ -115,9 +111,9 @@ func CreateCorpseAndGetID(world *core.World, animal core.EntityID) core.EntityID
 	if world.HasComponent(animal, core.MaskAnimation) {
 		world.SetAnimation(animal, core.Animation{
 			CurrentAnim: int(animation.AnimDeathDying),
-			Frame:       1,     // ПОСЛЕДНИЙ кадр анимации смерти (застывает)
-			Timer:       999.0, // Большой таймер чтобы не переключалась
-			Playing:     false, // НЕ играет - застыла на последнем кадре
+			Frame:       1,                             // ПОСЛЕДНИЙ кадр анимации смерти (застывает)
+			Timer:       constants.LargeAnimationTimer, // Большой таймер чтобы не переключалась
+			Playing:     false,                         // НЕ играет - застыла на последнем кадре
 			FacingRight: true,
 		})
 	}

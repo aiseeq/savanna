@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aiseeq/savanna/internal/simulation"
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
@@ -44,7 +44,7 @@ func (fm *FontManager) LoadFonts() error {
 	// Создаём text.GoTextFace
 	fm.debugFont = &text.GoTextFace{
 		Source: source,
-		Size:   simulation.DefaultFontSize,
+		Size:   constants.DefaultFontSize,
 	}
 
 	return nil

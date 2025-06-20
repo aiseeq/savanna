@@ -3,6 +3,7 @@ package common
 import (
 	"github.com/aiseeq/savanna/config"
 	"github.com/aiseeq/savanna/internal/adapters"
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
@@ -29,11 +30,19 @@ func CreateTestSystemManager(worldSize float32) *core.SystemManager {
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
 
-	// Системы питания
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
+	// Системы питания (НОВЫЕ СИСТЕМЫ - следуют принципу SRP)
+	hungerSystem := simulation.NewHungerSystem() // 1. Только управление голодом
+	// 2. Только поиск травы и создание EatingState (DIP: использует интерфейс)
+	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem)
+	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem() // 3. Только влияние голода на скорость
+	starvationDamage := simulation.NewStarvationDamageSystem()       // 4. Только урон от голода
 
-	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
+	systemManager.AddSystem(&adapters.HungerSystemAdapter{System: hungerSystem})
+	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{System: grassSearchSystem})
+	systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{System: hungerSpeedModifier})
+	systemManager.AddSystem(&adapters.StarvationDamageSystemAdapter{System: starvationDamage})
+
+	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem) // DIP: использует интерфейс VegetationProvider
 	systemManager.AddSystem(&adapters.GrassEatingSystemAdapter{System: grassEatingSystem})
 
 	// Боевые системы - используем новую CombatSystem
@@ -105,7 +114,7 @@ func CreateCombatSystemManager(worldSize float32) *core.SystemManager {
 func CreateTestVegetationSystem(worldSize float32) *simulation.VegetationSystem {
 	// Создаем конфигурацию для теста
 	cfg := config.LoadDefaultConfig()
-	cfg.World.Size = int(worldSize / simulation.TileSizePixels) // Конвертируем пиксели в тайлы
+	cfg.World.Size = int(worldSize / constants.TileSizePixels) // Конвертируем пиксели в тайлы
 
 	// Генерируем terrain
 	terrainGen := generator.NewTerrainGenerator(cfg)
@@ -118,7 +127,7 @@ func CreateTestVegetationSystem(worldSize float32) *simulation.VegetationSystem 
 // CreateMockVegetationSystem создает mock vegetation систему для unit тестов
 func CreateMockVegetationSystem() *simulation.VegetationSystem {
 	// Используем минимальный mock terrain
-	terrain := NewMockTerrain(simulation.TestWorldTileSize) // Тестовый размер мира
+	terrain := NewMockTerrain(constants.TestWorldTileSize) // Тестовый размер мира
 	return simulation.NewVegetationSystem(terrain)
 }
 
@@ -150,10 +159,15 @@ func (mt *MockTerrain) GetGrassAmount(x, y int) float32 {
 	if mt.GetTileType(x, y) != generator.TileGrass {
 		return 0
 	}
-	return simulation.TestGrassAmount // Стандартное количество травы в тестах
+	return constants.TestGrassAmount // Стандартное количество травы в тестах
 }
 
 // SetGrassAmount устанавливает количество травы (ничего не делает в mock)
 func (mt *MockTerrain) SetGrassAmount(x, y int, amount float32) {
+	// Mock - ничего не делаем
+}
+
+// SetTileType устанавливает тип тайла (ничего не делает в mock)
+func (mt *MockTerrain) SetTileType(x, y int, tileType generator.TileType) {
 	// Mock - ничего не делаем
 }

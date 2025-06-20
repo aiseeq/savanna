@@ -22,6 +22,7 @@ func TestGrassSearchMethods(t *testing.T) {
 
 	// Устанавливаем траву в центр
 	centerX, centerY := 25, 25
+	terrain.SetTileType(centerX, centerY, generator.TileGrass)
 	terrain.SetGrassAmount(centerX, centerY, 100.0)
 
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
@@ -46,7 +47,7 @@ func TestGrassSearchMethods(t *testing.T) {
 	t.Logf("  Результат: %.1f", grassViaGetGrassAt)
 
 	// МЕТОД 2: FindNearestGrass (используется в BehaviorStrategy)
-	minGrassToFind := float32(simulation.MinGrassToFind)
+	minGrassToFind := float32(simulation.MinGrassAmountToFind)
 	searchRadius := float32(16.0) // Радиус зайца (было simulation.RabbitBaseRadius)
 	grassX, grassY, foundGrass := vegetationSystem.FindNearestGrass(rabbitX, rabbitY, searchRadius, minGrassToFind)
 

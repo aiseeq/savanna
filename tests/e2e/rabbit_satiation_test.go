@@ -28,8 +28,33 @@ func TestRabbitSatiationE2E(t *testing.T) {
 	terrainGen := generator.NewTerrainGenerator(cfg)
 	terrain := terrainGen.Generate()
 
-	// Размещаем много травы в центральном тайле
-	terrain.SetGrassAmount(1, 1, 100.0) // Максимальное количество травы
+	// Находим тайл с травой или создаем его
+	grassTileX, grassTileY := 1, 1
+
+	// Ищем подходящий тайл или устанавливаем тип травы
+	for x := 0; x < 3; x++ {
+		for y := 0; y < 3; y++ {
+			tileType := terrain.GetTileType(x, y)
+			if tileType == generator.TileGrass || tileType == generator.TileWetland {
+				grassTileX, grassTileY = x, y
+				goto found
+			}
+		}
+	}
+
+	// Если не нашли подходящий тайл, устанавливаем тип травы принудительно
+	terrain.SetTileType(grassTileX, grassTileY, generator.TileGrass)
+
+found:
+	// Размещаем много травы в тайле с травой
+	terrain.SetGrassAmount(grassTileX, grassTileY, 100.0) // Максимальное количество травы
+
+	// Размещаем зайца в центре тайла с травой
+	rabbitX := float32(grassTileX*32 + 16) // Центр тайла
+	rabbitY := float32(grassTileY*32 + 16)
+
+	t.Logf("Тайл с травой: (%d,%d), тип=%d", grassTileX, grassTileY, terrain.GetTileType(grassTileX, grassTileY))
+	t.Logf("Заяц будет размещен на: (%.1f, %.1f)", rabbitX, rabbitY)
 
 	// ИСПРАВЛЕНИЕ: Создаём анимационные системы как в headless режиме
 	wolfAnimationSystem := animation.NewAnimationSystem()
@@ -44,18 +69,17 @@ func TestRabbitSatiationE2E(t *testing.T) {
 
 	// Создаём системы
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
-	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
 
-	// Создаём systemManager
+	// Используем объединенную систему питания как в реальной игре
+	deprecatedFeedingAdapter := adapters.NewDeprecatedFeedingSystemAdapter(vegetationSystem)
+
+	// Создаём systemManager в правильном порядке
 	systemManager := core.NewSystemManager()
-	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
-	// ИСПРАВЛЕНИЕ: Добавляем grassEatingSystem для поедания травы!
-	systemManager.AddSystem(&adapters.GrassEatingSystemAdapter{System: grassEatingSystem})
+	systemManager.AddSystem(vegetationSystem)         // 1. Рост травы
+	systemManager.AddSystem(deprecatedFeedingAdapter) // 2. Полная система питания
 
 	// Создаём зайца в центре тайла с травой
-	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 48, 48) // Центр тайла (1,1)
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, rabbitX, rabbitY)
 
 	// ТЕСТ СЦЕНАРИЯ ПОЛЬЗОВАТЕЛЯ: заяц с голодом 90% должен есть до 100%
 	initialHunger := float32(90.0) // Слегка голодный (как жаловался пользователь)

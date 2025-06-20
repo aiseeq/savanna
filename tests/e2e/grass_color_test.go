@@ -28,13 +28,39 @@ func TestGrassColorChangeE2E(t *testing.T) {
 	terrainGen := generator.NewTerrainGenerator(cfg)
 	terrain := terrainGen.Generate()
 
+	// Находим тайл с травой или создаем его
+	grassTileX, grassTileY := 1, 1
+
+	// Ищем подходящий тайл или устанавливаем тип травы
+	for x := 0; x < 3; x++ {
+		for y := 0; y < 3; y++ {
+			tileType := terrain.GetTileType(x, y)
+			if tileType == generator.TileGrass || tileType == generator.TileWetland {
+				grassTileX, grassTileY = x, y
+				goto found
+			}
+		}
+	}
+
+	// Если не нашли подходящий тайл, устанавливаем тип травы принудительно
+	terrain.SetTileType(grassTileX, grassTileY, generator.TileGrass)
+
+found:
 	// Размещаем максимальное количество травы
-	terrain.SetGrassAmount(1, 1, 100.0)
+	terrain.SetGrassAmount(grassTileX, grassTileY, 100.0)
+
+	// Размещаем зайца в центре тайла с травой
+	rabbitX := float32(grassTileX*32 + 16) // Центр тайла
+	rabbitY := float32(grassTileY*32 + 16)
+
+	t.Logf("Тайл с травой: (%d,%d), тип=%d", grassTileX, grassTileY, terrain.GetTileType(grassTileX, grassTileY))
+	t.Logf("Заяц будет размещен на: (%.1f, %.1f)", rabbitX, rabbitY)
 
 	// Создаём системы питания
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
-	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
+
+	// Используем объединенную систему питания как в реальной игре
+	deprecatedFeedingAdapter := adapters.NewDeprecatedFeedingSystemAdapter(vegetationSystem)
 
 	// Создаём анимационную систему ТОЧНО как в игре
 	animationSystem := animation.NewAnimationSystem()
@@ -45,11 +71,10 @@ func TestGrassColorChangeE2E(t *testing.T) {
 
 	systemManager := core.NewSystemManager()
 	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
-	systemManager.AddSystem(&adapters.GrassEatingSystemAdapter{System: grassEatingSystem})
+	systemManager.AddSystem(deprecatedFeedingAdapter)
 
-	// Создаём зайца
-	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 48, 48)
+	// Создаём зайца в центре тайла с травой
+	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, rabbitX, rabbitY)
 	world.SetHunger(rabbit, core.Hunger{Value: 10.0}) // Очень голодный
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0})
 
@@ -63,7 +88,7 @@ func TestGrassColorChangeE2E(t *testing.T) {
 	})
 
 	// Проверяем начальные значения
-	initialGrass := vegetationSystem.GetGrassAt(48, 48)
+	initialGrass := vegetationSystem.GetGrassAt(rabbitX, rabbitY)
 	initialColor := calculateGrassColor(initialGrass)
 	t.Logf("Начальная трава: %.1f единиц", initialGrass)
 	t.Logf("Начальный цвет: R=%d, G=%d, B=%d", initialColor.R, initialColor.G, initialColor.B)
@@ -98,10 +123,19 @@ func TestGrassColorChangeE2E(t *testing.T) {
 
 		// Проверяем каждую секунду
 		if tick%60 == 59 {
-			currentGrass := vegetationSystem.GetGrassAt(48, 48)
+			currentGrass := vegetationSystem.GetGrassAt(rabbitX, rabbitY)
 			currentColor := calculateGrassColor(currentGrass)
+			hunger, _ := world.GetHunger(rabbit)
+			_, isEating := world.GetEatingState(rabbit)
 
-			t.Logf("Через %d сек: трава=%.1f единиц", (tick+1)/60, currentGrass)
+			pos, _ := world.GetPosition(rabbit)
+			config, _ := world.GetAnimalConfig(rabbit)
+
+			// Проверяем что система поиска травы может найти траву
+			_, _, foundGrass := vegetationSystem.FindNearestGrass(pos.X, pos.Y, 30.0, 10.0)
+
+			t.Logf("Через %d сек: трава=%.1f единиц, голод=%.1f%%, ест=%v", (tick+1)/60, currentGrass, hunger.Value, isEating)
+			t.Logf("  Позиция зайца: (%.1f, %.1f), порог голода=%.1f%%, найдена трава=%v", pos.X, pos.Y, config.HungerThreshold, foundGrass)
 			t.Logf("  Цвет: R=%d, G=%d, B=%d", currentColor.R, currentColor.G, currentColor.B)
 
 			// Проверяем что трава потреблена и цвет изменился
@@ -129,7 +163,7 @@ func TestGrassColorChangeE2E(t *testing.T) {
 		}
 	}
 
-	finalGrass := vegetationSystem.GetGrassAt(48, 48)
+	finalGrass := vegetationSystem.GetGrassAt(rabbitX, rabbitY)
 	finalColor := calculateGrassColor(finalGrass)
 	t.Logf("Финальная трава: %.1f единиц", finalGrass)
 	t.Logf("Финальный цвет: R=%d, G=%d, B=%d", finalColor.R, finalColor.G, finalColor.B)

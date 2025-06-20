@@ -1,6 +1,7 @@
 package simulation
 
 import (
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 )
 
@@ -9,12 +10,12 @@ import (
 
 // FeedingSystem управляет голодом и его влиянием на животных
 type FeedingSystem struct {
-	healthDamageTimer float32           // Таймер для нанесения урона здоровью
-	vegetation        *VegetationSystem // Ссылка на систему растительности
+	healthDamageTimer float32                 // Таймер для нанесения урона здоровью
+	vegetation        core.VegetationProvider // Интерфейс для работы с растительностью (соблюдение DIP)
 }
 
 // NewFeedingSystem создаёт новую систему питания
-func NewFeedingSystem(vegetation *VegetationSystem) *FeedingSystem {
+func NewFeedingSystem(vegetation core.VegetationProvider) *FeedingSystem {
 	return &FeedingSystem{
 		healthDamageTimer: 0,
 		vegetation:        vegetation,
@@ -23,7 +24,7 @@ func NewFeedingSystem(vegetation *VegetationSystem) *FeedingSystem {
 
 // Update обновляет систему голода для всех животных
 // Рефакторинг: использует специализированный интерфейс вместо полного World (ISP)
-func (fs *FeedingSystem) Update(world core.FeedingSystemAccess, deltaTime float32) {
+func (fs *FeedingSystem) Update(world core.SimulationAccess, deltaTime float32) {
 	fs.healthDamageTimer += deltaTime
 
 	// Обновляем голод для всех животных
@@ -34,10 +35,7 @@ func (fs *FeedingSystem) Update(world core.FeedingSystemAccess, deltaTime float3
 	// Питание зайцев травой
 	fs.handleRabbitFeeding(world, deltaTime)
 
-	// Обновляем скорости на основе голода
-	world.ForEachWith(core.MaskHunger|core.MaskSpeed, func(entity core.EntityID) {
-		fs.updateSpeedBasedOnHunger(world, entity)
-	})
+	// ПРИМЕЧАНИЕ: Обновление скорости на основе голода перенесено в HungerSpeedModifierSystem (SRP)
 
 	// Наносим урон здоровью голодающим животным (раз в секунду)
 	if fs.healthDamageTimer >= 1.0 { // Раз в секунду
@@ -47,7 +45,7 @@ func (fs *FeedingSystem) Update(world core.FeedingSystemAccess, deltaTime float3
 }
 
 // updateHunger обновляет голод животного
-func (fs *FeedingSystem) updateHunger(world core.FeedingSystemAccess, entity core.EntityID, deltaTime float32) {
+func (fs *FeedingSystem) updateHunger(world core.SimulationAccess, entity core.EntityID, deltaTime float32) {
 	hunger, ok := world.GetHunger(entity)
 	if !ok {
 		return
@@ -73,52 +71,13 @@ func (fs *FeedingSystem) updateHunger(world core.FeedingSystemAccess, entity cor
 	world.SetHunger(entity, hunger)
 }
 
-// updateSpeedBasedOnHunger обновляет скорость животного на основе сытости и здоровья
-// НОВАЯ ЛОГИКА (по требованию пользователя):
-// 1. Голодные (< 80%) бегают с полной скоростью (1.0)
-// 2. Сытые (> 80%) замедляются: скорость *= (1 + 0.8 - сытость/100)
-// 3. Раненые: скорость *= (процент_здоровья / 100)
-func (fs *FeedingSystem) updateSpeedBasedOnHunger(world core.FeedingSystemAccess, entity core.EntityID) {
-	hunger, hasHunger := world.GetHunger(entity)
-	speed, hasSpeed := world.GetSpeed(entity)
-
-	if !hasHunger || !hasSpeed {
-		return
-	}
-
-	var speedMultiplier float32 = 1.0
-
-	// НОВАЯ ЛОГИКА 1: Сытость влияет на скорость только при > 80%
-	if hunger.Value > OverfedSpeedThreshold {
-		// Сытые животные замедляются: скорость *= (1 + 0.8 - сытость)
-		// где сытость в долях от 1.0 (90% = 0.9, 95% = 0.95)
-		satietyRatio := hunger.Value / 100.0       //nolint:gomnd // Переводим проценты в доли (90% → 0.9)
-		speedMultiplier = 1.0 + 0.8 - satietyRatio //nolint:gomnd // Формула замедления сытых животных
-
-		// Минимальная скорость не меньше 0.1 (для безопасности)
-		if speedMultiplier < 0.1 { //nolint:gomnd // Минимальная скорость для безопасности
-			speedMultiplier = 0.1 //nolint:gomnd // Минимальная скорость для безопасности
-		}
-	}
-	// Голодные (< 80%) бегают с полной скоростью (speedMultiplier = 1.0)
-
-	// НОВАЯ ЛОГИКА 2: Здоровье влияет на скорость линейно (только если теряет хиты)
-	if health, hasHealth := world.GetHealth(entity); hasHealth {
-		if health.Current < health.Max {
-			// Раненое животное: скорость *= (процент_здоровья / 100)
-			healthRatio := float32(health.Current) / float32(health.Max)
-			speedMultiplier *= healthRatio
-		}
-		// Здоровые животные (100% хитов) не получают штрафа
-	}
-
-	// Обновляем текущую скорость
-	speed.Current = speed.Base * speedMultiplier
-	world.SetSpeed(entity, speed)
-}
+// УДАЛЕНО: updateSpeedBasedOnHunger перенесено в HungerSpeedModifierSystem
+//
+// ПРИНЦИП SRP: FeedingSystem отвечает только за голод и питание
+// Обновление скорости - ответственность HungerSpeedModifierSystem
 
 // damageStarvingAnimals наносит урон здоровью животным с голодом = 0
-func (fs *FeedingSystem) damageStarvingAnimals(world core.FeedingSystemAccess) {
+func (fs *FeedingSystem) damageStarvingAnimals(world core.SimulationAccess) {
 	world.ForEachWith(core.MaskHunger|core.MaskHealth, func(entity core.EntityID) {
 		hunger, ok1 := world.GetHunger(entity)
 		health, ok2 := world.GetHealth(entity)
@@ -184,11 +143,11 @@ func IsHungry(world core.ECSAccess, entity core.EntityID) bool {
 	}
 
 	// Fallback: используем умеренный порог
-	return hunger < 75.0 //nolint:gomnd // Fallback порог голода для неизвестных животных
+	return hunger < FallbackHungerThreshold
 }
 
 // handleRabbitFeeding обрабатывает питание зайцев травой
-func (fs *FeedingSystem) handleRabbitFeeding(world core.FeedingSystemAccess, _ float32) {
+func (fs *FeedingSystem) handleRabbitFeeding(world core.SimulationAccess, _ float32) {
 	if fs.vegetation == nil {
 		return
 	}
@@ -201,7 +160,7 @@ func (fs *FeedingSystem) handleRabbitFeeding(world core.FeedingSystemAccess, _ f
 }
 
 // processHerbivoreFeeding обрабатывает питание одного травоядного
-func (fs *FeedingSystem) processHerbivoreFeeding(world core.FeedingSystemAccess, entity core.EntityID) {
+func (fs *FeedingSystem) processHerbivoreFeeding(world core.SimulationAccess, entity core.EntityID) {
 	// Проверяем что это травоядное
 	behavior, hasBehavior := world.GetBehavior(entity)
 	if !hasBehavior || behavior.Type != core.BehaviorHerbivore {
@@ -236,14 +195,14 @@ func (fs *FeedingSystem) processHerbivoreFeeding(world core.FeedingSystemAccess,
 
 // shouldContinueOrStartEating проверяет должно ли животное продолжать или начать есть
 func (fs *FeedingSystem) shouldContinueOrStartEating(
-	world core.FeedingSystemAccess, entity core.EntityID, hunger core.Hunger, config core.AnimalConfig,
+	world core.SimulationAccess, entity core.EntityID, hunger core.Hunger, config core.AnimalConfig,
 ) bool {
 	// ИСПРАВЛЕНИЕ: Правильная логика гистерезиса для поедания
 	isCurrentlyEating := world.HasComponent(entity, core.MaskEatingState)
 
 	if isCurrentlyEating {
 		// Если уже ест - прекращаем только при полном насыщении (99.9% с допуском для float32)
-		const satietyThreshold = MaxHungerLimit - SatietyTolerance // Используем константы из game_balance.go
+		const satietyThreshold = MaxHungerLimit - constants.SatietyTolerance // Используем константы из game_balance.go
 		if hunger.Value >= satietyThreshold {
 			world.RemoveEatingState(entity)
 			return false
@@ -256,7 +215,7 @@ func (fs *FeedingSystem) shouldContinueOrStartEating(
 }
 
 // manageGrassEating управляет состоянием поедания травы
-func (fs *FeedingSystem) manageGrassEating(world core.FeedingSystemAccess, entity core.EntityID, pos core.Position) {
+func (fs *FeedingSystem) manageGrassEating(world core.SimulationAccess, entity core.EntityID, pos core.Position) {
 	// Проверка скорости не нужна - BehaviorSystem уже устанавливает скорость 0 для еды
 	// MovementSystem проверяет EatingState и останавливает движение
 
@@ -267,9 +226,10 @@ func (fs *FeedingSystem) manageGrassEating(world core.FeedingSystemAccess, entit
 		// НЕ даём сытость здесь - это будет делать GrassEatingSystem дискретно по завершении кадров анимации
 		if !world.HasComponent(entity, core.MaskEatingState) {
 			eatingState := core.EatingState{
-				Target:          GrassEatingTarget, // 0 = поедание травы (не сущность)
-				EatingProgress:  0.0,               //nolint:gomnd // Начальный прогресс
-				NutritionGained: 0.0,               //nolint:gomnd // Начальная питательность
+				Target:          GrassEatingTarget,          // 0 = поедание травы (не сущность)
+				TargetType:      core.EatingTargetGrass,     // Тип: поедание травы
+				EatingProgress:  constants.InitialProgress,  // Начальный прогресс
+				NutritionGained: constants.InitialNutrition, // Начальная питательность
 			}
 			world.AddEatingState(entity, eatingState)
 		}

@@ -35,13 +35,12 @@ func TestWolfAttackBehavior(t *testing.T) {
 	// Создаем только необходимые системы
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 	movementSystem := simulation.NewMovementSystem(worldSizePixels, worldSizePixels)
 
 	systemManager.AddSystem(vegetationSystem)
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
 	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
+	systemManager.AddSystem(adapters.NewFeedingSystemAdapter(vegetationSystem))
 
 	// Создаем волка и зайца рядом друг с другом
 	rabbitX, rabbitY := float32(160), float32(160) // Центр мира

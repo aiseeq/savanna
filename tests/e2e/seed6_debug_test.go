@@ -43,7 +43,6 @@ func TestSeed6Debug(t *testing.T) {
 	systemManager := core.NewSystemManager()
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 	combatSystem := simulation.NewCombatSystem()
 	movementSystem := simulation.NewMovementSystem(worldSizePixels, worldSizePixels)
 
@@ -51,7 +50,7 @@ func TestSeed6Debug(t *testing.T) {
 	systemManager.AddSystem(vegetationSystem)
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
 	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
+	systemManager.AddSystem(adapters.NewFeedingSystemAdapter(vegetationSystem))
 	systemManager.AddSystem(combatSystem)
 
 	// КРИТИЧЕСКИ ВАЖНО: анимационные системы как в GUI

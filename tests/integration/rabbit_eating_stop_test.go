@@ -25,10 +25,10 @@ func TestRabbitStopsWhenEating(t *testing.T) {
 	terrain := terrainGen.Generate()
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
 
-	// Создаём системы
+	// ИСПРАВЛЕНИЕ: Создаём новые системы питания (после рефакторинга)
+	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem) // Создаёт EatingState
 	behaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 	movementSystem := simulation.NewMovementSystem(TestWorldSize, TestWorldSize)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 
 	// Найдём место с травой
 	var grassX, grassY float32 = 100, 100 // Попробуем разные места
@@ -63,10 +63,10 @@ func TestRabbitStopsWhenEating(t *testing.T) {
 
 	// Симулируем 120 тиков (2 секунды)
 	for i := 0; i < 120; i++ {
-		// Обновляем в правильном порядке: сначала питание, потом поведение, потом движение
-		feedingSystem.Update(world, deltaTime)  // Создаёт EatingState если заяц на траве
-		behaviorSystem.Update(world, deltaTime) // Проверяет EatingState и не устанавливает скорость
-		movementSystem.Update(world, deltaTime) // Сбрасывает скорость если есть EatingState
+		// ИСПРАВЛЕНИЕ: Обновляем в правильном порядке с новыми системами
+		grassSearchSystem.Update(world, deltaTime) // Создаёт EatingState если заяц на траве
+		behaviorSystem.Update(world, deltaTime)    // Проверяет EatingState и не устанавливает скорость
+		movementSystem.Update(world, deltaTime)    // Сбрасывает скорость если есть EatingState
 
 		// Получаем состояние зайца
 		pos, _ := world.GetPosition(rabbit)

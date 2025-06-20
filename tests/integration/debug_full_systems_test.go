@@ -29,6 +29,7 @@ func TestFullSystemsOrder(t *testing.T) {
 
 	// Принудительно устанавливаем траву в центр
 	centerX, centerY := 25, 25
+	terrain.SetTileType(centerX, centerY, generator.TileGrass)
 	terrain.SetGrassAmount(centerX, centerY, 100.0)
 
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
@@ -36,26 +37,44 @@ func TestFullSystemsOrder(t *testing.T) {
 	// Создаём ВСЕ системы точно как в большом тесте
 	systemManager := core.NewSystemManager()
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
+
+	// НОВЫЕ СИСТЕМЫ (следуют принципу SRP):
+	hungerSystem := simulation.NewHungerSystem()                           // 1. Только управление голодом
+	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem) // 2. Только поиск травы и создание EatingState
+	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem()       // 3. Только влияние голода на скорость
+	starvationDamage := simulation.NewStarvationDamageSystem()             // 4. Только урон от голода
+
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
 	combatSystem := simulation.NewCombatSystem()
 	movementSystem := simulation.NewMovementSystem(1600, 1600)
 
 	// ДЕБАГ: проверяем что системы созданы правильно
 	t.Logf("СОЗДАННЫЕ СИСТЕМЫ:")
-	t.Logf("  feedingSystem: %v", feedingSystem != nil)
+	t.Logf("  hungerSystem: %v", hungerSystem != nil)
+	t.Logf("  grassSearchSystem: %v", grassSearchSystem != nil)
 	t.Logf("  animalBehaviorSystem: %v", animalBehaviorSystem != nil)
 	t.Logf("  grassEatingSystem: %v", grassEatingSystem != nil)
 
-	// Добавляем системы в ТОМ ЖЕ порядке что в большом тесте
-	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem}) // 1. Создаёт EatingState
-	// 2. Дискретное поедание травы по кадрам анимации
-	systemManager.AddSystem(grassEatingSystem)
-	// 3. Проверяет EatingState и не мешает еде
+	// Добавляем системы в правильном порядке (КРИТИЧЕСКИ ВАЖЕН ДЛЯ ПИТАНИЯ!)
+	systemManager.AddSystem(vegetationSystem)              // 1. Рост травы
+	systemManager.AddSystem(&adapters.HungerSystemAdapter{ // 2. Управление голодом
+		System: hungerSystem,
+	})
+	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{ // 3. Создание EatingState
+		System: grassSearchSystem,
+	})
+	systemManager.AddSystem(grassEatingSystem) // 4. Дискретное поедание травы
+	// 5. Поведение (проверяет EatingState)
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
-	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem}) // 4. Сбрасывает скорость едящих
-	systemManager.AddSystem(combatSystem)                                            // 5. Система боя
+	systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{ // 6. Влияние голода на скорость
+		System: hungerSpeedModifier,
+	})
+	// 7. Движение (сбрасывает скорость едящих)
+	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
+	systemManager.AddSystem(combatSystem)                            // 8. Система боя
+	systemManager.AddSystem(&adapters.StarvationDamageSystemAdapter{ // 9. Урон от голода
+		System: starvationDamage,
+	})
 
 	// Создаём зайца в центре где есть трава
 	rabbitX, rabbitY := float32(centerX*32+16), float32(centerY*32+16) // Центр тайла
@@ -78,7 +97,7 @@ func TestFullSystemsOrder(t *testing.T) {
 	t.Logf("  Трава в позиции: %.1f единиц", grassAmount)
 
 	// Проверяем что оба метода поиска травы работают
-	minGrassToFind := float32(simulation.MinGrassToFind)
+	minGrassToFind := float32(simulation.MinGrassAmountToFind)
 	searchRadius := float32(16.0) // Радиус зайца (было simulation.RabbitBaseRadius)
 	grassX, grassY, foundGrass := vegetationSystem.FindNearestGrass(pos.X, pos.Y, searchRadius, minGrassToFind)
 

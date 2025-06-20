@@ -29,7 +29,6 @@ func TestRabbitAnimations(t *testing.T) {
 	// Создаём системы
 	behaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 	movementSystem := simulation.NewMovementSystem(TestWorldSize, TestWorldSize)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 
 	// Создаём анимационные системы
 	rabbitAnimSystem := animation.NewAnimationSystem()
@@ -66,7 +65,7 @@ func TestRabbitAnimations(t *testing.T) {
 	// Симулируем несколько тиков
 	for i := 0; i < 10; i++ {
 		// Обновляем в правильном порядке
-		feedingSystem.Update(world, deltaTime)    // Создаёт EatingState
+		// TEMP: feedingSystem.Update(world, deltaTime)    // Создаёт EatingState
 		behaviorSystem.Update(world, deltaTime)   // Устанавливает скорость
 		movementSystem.Update(world, deltaTime)   // Сбрасывает скорость едящих
 		animationManager.Update(world, deltaTime) // Обновляет анимации

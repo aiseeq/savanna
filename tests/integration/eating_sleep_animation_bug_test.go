@@ -31,11 +31,10 @@ func TestEatingSleepAnimationBug(t *testing.T) {
 	systemManager := core.NewSystemManager()
 	behaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 	movementSystem := simulation.NewMovementSystem(TestWorldSize, TestWorldSize)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 
 	// Добавляем системы в правильном порядке
 	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
+	systemManager.AddSystem(adapters.NewFeedingSystemAdapter(vegetationSystem))
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: behaviorSystem})
 	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
 

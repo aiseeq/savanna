@@ -36,6 +36,7 @@ func TestAnimationInvestigation(t *testing.T) {
 	tileType := terrain.GetTileType(centerX, centerY)
 	t.Logf("Тип тайла (%d, %d): %v", centerX, centerY, tileType)
 
+	terrain.SetTileType(centerX, centerY, generator.TileGrass)
 	terrain.SetGrassAmount(centerX, centerY, 100.0)
 
 	// Проверяем что трава действительно установилась
@@ -47,14 +48,13 @@ func TestAnimationInvestigation(t *testing.T) {
 	// Создаём ВСЕ системы точно как в GUI main.go
 	systemManager := core.NewSystemManager()
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
 	combatSystem := simulation.NewCombatSystem()
 	movementSystem := simulation.NewMovementSystem(1600, 1600)
 
 	// Добавляем системы в ТОМ ЖЕ порядке что в GUI
 	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem}) // 1. Создаёт EatingState
+	systemManager.AddSystem(adapters.NewFeedingSystemAdapter(vegetationSystem)) // 1. Создаёт EatingState
 	// 2. Дискретное поедание травы по кадрам анимации
 	systemManager.AddSystem(grassEatingSystem)
 	// 3. Проверяет EatingState и не мешает еде
@@ -143,7 +143,7 @@ func TestAnimationInvestigation(t *testing.T) {
 		t.Logf("ДО обновления:")
 		t.Logf("  Позиция: (%.1f, %.1f), Тайл: (%d, %d)", pos.X, pos.Y, tileX, tileY)
 		t.Logf("  Голод: %.1f%% (порог %.1f%%), Трава через VegetationSystem: %.1f, Трава в terrain тайле: %.1f",
-			hunger.Value, simulation.RabbitHungryThreshold, grassBefore, grassInTile)
+			hunger.Value, simulation.RabbitHungerThreshold, grassBefore, grassInTile)
 		t.Logf("  EatingState: %v, Анимация: %s (код %d, кадр %d)",
 			isEatingBefore, animTypeBefore.String(), anim.CurrentAnim, anim.Frame)
 

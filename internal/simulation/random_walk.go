@@ -32,7 +32,7 @@ func (rwu *RandomWalkUtility) GetRandomWalkVelocity(
 		angle := rng.Float64() * 2 * math.Pi
 
 		// Случайная скорость (используем константы из game_balance.go)
-		speedMultiplier := RandomSpeedMin + rng.Float64()*(RandomSpeedMax-RandomSpeedMin)
+		speedMultiplier := RandomSpeedMinMultiplier + rng.Float64()*(RandomSpeedMaxMultiplier-RandomSpeedMinMultiplier)
 
 		vel := core.Velocity{
 			X: float32(math.Cos(angle)) * maxSpeed * float32(speedMultiplier),
