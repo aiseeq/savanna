@@ -43,11 +43,36 @@ run-animviewer: build ## Запустить просмотрщик анимац�
 	@echo "Запуск просмотрщика анимаций..."
 	DISPLAY=:0 MIT_SHM=0 LIBGL_ALWAYS_SOFTWARE=1 GDK_SCALE=1 GDK_DPI_SCALE=1 QT_AUTO_SCREEN_SCALE_FACTOR=0 QT_SCALE_FACTOR=1 QT_SCREEN_SCALE_FACTORS=1 XCURSOR_SIZE=16 EBITEN_GRAPHICS_LIBRARY=opengl XFORCEDPI=96 ./bin/savanna-animviewer --show wolf
 
-test: ## Все тесты
+test: ## Все стандартные тесты
 	go test ./...
+
+test-advanced: ## Все продвинутые тесты (property, contract, behavioral, chaos)
+	@echo "🧪 Запуск продвинутых тестов..."
+	go test ./tests/property/... -v
+	go test ./tests/contract/... -v
+	go test ./tests/behavioral/... -v
+	go test ./tests/chaos/... -v
+
+test-all: test test-advanced ## Все тесты включая продвинутые
 
 test-unit: ## Только unit тесты
 	go test ./tests/unit/...
+
+test-property: ## Property-based тесты
+	go test ./tests/property/... -v
+
+test-contract: ## Contract тесты
+	go test ./tests/contract/... -v
+
+test-behavioral: ## Behavioral тесты (Given-When-Then)
+	go test ./tests/behavioral/... -v
+
+test-chaos: ## Chaos Engineering тесты
+	go test ./tests/chaos/... -v
+
+test-mutation: ## Mutation testing (проверка качества тестов)
+	@echo "🧬 Запуск Mutation Testing..."
+	./scripts/mutation_testing.sh
 
 test-perf: ## Тесты производительности
 	go test ./tests/performance/... -v
