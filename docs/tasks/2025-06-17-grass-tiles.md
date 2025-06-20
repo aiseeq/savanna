@@ -95,40 +95,6 @@
 
 ---
 
-### 🌱 ПРОМПТ 2 — Молодые ростки (25%) [ДЕЛАТЬ ТРЕТЬИМ]
-
-**Create an isometric grass tile showing early savanna grass growth with sparse young shoots.**
-
-**VISUAL STYLE:**
-* Hand-drawn illustration style (NOT pixel art) 
-* Vibrant, saturated African savanna colors
-* Clean, crisp edges for good scaling
-* 1024x1024 square image
-* Transparent background
-* 45-degree isometric perspective (top-down view)
-
-**TILE STRUCTURE:**
-* Diamond-shaped soil base occupies BOTTOM HALF of image (512px height)
-* Young grass grows in UPPER ZONE above the soil diamond
-* Soil position EXACTLY MATCHES the dense grass tile variation
-
-**TERRAIN FEATURES:**
-* Same reddish-brown soil base as dense grass version
-* 5-8 small grass shoots scattered in upper growing zone
-* Young grass: bright light green (#90EE90, #32CD32)
-* Shoots are thin, 2-3 blades each
-* Height: very short, barely reaching into upper zone
-* Most upper area still empty/transparent
-* Fresh, vibrant green color
-* SAME diamond soil shape and position as other variants
-
-**LIGHTING:**
-* Bright African sun from upper-left
-* Grass casts tiny shadows
-* Mix of warm soil and cool green tones
-
----
-
 ### 🌾 ПРОМПТ 3 — Средняя трава (50%) [ДЕЛАТЬ ВТОРЫМ]
 
 **Create an isometric grass tile showing medium savanna grass coverage with growing vegetation.**
@@ -160,6 +126,40 @@
 * Bright African sun from upper-left
 * Clear grass shadows on soil
 * Balanced warm and cool color harmony
+
+---
+
+### 🌱 ПРОМПТ 2 — Молодые ростки (25%) [ДЕЛАТЬ ТРЕТЬИМ]
+
+**Create an isometric grass tile showing early savanna grass growth with sparse young shoots.**
+
+**VISUAL STYLE:**
+* Hand-drawn illustration style (NOT pixel art) 
+* Vibrant, saturated African savanna colors
+* Clean, crisp edges for good scaling
+* 1024x1024 square image
+* Transparent background
+* 45-degree isometric perspective (top-down view)
+
+**TILE STRUCTURE:**
+* Diamond-shaped soil base occupies BOTTOM HALF of image (512px height)
+* Young grass grows in UPPER ZONE above the soil diamond
+* Soil position EXACTLY MATCHES the dense grass tile variation
+
+**TERRAIN FEATURES:**
+* Same reddish-brown soil base as dense grass version
+* 5-8 small grass shoots scattered in upper growing zone
+* Young grass: bright light green (#90EE90, #32CD32)
+* Shoots are thin, 2-3 blades each
+* Height: very short, barely reaching into upper zone
+* Most upper area still empty/transparent
+* Fresh, vibrant green color
+* SAME diamond soil shape and position as other variants
+
+**LIGHTING:**
+* Bright African sun from upper-left
+* Grass casts tiny shadows
+* Mix of warm soil and cool green tones
 
 ---
 
