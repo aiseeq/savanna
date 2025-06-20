@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	_ "embed"
 	"flag"
 	"fmt"
 	"image/color"
@@ -10,6 +9,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"path/filepath"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -19,9 +19,7 @@ import (
 	"github.com/aiseeq/savanna/internal/animation"
 )
 
-// Встроенный шрифт DejaVu Sans Mono
-//
-//go:embed DejaVuSansMono.ttf
+// Встроенный шрифт DejaVu Sans Mono будет загружаться из assets/fonts/
 var dejaVuSansMonoTTF []byte
 
 var dejaVuSansMonoFace *text.GoTextFace
@@ -493,8 +491,14 @@ func main() {
 	animalType := flag.String("show", "wolf", "Тип животного для показа анимаций (wolf, rabbit)")
 	flag.Parse()
 
-	// Инициализируем шрифт
-	fontSource, err := text.NewGoTextFaceSource(bytes.NewReader(dejaVuSansMonoTTF))
+	// Инициализируем шрифт из файла
+	fontPath := filepath.Join("assets", "fonts", "DejaVuSansMono.ttf")
+	fontData, err := os.ReadFile(fontPath)
+	if err != nil {
+		log.Fatalf("Не удалось загрузить шрифт %s: %v", fontPath, err)
+	}
+
+	fontSource, err := text.NewGoTextFaceSource(bytes.NewReader(fontData))
 	if err != nil {
 		log.Fatal(err)
 	}
