@@ -26,6 +26,7 @@ func TestSystemManagerExecution(t *testing.T) {
 	cfg.World.Size = 50
 	terrainGen := generator.NewTerrainGenerator(cfg)
 	terrain := terrainGen.Generate()
+	terrain.SetTileType(25, 25, generator.TileGrass)
 	terrain.SetGrassAmount(25, 25, 100.0)
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
 
@@ -34,7 +35,6 @@ func TestSystemManagerExecution(t *testing.T) {
 	world.SetHunger(rabbit, core.Hunger{Value: 70.0}) // Голодный
 
 	// Создаём систему и менеджер
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 	systemManager := core.NewSystemManager()
 
 	// Проверяем начальное состояние
@@ -45,10 +45,11 @@ func TestSystemManagerExecution(t *testing.T) {
 	t.Logf("  Голод: %.1f%%", hungerBefore.Value)
 	t.Logf("  EatingState: %v", eatingStateBefore)
 
-	// ТЕСТ 1: Вызов FeedingSystem напрямую (должен работать)
-	t.Logf("\n--- ТЕСТ 1: Прямой вызов FeedingSystem ---")
+	// ТЕСТ 1: Вызов DeprecatedFeedingSystem напрямую (должен работать)
+	t.Logf("\n--- ТЕСТ 1: Прямой вызов DeprecatedFeedingSystem ---")
 	deltaTime := float32(1.0 / 60.0)
-	feedingSystem.Update(world, deltaTime)
+	feedingSystemAdapter := adapters.NewDeprecatedFeedingSystemAdapter(vegetationSystem)
+	feedingSystemAdapter.Update(world, deltaTime)
 
 	hungerAfterDirect, _ := world.GetHunger(rabbit)
 	eatingStateAfterDirect := world.HasComponent(rabbit, core.MaskEatingState)
@@ -69,7 +70,7 @@ func TestSystemManagerExecution(t *testing.T) {
 
 	// ТЕСТ 2: Вызов через FeedingSystemAdapter (должен работать)
 	t.Logf("\n--- ТЕСТ 2: Вызов через Adapter ---")
-	adapter := &adapters.FeedingSystemAdapter{System: feedingSystem}
+	adapter := adapters.NewFeedingSystemAdapter(vegetationSystem)
 	adapter.Update(world, deltaTime)
 
 	hungerAfterAdapter, _ := world.GetHunger(rabbit)

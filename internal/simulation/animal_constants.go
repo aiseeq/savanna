@@ -1,60 +1,43 @@
 package simulation
 
-// Константы для создания животных - используются только при создании
-// Системы работают через компоненты Size, Speed, AnimalType
+// animal_constants.go - Алиасы для обратной совместимости (DRY рефакторинг)
+//
+// ПРИНЦИП DRY: Все реальные константы теперь в game_balance.go
+// ПРИНЦИП OCP: Существующий код продолжает работать без изменений
+//
+// РЕКОМЕНДАЦИЯ: В новом коде используйте константы напрямую из game_balance.go
 
-// Параметры создания зайца (используют константы из game_balance.go)
+// === АЛИАСЫ ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ ===
+
+// Размеры и скорости животных (алиасы от game_balance.go)
 const (
-	RabbitRadius        = RabbitBaseRadius // Радиус коллизий зайца
-	RabbitSpeed         = RabbitBaseSpeed  // Базовая скорость зайца
-	RabbitInitialHunger = 80.0             // Начальная сытость зайца (80%)
+	RabbitRadius = RabbitBaseRadius // DEPRECATED: используйте RabbitBaseRadius
+	RabbitSpeed  = RabbitBaseSpeed  // DEPRECATED: используйте RabbitBaseSpeed
+	WolfRadius   = WolfBaseRadius   // DEPRECATED: используйте WolfBaseRadius
+	WolfSpeed    = WolfBaseSpeed    // DEPRECATED: используйте WolfBaseSpeed
 )
 
-// Параметры создания волка (используют константы из game_balance.go)
+// Производные константы (вычисляемые от базовых)
 const (
-	WolfRadius        = WolfBaseRadius                             // Радиус коллизий волка
-	WolfSpeed         = WolfBaseSpeed                              // Базовая скорость волка
-	WolfAttackRange   = WolfBaseRadius * WolfAttackRangeMultiplier // Дальность атаки волка
-	WolfInitialHunger = 70.0                                       // Начальная сытость волка (70%)
+	WolfAttackRange   = WolfBaseRadius * WolfAttackRangeMultiplier // DEPRECATED
+	VisionRangeRabbit = RabbitBaseRadius * RabbitVisionMultiplier  // DEPRECATED
+	VisionRangeWolf   = WolfBaseRadius * WolfVisionMultiplier      // DEPRECATED
 )
 
-// Дальности видения (используются при создании компонента Behavior)
+// Пороги поведения (алиасы от game_balance.go)
 const (
-	VisionRangeRabbit = RabbitBaseRadius * RabbitVisionMultiplier // Дальность видения зайца
-	VisionRangeWolf   = WolfBaseRadius * WolfVisionMultiplier     // Дальность видения волка
+	RabbitHungryThreshold = RabbitHungerThreshold // DEPRECATED: используйте RabbitHungerThreshold
 )
 
-// Пороги поведения (используются системами через компонент AnimalType)
-const (
-	RabbitHungryThreshold = RabbitHungerThreshold // Заяц начинает есть при голоде < 90%
-)
-
-// Константы унаследованы из game_balance.go (убираем дублирование)
-// Здесь остаются только алиасы для обратной совместимости
-
-// Константы для обратной совместимости (используют game_balance.go)
-const (
-	// Алиасы системных констант
-	HungerDecreaseRate = BaseHungerDecreaseRate
-	HealthDamageRate   = BaseHealthDamageRate
-	MinGrassToFind     = MinGrassAmountToFind
-	MaxHungerValue     = MaxHungerLimit
-
-	// Алиасы констант поедания травы (сохраняем оригинальные имена)
-	GrassPerTick        = GrassPerEatingTick
-	GrassNutritionRatio = GrassNutritionValue
-
-	// Алиасы множителей скорости (сохраняем оригинальные имена)
-	SpeedSearchingFood = SearchSpeedMultiplier
-	SpeedWanderingFood = WanderingSpeedMultiplier
-	SpeedContentWalk   = ContentSpeedMultiplier
-
-	// Алиасы порогов влияния голода на скорость
-	FastHungerThreshold = OverfedSpeedThreshold
-
-	// Алиасы параметров случайного движения (сохраняем оригинальные имена)
-	RandomWalkMinTime = RandomWalkTimeMin
-	RandomWalkMaxTime = RandomWalkTimeMax
-	RandomSpeedMin    = RandomSpeedMinMultiplier
-	RandomSpeedMax    = RandomSpeedMaxMultiplier
-)
+// === МИГРАЦИОННОЕ РУКОВОДСТВО ===
+//
+// Вместо:  simulation.RabbitRadius
+// Теперь:  simulation.RabbitBaseRadius
+//
+// Вместо:  simulation.WolfAttackRange
+// Теперь:  simulation.WolfBaseRadius * simulation.WolfAttackRangeMultiplier
+//
+// Вместо:  simulation.VisionRangeRabbit
+// Теперь:  simulation.RabbitBaseRadius * simulation.RabbitVisionMultiplier
+//
+// Все основные константы централизованы в game_balance.go для единого управления балансом.

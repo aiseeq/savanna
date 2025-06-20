@@ -10,8 +10,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 
 	"github.com/aiseeq/savanna/internal/animation"
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
-	"github.com/aiseeq/savanna/internal/simulation"
 )
 
 // SpriteRenderer отвечает за загрузку и отрисовку спрайтов животных
@@ -82,7 +82,7 @@ func (sr *SpriteRenderer) loadAnimationFrames(prefix, animName string, frameCoun
 		if err != nil {
 			fmt.Printf("⚠️  Не удалось загрузить %s: %v\n", filePath, err)
 			// Создаём fallback спрайт (цветной квадрат)
-			img = sr.createFallbackSprite(simulation.DefaultSpriteSize, simulation.DefaultSpriteSize)
+			img = sr.createFallbackSprite(constants.DefaultSpriteSize, constants.DefaultSpriteSize)
 		}
 
 		frames = append(frames, img)
@@ -152,9 +152,9 @@ func (sr *SpriteRenderer) DrawAnimal(
 	// Масштабирование (разное для разных животных)
 	var spriteScale float64
 	if animalType == core.TypeRabbit {
-		spriteScale = float64(params.Zoom) * simulation.RabbitSpriteScale // Масштаб спрайта зайца
+		spriteScale = float64(params.Zoom) * constants.RabbitSpriteScale // Масштаб спрайта зайца
 	} else {
-		spriteScale = float64(params.Zoom) * simulation.WolfSpriteScale // Масштаб спрайта волка
+		spriteScale = float64(params.Zoom) * constants.WolfSpriteScale // Масштаб спрайта волка
 	}
 	op.GeoM.Scale(spriteScale, spriteScale)
 
@@ -209,10 +209,10 @@ func (sr *SpriteRenderer) applyDamageFlash(world *core.World, entity core.Entity
 	intensity := flash.Intensity
 
 	// Увеличиваем масштаб всех цветовых каналов с усилением эффекта
-	// Формула: оригинальный цвет * (1 + intensity * 5)
+	// Формула: оригинальный цвет * (1 + intensity * multiplier)
 	// При intensity=1.0: цвет умножается на 6 (ярко-белый эффект!)
 	// При intensity=0.0: цвет остается неизменным
-	scale := 1.0 + intensity*5.0 // Усиление эффекта в 5 раз
+	scale := 1.0 + intensity*constants.DamageFlashIntensityMultiplier
 
 	op.ColorScale.Scale(scale, scale, scale, 1.0) // R, G, B увеличиваются, A остается
 }

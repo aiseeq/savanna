@@ -28,20 +28,39 @@ func TestDebugFeeding(t *testing.T) {
 	terrainGen := generator.NewTerrainGenerator(cfg)
 	terrain := terrainGen.Generate()
 
-	// Устанавливаем траву
-	terrain.SetGrassAmount(1, 1, 100.0) // Много травы
+	// Устанавливаем траву (ИСПРАВЛЕНИЕ: сначала тип тайла, потом количество)
+	terrain.SetTileType(1, 1, generator.TileGrass) // Устанавливаем тип "трава"
+	terrain.SetGrassAmount(1, 1, 100.0)            // Много травы
 
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
+
+	// НОВЫЕ СИСТЕМЫ (следуют принципу SRP):
+	hungerSystem := simulation.NewHungerSystem()                           // 1. Только управление голодом
+	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem) // 2. Только поиск травы и создание EatingState
+	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem()       // 3. Только влияние голода на скорость
+	starvationDamage := simulation.NewStarvationDamageSystem()             // 4. Только урон от голода
+
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
 	behaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 
-	// Создаём systemManager как в полном тесте
+	// Создаём systemManager в правильном порядке
 	systemManager := core.NewSystemManager()
-	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
-	systemManager.AddSystem(&adapters.GrassEatingSystemAdapter{System: grassEatingSystem})
+	systemManager.AddSystem(vegetationSystem)              // 1. Рост травы
+	systemManager.AddSystem(&adapters.HungerSystemAdapter{ // 2. Управление голодом
+		System: hungerSystem,
+	})
+	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{ // 3. Создание EatingState
+		System: grassSearchSystem,
+	})
+	systemManager.AddSystem(&adapters.GrassEatingSystemAdapter{System: grassEatingSystem}) // 4. Дискретное поедание травы
+	// 5. Поведение (проверяет EatingState)
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: behaviorSystem})
+	systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{ // 6. Влияние голода на скорость
+		System: hungerSpeedModifier,
+	})
+	systemManager.AddSystem(&adapters.StarvationDamageSystemAdapter{ // 7. Урон от голода
+		System: starvationDamage,
+	})
 
 	// Создаём зайца в центре тайла с травой
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 48, 48) // Центр тайла (1,1)
@@ -55,24 +74,24 @@ func TestDebugFeeding(t *testing.T) {
 	grassAmount := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
 	t.Logf("Позиция зайца: (%.1f, %.1f)", pos.X, pos.Y)
-	t.Logf("Голод зайца: %.1f%% (должен быть < %.1f%%)", hunger.Value, simulation.RabbitHungryThreshold)
-	t.Logf("Трава в позиции: %.1f единиц (минимум %.1f)", grassAmount, simulation.MinGrassToFind)
+	t.Logf("Голод зайца: %.1f%% (должен быть < %.1f%%)", hunger.Value, simulation.RabbitHungerThreshold)
+	t.Logf("Трава в позиции: %.1f единиц (минимум %.1f)", grassAmount, simulation.MinGrassAmountToFind)
 
 	// Проверяем все условия вручную
-	if hunger.Value >= simulation.RabbitHungryThreshold {
-		t.Errorf("❌ Заяц слишком сыт: %.1f%% >= %.1f%%", hunger.Value, simulation.RabbitHungryThreshold)
+	if hunger.Value >= simulation.RabbitHungerThreshold {
+		t.Errorf("❌ Заяц слишком сыт: %.1f%% >= %.1f%%", hunger.Value, simulation.RabbitHungerThreshold)
 	} else {
-		t.Logf("✅ Заяц голоден: %.1f%% < %.1f%%", hunger.Value, simulation.RabbitHungryThreshold)
+		t.Logf("✅ Заяц голоден: %.1f%% < %.1f%%", hunger.Value, simulation.RabbitHungerThreshold)
 	}
 
-	if grassAmount < simulation.MinGrassToFind {
-		t.Errorf("❌ Недостаточно травы: %.1f < %.1f", grassAmount, simulation.MinGrassToFind)
+	if grassAmount < simulation.MinGrassAmountToFind {
+		t.Errorf("❌ Недостаточно травы: %.1f < %.1f", grassAmount, simulation.MinGrassAmountToFind)
 	} else {
-		t.Logf("✅ Достаточно травы: %.1f >= %.1f", grassAmount, simulation.MinGrassToFind)
+		t.Logf("✅ Достаточно травы: %.1f >= %.1f", grassAmount, simulation.MinGrassAmountToFind)
 	}
 
 	deltaTime := float32(1.0 / 60.0)
-	grassToEat := simulation.GrassPerTick * deltaTime
+	grassToEat := simulation.GrassPerEatingTick * deltaTime
 	t.Logf("Должно съесть травы: %.6f за тик", grassToEat)
 
 	// Симулируем ConsumeGrassAt
@@ -90,6 +109,7 @@ func TestDebugFeeding(t *testing.T) {
 			// Имитируем создание EatingState
 			eatingState := core.EatingState{
 				Target:          0,
+				TargetType:      core.EatingTargetGrass, // Тип: поедание травы
 				EatingProgress:  0.0,
 				NutritionGained: 0.0,
 			}

@@ -1,9 +1,16 @@
 package main
 
 import (
-	"github.com/aiseeq/savanna/internal/simulation"
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+)
+
+// Константы управления временем (устраняет магические числа)
+const (
+	NormalTimeScale    = 1.0 // Нормальная скорость времени
+	FastTimeScale      = 2.0 // Быстрая скорость (2x)
+	SuperFastTimeScale = 5.0 // Сверхбыстрая скорость (5x)
 )
 
 // TimeManager управляет временем симуляции
@@ -19,8 +26,8 @@ type TimeManager struct {
 // NewTimeManager создаёт новый менеджер времени
 func NewTimeManager() *TimeManager {
 	return &TimeManager{
-		deltaTime: simulation.StandardDeltaTime, // Стандартный deltaTime (1/60)
-		timeScale: 1.0,                          // Нормальная скорость
+		deltaTime: constants.StandardDeltaTime, // Стандартный deltaTime (1/60)
+		timeScale: 1.0,                         // Нормальная скорость
 		isPaused:  false,
 	}
 }
@@ -72,22 +79,22 @@ func (tm *TimeManager) handleSpeedIncrease() {
 
 	if tm.isPaused {
 		tm.isPaused = false
-		tm.timeScale = 1.0 //nolint:gomnd // Нормальная скорость
+		tm.timeScale = NormalTimeScale
 		return
 	}
 
 	// Увеличиваем скорость: 0.25 -> 0.5 -> 1.0 -> 2.0 -> 4.0 -> 8.0
 	switch {
-	case tm.timeScale < simulation.TimeScaleHalf:
-		tm.timeScale = simulation.TimeScaleHalf
-	case tm.timeScale < 1.0: //nolint:gomnd // Нормальная скорость
+	case tm.timeScale < constants.TimeScaleHalf:
+		tm.timeScale = constants.TimeScaleHalf
+	case tm.timeScale < NormalTimeScale:
 		tm.timeScale = 1.0
-	case tm.timeScale < simulation.TimeScaleDouble:
-		tm.timeScale = simulation.TimeScaleDouble
-	case tm.timeScale < simulation.TimeScaleQuad:
-		tm.timeScale = simulation.TimeScaleQuad
-	case tm.timeScale < simulation.TimeScaleOcta:
-		tm.timeScale = simulation.TimeScaleOcta
+	case tm.timeScale < constants.TimeScaleDouble:
+		tm.timeScale = constants.TimeScaleDouble
+	case tm.timeScale < constants.TimeScaleQuad:
+		tm.timeScale = constants.TimeScaleQuad
+	case tm.timeScale < constants.TimeScaleOcta:
+		tm.timeScale = constants.TimeScaleOcta
 	}
 	// Максимум 8x
 }
@@ -99,16 +106,16 @@ func (tm *TimeManager) handleSpeedDecrease() {
 	}
 
 	switch {
-	case tm.timeScale > simulation.TimeScaleQuad:
-		tm.timeScale = simulation.TimeScaleQuad
-	case tm.timeScale > simulation.TimeScaleDouble:
-		tm.timeScale = simulation.TimeScaleDouble
-	case tm.timeScale > 1.0: //nolint:gomnd // Нормальная скорость
+	case tm.timeScale > constants.TimeScaleQuad:
+		tm.timeScale = constants.TimeScaleQuad
+	case tm.timeScale > constants.TimeScaleDouble:
+		tm.timeScale = constants.TimeScaleDouble
+	case tm.timeScale > NormalTimeScale:
 		tm.timeScale = 1.0
-	case tm.timeScale > simulation.TimeScaleHalf:
-		tm.timeScale = simulation.TimeScaleHalf
-	case tm.timeScale > simulation.TimeScaleQuarter:
-		tm.timeScale = simulation.TimeScaleQuarter
+	case tm.timeScale > constants.TimeScaleHalf:
+		tm.timeScale = constants.TimeScaleHalf
+	case tm.timeScale > constants.TimeScaleQuarter:
+		tm.timeScale = constants.TimeScaleQuarter
 	default:
 		//nolint:gocritic // commentedOutCode: Это описательный комментарий, не код
 		// Минимум = пауза
@@ -120,13 +127,13 @@ func (tm *TimeManager) handleSpeedDecrease() {
 func (tm *TimeManager) handleDirectSpeedKeys() {
 	switch {
 	case inpututil.IsKeyJustPressed(ebiten.Key1):
-		tm.timeScale = 1.0 //nolint:gomnd // Нормальная скорость
+		tm.timeScale = NormalTimeScale
 		tm.isPaused = false
 	case inpututil.IsKeyJustPressed(ebiten.Key2):
-		tm.timeScale = 2.0 //nolint:gomnd // 2x скорость
+		tm.timeScale = FastTimeScale
 		tm.isPaused = false
 	case inpututil.IsKeyJustPressed(ebiten.Key3):
-		tm.timeScale = 5.0 //nolint:gomnd // 5x скорость
+		tm.timeScale = SuperFastTimeScale
 		tm.isPaused = false
 	case inpututil.IsKeyJustPressed(ebiten.Key0):
 		tm.isPaused = true // Пауза
@@ -135,11 +142,11 @@ func (tm *TimeManager) handleDirectSpeedKeys() {
 
 // clampTimeScale ограничивает масштаб времени допустимыми значениями
 func (tm *TimeManager) clampTimeScale() {
-	if tm.timeScale < simulation.TimeScaleMinimum {
-		tm.timeScale = simulation.TimeScaleMinimum
+	if tm.timeScale < constants.TimeScaleMinimum {
+		tm.timeScale = constants.TimeScaleMinimum
 	}
-	if tm.timeScale > simulation.TimeScaleMaximum {
-		tm.timeScale = simulation.TimeScaleMaximum
+	if tm.timeScale > constants.TimeScaleMaximum {
+		tm.timeScale = constants.TimeScaleMaximum
 	}
 }
 

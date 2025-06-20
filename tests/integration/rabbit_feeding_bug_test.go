@@ -7,6 +7,7 @@ import (
 	"github.com/aiseeq/savanna/config"
 	"github.com/aiseeq/savanna/internal/adapters"
 	"github.com/aiseeq/savanna/internal/animation"
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
@@ -42,8 +43,7 @@ func TestRabbitFeedingBugE2E(t *testing.T) {
 	systemManager.AddSystem(vegetationSystem)
 
 	// FeedingSystem (как в игре)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
+	systemManager.AddSystem(adapters.NewFeedingSystemAdapter(vegetationSystem))
 
 	// GrassEatingSystem (как в игре)
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
@@ -80,6 +80,7 @@ func TestRabbitFeedingBugE2E(t *testing.T) {
 	// Размещаем траву прямо под зайцем
 	tileX := int(160 / 32)
 	tileY := int(160 / 32)
+	terrain.SetTileType(tileX, tileY, generator.TileGrass)
 	terrain.SetGrassAmount(tileX, tileY, 100.0) // Много травы
 
 	pos, _ := world.GetPosition(rabbit)
@@ -91,7 +92,7 @@ func TestRabbitFeedingBugE2E(t *testing.T) {
 	t.Logf("  Голод зайца: %.1f%%", hunger.Value)
 	t.Logf("  Трава в позиции: %.1f единиц", grassAmount)
 	t.Logf("  SatietyThreshold: %.1f%% (заяц должен прекратить есть на этом уровне)",
-		simulation.MaxHungerValue-simulation.SatietyTolerance)
+		constants.MaxNutritionalValue-constants.SatietyTolerance)
 
 	// Проверяем начальные условия
 	if grassAmount < 50.0 {
@@ -99,7 +100,7 @@ func TestRabbitFeedingBugE2E(t *testing.T) {
 		return
 	}
 
-	satietyThreshold := float32(simulation.MaxHungerValue - simulation.SatietyTolerance)
+	satietyThreshold := float32(constants.MaxNutritionalValue - constants.SatietyTolerance)
 	if hunger.Value >= satietyThreshold {
 		t.Errorf("❌ Заяц слишком сыт для теста: %.1f%% >= %.1f%%", hunger.Value, satietyThreshold)
 		return
@@ -203,7 +204,7 @@ func TestRabbitFeedingBugE2E(t *testing.T) {
 			}
 
 			// КРИТИЧЕСКАЯ ПРОВЕРКА: заяц НЕ должен превышать максимально возможное значение голода
-			maxPossibleHunger := float32(simulation.MaxHungerValue)
+			maxPossibleHunger := float32(constants.MaxNutritionalValue)
 			if currentHunger.Value > maxPossibleHunger {
 				t.Errorf("❌ БАГ: Заяц превысил максимальное значение голода!")
 				t.Errorf("   Текущий голод: %.1f%% > %.1f%% (максимум)", currentHunger.Value, maxPossibleHunger)
@@ -246,7 +247,7 @@ func TestRabbitFeedingBugE2E(t *testing.T) {
 		t.Errorf("   ПРОБЛЕМА: Заяц НИКОГДА не начал есть!")
 	} else {
 		// ИСПРАВЛЕНИЕ: Проверяем новый порог насыщения (99.9%)
-		satietyThreshold := float32(simulation.MaxHungerValue - simulation.SatietyTolerance)
+		satietyThreshold := float32(constants.MaxNutritionalValue - constants.SatietyTolerance)
 		if finalHunger.Value < satietyThreshold {
 			t.Errorf("   ПРОБЛЕМА: Заяц не достиг порога насыщения %.1f%% (получил %.1f%%)",
 				satietyThreshold, finalHunger.Value)

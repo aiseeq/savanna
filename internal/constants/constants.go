@@ -12,8 +12,9 @@ const (
 	TileSizePixels         = 32     // Размер одного тайла в пикселях
 
 	// Константы анимации
-	AnimationFrameZero = 0 // Первый кадр анимации (windup)
-	AnimationFrameOne  = 1 // Второй кадр анимации (strike/action)
+	AnimationFrameZero  = 0     // Первый кадр анимации (windup)
+	AnimationFrameOne   = 1     // Второй кадр анимации (strike/action)
+	LargeAnimationTimer = 999.0 // Большой таймер для остановки анимации
 
 	// Константы движения
 	MovementThreshold = 0.1 // Минимальная скорость для определения движения
@@ -68,4 +69,7 @@ const (
 	// Константы тестов
 	TestWorldTileSize = 10    // Размер тестового мира в тайлах
 	TestGrassAmount   = 100.0 // Количество травы в тестах
+
+	// Константы эффектов
+	DamageFlashIntensityMultiplier = 5.0 // Множитель интенсивности вспышки урона (белый эффект)
 )

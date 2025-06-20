@@ -26,6 +26,7 @@ func TestGrassEatingSystemDirect(t *testing.T) {
 
 	// Устанавливаем траву в центр
 	centerX, centerY := 25, 25
+	terrain.SetTileType(centerX, centerY, generator.TileGrass)
 	terrain.SetGrassAmount(centerX, centerY, 100.0)
 
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
@@ -38,7 +39,8 @@ func TestGrassEatingSystemDirect(t *testing.T) {
 	// Делаем зайца голодным и ВРУЧНУЮ создаём EatingState (как FeedingSystem)
 	world.SetHunger(rabbit, core.Hunger{Value: 70.0})
 	eatingState := core.EatingState{
-		Target:          0, // 0 = поедание травы
+		Target:          0,                      // 0 = поедание травы
+		TargetType:      core.EatingTargetGrass, // Тип: поедание травы
 		EatingProgress:  0.0,
 		NutritionGained: 0.0,
 	}
@@ -54,11 +56,11 @@ func TestGrassEatingSystemDirect(t *testing.T) {
 	t.Logf("  Голод зайца: %.1f%%", hunger.Value)
 	t.Logf("  Трава в позиции: %.1f единиц", grassAmount)
 	t.Logf("  EatingState создан: %v", hasEatingState)
-	t.Logf("  MinGrassToFind: %.1f", simulation.MinGrassToFind)
+	t.Logf("  MinGrassToFind: %.1f", simulation.MinGrassAmountToFind)
 
 	// Проверяем условия
-	hasEnoughGrass := grassAmount >= simulation.MinGrassToFind
-	t.Logf("  Достаточно травы: %v (%.1f >= %.1f)", hasEnoughGrass, grassAmount, simulation.MinGrassToFind)
+	hasEnoughGrass := grassAmount >= simulation.MinGrassAmountToFind
+	t.Logf("  Достаточно травы: %v (%.1f >= %.1f)", hasEnoughGrass, grassAmount, simulation.MinGrassAmountToFind)
 
 	// ВЫЗЫВАЕМ ТОЛЬКО GRASS EATING SYSTEM
 	deltaTime := float32(1.0 / 60.0)
@@ -78,7 +80,7 @@ func TestGrassEatingSystemDirect(t *testing.T) {
 	if !hasEatingStateAfter {
 		t.Errorf("❌ ОШИБКА: GrassEatingSystem УДАЛИЛ EatingState!")
 		t.Errorf("   Возможные причины:")
-		t.Errorf("   1. grassAmount < MinGrassToFind (%.1f < %.1f)", grassAmount, simulation.MinGrassToFind)
+		t.Errorf("   1. grassAmount < MinGrassToFind (%.1f < %.1f)", grassAmount, simulation.MinGrassAmountToFind)
 		t.Errorf("   2. Ошибка в логике isEatingAnimationFrameComplete")
 		t.Errorf("   3. Другая ошибка в Update логике")
 	} else {

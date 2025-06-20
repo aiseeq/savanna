@@ -5,6 +5,7 @@ import (
 
 	"github.com/aiseeq/savanna/config"
 	"github.com/aiseeq/savanna/internal/animation"
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
@@ -68,7 +69,7 @@ func TestWolfFullSatiation(t *testing.T) {
 	t.Logf("  Голод волка: %.1f%%", initialWolfHunger)
 	t.Logf("  Питательность трупа: %.1f единиц", corpse.NutritionalValue)
 	t.Logf("  Порог сытости: %.1f%% (волк должен прекратить есть)",
-		float32(simulation.MaxHungerLimit-simulation.SatietyTolerance))
+		float32(constants.MaxNutritionalValue-constants.SatietyTolerance))
 
 	eatingStarted := false
 	maxHungerReached := float32(0.0)
@@ -137,7 +138,7 @@ func TestWolfFullSatiation(t *testing.T) {
 			}
 
 			// Проверяем что волк прекратил есть при полном насыщении
-			satietyThreshold := float32(simulation.MaxHungerLimit - simulation.SatietyTolerance)
+			satietyThreshold := float32(constants.MaxNutritionalValue - constants.SatietyTolerance)
 			if !isEating && eatingStarted && currentHunger.Value >= satietyThreshold {
 				t.Logf("✅ ПРАВИЛЬНО: Волк прекратил есть при голоде %.1f%% (порог %.1f%%)",
 					currentHunger.Value, satietyThreshold)
@@ -176,7 +177,7 @@ func TestWolfFullSatiation(t *testing.T) {
 	if !eatingStarted {
 		t.Errorf("   ПРОБЛЕМА: Волк НИКОГДА не начал есть!")
 	} else {
-		satietyThreshold := float32(simulation.MaxHungerLimit - simulation.SatietyTolerance)
+		satietyThreshold := float32(constants.MaxNutritionalValue - constants.SatietyTolerance)
 		if finalHunger.Value < satietyThreshold {
 			t.Errorf("   ПРОБЛЕМА: Волк не достиг порога насыщения %.1f%% (получил %.1f%%)",
 				satietyThreshold, finalHunger.Value)

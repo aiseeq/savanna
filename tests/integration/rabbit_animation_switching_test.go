@@ -34,12 +34,11 @@ func TestRabbitAnimationSwitching(t *testing.T) {
 	// Все системы как в реальной игре
 	systemManager := core.NewSystemManager()
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
 	behaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 
 	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
+	systemManager.AddSystem(adapters.NewFeedingSystemAdapter(vegetationSystem))
 	systemManager.AddSystem(grassEatingSystem)
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: behaviorSystem})
 
@@ -53,6 +52,7 @@ func TestRabbitAnimationSwitching(t *testing.T) {
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 200, 200)
 	tileX := int(200 / 32)
 	tileY := int(200 / 32)
+	terrain.SetTileType(tileX, tileY, generator.TileGrass)
 	terrain.SetGrassAmount(tileX, tileY, 100.0)
 
 	// Делаем зайца голодным

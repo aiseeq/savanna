@@ -90,11 +90,20 @@ type Carrion struct {
 	AbandonedBy      EntityID // Кто бросил эту падаль
 }
 
+// EatingTargetType тип цели поедания (устраняет магическое значение Target=0)
+type EatingTargetType uint8
+
+const (
+	EatingTargetGrass  EatingTargetType = iota // Поедание травы
+	EatingTargetAnimal                         // Поедание животного/трупа
+)
+
 // EatingState состояние поедания
 type EatingState struct {
-	Target          EntityID // Кого/что едим: EntityID животного или 0 для поедания травы
-	EatingProgress  float32  // Прогресс поедания (0-1)
-	NutritionGained float32  // Сколько уже получили питательности
+	Target          EntityID         // Кого/что едим: EntityID животного или 0 для поедания травы
+	TargetType      EatingTargetType // Тип цели: трава или животное
+	EatingProgress  float32          // Прогресс поедания (0-1)
+	NutritionGained float32          // Сколько уже получили питательности
 }
 
 // AttackPhase фаза атаки

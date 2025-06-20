@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/aiseeq/savanna/config"
+	"github.com/aiseeq/savanna/internal/adapters"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
@@ -28,10 +29,9 @@ func TestEcosystemSurvival(t *testing.T) {
 	worldSizePixels := float32(cfg.World.Size * 32)
 	world := core.NewWorld(worldSizePixels, worldSizePixels, cfg.World.Seed)
 
-	vegetationSystem := simulation.NewVegetationSystem(terrain)
+	vegetationSystem := simulation.NewVegetationSystem(terrain) // используется в системах
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 	movementSystem := simulation.NewMovementSystem(worldSizePixels, worldSizePixels)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 
 	// Размещаем животных
 	popGen := generator.NewPopulationGenerator(cfg, terrain)
@@ -54,7 +54,7 @@ func TestEcosystemSurvival(t *testing.T) {
 	t.Logf("Начальное состояние: %d зайцев, %d волков", len(rabbits), len(wolves))
 
 	// Диагностируем первые несколько кадров
-	deltaTime := float32(1.0 / 60.0)
+	deltaTime := float32(1.0 / 60.0) // deltaTime - используется в основном цикле
 
 	for frame := 0; frame < 60; frame++ { // 1 секунда
 		// Сохраняем состояние до обновления
@@ -109,8 +109,9 @@ func TestEcosystemSurvival(t *testing.T) {
 			}
 		}
 
-		// 4. Питание (самая подозрительная система)
-		feedingSystem.Update(world, deltaTime)
+		// 4. Питание - используем DeprecatedFeedingSystem
+		feedingSystemAdapter := adapters.NewDeprecatedFeedingSystemAdapter(vegetationSystem)
+		feedingSystemAdapter.Update(world, deltaTime)
 
 		// Проверяем выживших после feeding
 		aliveAfterFeeding := 0
@@ -226,7 +227,6 @@ func TestFeedingSystemIsolated(t *testing.T) {
 
 	world := core.NewWorld(640, 640, 42)
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 
 	// Создаём зайца с хорошими параметрами
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 320, 320)
@@ -238,7 +238,8 @@ func TestFeedingSystemIsolated(t *testing.T) {
 
 	// Обновляем систему питания один раз
 	deltaTime := float32(1.0 / 60.0)
-	feedingSystem.Update(world, deltaTime)
+	feedingSystemAdapter := adapters.NewDeprecatedFeedingSystemAdapter(vegetationSystem)
+	feedingSystemAdapter.Update(world, deltaTime)
 
 	if !world.IsAlive(rabbit) {
 		t.Error("Заяц умер после одного обновления системы питания!")
@@ -252,7 +253,7 @@ func TestFeedingSystemIsolated(t *testing.T) {
 
 	// Тестируем много обновлений
 	for i := 0; i < 300; i++ { // 5 секунд
-		feedingSystem.Update(world, deltaTime)
+		feedingSystemAdapter.Update(world, deltaTime)
 
 		if !world.IsAlive(rabbit) {
 			health, _ = world.GetHealth(rabbit)

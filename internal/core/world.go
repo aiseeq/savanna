@@ -70,7 +70,7 @@ func (w *World) DestroyEntity(entity EntityID) bool {
 
 	// Удаляем из пространственной сетки если есть позиция
 	if w.componentManager.HasComponent(entity, MaskPosition) {
-		w.worldState.GetSpatialProvider().RemoveEntity(uint32(entity))
+		w.removeSpatialEntity(entity)
 	}
 
 	// Очищаем все компоненты (делегирование к ComponentManager)
@@ -95,30 +95,51 @@ func (w *World) GetWorldDimensions() (width, height float32) {
 	return w.worldState.GetWorldWidth(), w.worldState.GetWorldHeight()
 }
 
-// GetSpatialGrid возвращает пространственную сетку для прямого доступа
-// Deprecated: нарушает DIP, будет удалена в будущем
-func (w *World) GetSpatialGrid() *physics.SpatialGrid {
-	// Приведение к конкретному типу через адаптер
-	if adapter, ok := w.worldState.GetSpatialProvider().(*SpatialGridAdapter); ok {
-		return adapter.grid
-	}
-	return nil
-}
-
 // GetRNG возвращает генератор случайных чисел (делегирование к WorldState)
 func (w *World) GetRNG() *rand.Rand {
 	return w.worldState.GetRNG()
 }
 
 // Clear очищает весь мир (для тестов и перезапуска)
+// Улучшено для соблюдения LoD - избегаем цепочек вызовов
 func (w *World) Clear() {
 	// Делегируем очистку к соответствующим менеджерам
 	w.entityManager.Clear()
-	w.worldState.GetSpatialProvider().Clear()
 
-	// Сбрасываем время через WorldState
-	w.worldState = NewWorldState(w.worldState.GetWorldWidth(), w.worldState.GetWorldHeight(), 0)
+	// Очищаем пространственную систему через worldState
+	w.worldState.ClearSpatialProvider()
 
-	// Очищаем компоненты через ComponentManager (он имеет метод для этого)
+	// Сохраняем размеры мира для пересоздания состояния
+	width, height := w.worldState.GetWorldWidth(), w.worldState.GetWorldHeight()
+	w.worldState = NewWorldState(width, height, 0)
+
+	// Очищаем компоненты через ComponentManager
 	w.componentManager = NewComponentManager()
+}
+
+// ===== МЕТОДЫ-ФАСАДЫ ДЛЯ СОБЛЮДЕНИЯ LAW OF DEMETER =====
+
+// updateSpatialEntity обновляет позицию сущности в пространственной системе
+// Скрывает сложность доступа к SpatialProvider через WorldState (LoD)
+func (w *World) updateSpatialEntity(entity EntityID, x, y float32) {
+	w.worldState.GetSpatialProvider().UpdateEntity(uint32(entity), physics.Vec2{X: x, Y: y}, 0)
+}
+
+// removeSpatialEntity удаляет сущность из пространственной системы
+// Скрывает сложность доступа к SpatialProvider через WorldState (LoD)
+func (w *World) removeSpatialEntity(entity EntityID) {
+	w.worldState.GetSpatialProvider().RemoveEntity(uint32(entity))
+}
+
+// querySpatialRadius возвращает сущности в радиусе
+// Скрывает сложность доступа к SpatialProvider через WorldState (LoD)
+func (w *World) querySpatialRadius(x, y, radius float32) []EntityID {
+	entries := w.worldState.GetSpatialProvider().QueryRadius(physics.Vec2{X: x, Y: y}, radius)
+
+	// Конвертируем SpatialEntry в EntityID
+	result := make([]EntityID, len(entries))
+	for i, entry := range entries {
+		result[i] = EntityID(entry.ID)
+	}
+	return result
 }

@@ -146,12 +146,6 @@ func TestSpatialGridRemove(t *testing.T) {
 
 func TestSpatialGridUpdate(t *testing.T) {
 	t.Parallel()
-	grid := physics.NewSpatialGrid(10, 10, 2)
-
-	// Добавляем сущность
-	entityID := physics.EntityID(1)
-	originalPos := physics.NewVec2(1, 1)
-	grid.Insert(entityID, originalPos, 0.5)
 
 	tests := []struct {
 		name        string
@@ -168,6 +162,12 @@ func TestSpatialGridUpdate(t *testing.T) {
 		tt := tt // Захватываем переменную цикла
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+			// Создаём отдельный grid для каждого подтеста чтобы избежать race conditions
+			grid := physics.NewSpatialGrid(10, 10, 2)
+			entityID := physics.EntityID(1)
+			originalPos := physics.NewVec2(1, 1)
+			grid.Insert(entityID, originalPos, 0.5)
+
 			grid.Update(entityID, tt.newPosition, tt.newRadius)
 
 			if grid.GetEntityCount() != 1 {

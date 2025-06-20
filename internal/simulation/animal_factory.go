@@ -21,10 +21,16 @@ func createEntityFromConfig(world *core.World, config core.AnimalConfig, x, y fl
 	world.AddVelocity(entity, core.Velocity{X: 0, Y: 0})
 	world.AddHealth(entity, core.Health{Current: config.MaxHealth, Max: config.MaxHealth})
 
-	// Используем InitialHunger из конфигурации
-	initialHunger := float32(70.0) //nolint:gomnd // Дефолтное значение голода для новых животных
-	if animalType := getAnimalTypeFromConfig(config); animalType == core.TypeRabbit {
-		initialHunger = 80.0 //nolint:gomnd // Начальный голод зайца (80%)
+	// Используем константы начального голода вместо магических чисел
+	animalType := getAnimalTypeFromConfig(config)
+	var initialHunger float32
+	switch animalType {
+	case core.TypeRabbit:
+		initialHunger = RabbitInitialHunger
+	case core.TypeWolf:
+		initialHunger = WolfInitialHunger
+	default:
+		initialHunger = DefaultInitialHunger
 	}
 	world.AddHunger(entity, core.Hunger{Value: initialHunger})
 

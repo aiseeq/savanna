@@ -29,20 +29,40 @@ func TestSimpleEating(t *testing.T) {
 	terrain := terrainGen.Generate()
 
 	// Принудительно устанавливаем много травы в единственный тайл
+	terrain.SetTileType(0, 0, generator.TileGrass)
 	terrain.SetGrassAmount(0, 0, 100.0) // Много травы
 
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
 
 	// Создаём все необходимые системы
 	systemManager := core.NewSystemManager()
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
+
+	// НОВЫЕ СИСТЕМЫ (следуют принципу SRP):
+	hungerSystem := simulation.NewHungerSystem()                           // 1. Только управление голодом
+	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem) // 2. Только поиск травы и создание EatingState
+	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem()       // 3. Только влияние голода на скорость
+	starvationDamage := simulation.NewStarvationDamageSystem()             // 4. Только урон от голода
+
 	behaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 	movementSystem := simulation.NewMovementSystem(32, 32)
 
-	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
+	systemManager.AddSystem(vegetationSystem)              // 1. Рост травы
+	systemManager.AddSystem(&adapters.HungerSystemAdapter{ // 2. Управление голодом
+		System: hungerSystem,
+	})
+	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{ // 3. Создание EatingState
+		System: grassSearchSystem,
+	})
+	// 4. Поведение (проверяет EatingState)
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: behaviorSystem})
+	systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{ // 5. Влияние голода на скорость
+		System: hungerSpeedModifier,
+	})
+	// 6. Движение (сбрасывает скорость едящих)
 	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
+	systemManager.AddSystem(&adapters.StarvationDamageSystemAdapter{ // 7. Урон от голода
+		System: starvationDamage,
+	})
 
 	// Создаём анимационную систему с РЕАЛЬНЫМИ файлами
 	rabbitAnimSystem := animation.NewAnimationSystem()

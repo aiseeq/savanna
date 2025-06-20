@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"github.com/aiseeq/savanna/internal/animation"
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 )
 
@@ -383,9 +384,10 @@ func (as *AttackSystem) dealDamageToTarget(world *core.World, attacker, target c
 		// Это предотвращает переключение на других целей
 		if corpseEntity != 0 && !world.HasComponent(attacker, core.MaskEatingState) {
 			world.AddEatingState(attacker, core.EatingState{
-				Target:          corpseEntity, // Атакующий ест ТРУП (новая сущность)
-				EatingProgress:  0.0,          // Начальный прогресс
-				NutritionGained: 0.0,          // Начальная питательность
+				Target:          corpseEntity,               // Атакующий ест ТРУП (новая сущность)
+				TargetType:      core.EatingTargetAnimal,    // Тип: поедание животного
+				EatingProgress:  constants.InitialProgress,  // Начальный прогресс
+				NutritionGained: constants.InitialNutrition, // Начальная питательность
 			})
 		}
 	}

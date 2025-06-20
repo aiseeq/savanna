@@ -6,22 +6,95 @@ import (
 )
 
 // Адаптеры для систем с ISP интерфейсами для совместимости со старым интерфейсом System
-// TODO: Удалить когда все системы перейдут на специализированные интерфейсы
+// Рефакторинг SRP: разделены специализированные системы вместо монолитного FeedingSystem
 
-// FeedingSystemAdapter адаптирует FeedingSystem к старому интерфейсу System
-type FeedingSystemAdapter struct {
-	System *simulation.FeedingSystem
+// DeprecatedFeedingSystemAdapter DEPRECATED: используйте новые специализированные системы
+// Оставлен для обратной совместимости с тестами
+type DeprecatedFeedingSystemAdapter struct {
+	hungerSystem        *simulation.HungerSystem
+	grassSearchSystem   *simulation.GrassSearchSystem
+	grassEatingSystem   *simulation.GrassEatingSystem
+	hungerSpeedModifier *simulation.HungerSpeedModifierSystem
+	starvationDamage    *simulation.StarvationDamageSystem
 }
 
-func (a *FeedingSystemAdapter) Update(world *core.World, deltaTime float32) {
-	// Debug: проверяем что система существует
+// NewDeprecatedFeedingSystemAdapter создаёт адаптер для обратной совместимости
+func NewDeprecatedFeedingSystemAdapter(vegetation *simulation.VegetationSystem) *DeprecatedFeedingSystemAdapter {
+	return &DeprecatedFeedingSystemAdapter{
+		hungerSystem:        simulation.NewHungerSystem(),
+		grassSearchSystem:   simulation.NewGrassSearchSystem(vegetation),
+		grassEatingSystem:   simulation.NewGrassEatingSystem(vegetation),
+		hungerSpeedModifier: simulation.NewHungerSpeedModifierSystem(),
+		starvationDamage:    simulation.NewStarvationDamageSystem(),
+	}
+}
+
+func (a *DeprecatedFeedingSystemAdapter) Update(world *core.World, deltaTime float32) {
+	// Выполняем все 5 систем в правильном порядке (согласно CLAUDE.md)
+	a.hungerSystem.Update(world, deltaTime)        // 1. Управление голодом
+	a.grassSearchSystem.Update(world, deltaTime)   // 2. Поиск травы и создание EatingState
+	a.grassEatingSystem.Update(world, deltaTime)   // 3. Дискретное поедание травы
+	a.hungerSpeedModifier.Update(world, deltaTime) // 4. Влияние голода на скорость
+	a.starvationDamage.Update(world, deltaTime)    // 5. Урон от голода
+}
+
+// FeedingSystemAdapter DEPRECATED: структура для обратной совместимости
+type FeedingSystemAdapter struct {
+	*DeprecatedFeedingSystemAdapter
+}
+
+// NewFeedingSystemAdapter DEPRECATED: создаёт адаптер для обратной совместимости
+func NewFeedingSystemAdapter(vegetation *simulation.VegetationSystem) *FeedingSystemAdapter {
+	return &FeedingSystemAdapter{
+		DeprecatedFeedingSystemAdapter: NewDeprecatedFeedingSystemAdapter(vegetation),
+	}
+}
+
+// HungerSystemAdapter адаптирует HungerSystem к старому интерфейсу System
+type HungerSystemAdapter struct {
+	System *simulation.HungerSystem
+}
+
+func (a *HungerSystemAdapter) Update(world *core.World, deltaTime float32) {
 	if a.System == nil {
 		return
 	}
+	a.System.Update(world, deltaTime)
+}
 
-	// Debug: логируем что адаптер вызывается
-	// fmt.Printf("DEBUG: FeedingSystemAdapter.Update вызван\n")
+// GrassSearchSystemAdapter адаптирует GrassSearchSystem к старому интерфейсу System
+type GrassSearchSystemAdapter struct {
+	System *simulation.GrassSearchSystem
+}
 
+func (a *GrassSearchSystemAdapter) Update(world *core.World, deltaTime float32) {
+	if a.System == nil {
+		return
+	}
+	a.System.Update(world, deltaTime)
+}
+
+// HungerSpeedModifierSystemAdapter адаптирует HungerSpeedModifierSystem к старому интерфейсу System
+type HungerSpeedModifierSystemAdapter struct {
+	System *simulation.HungerSpeedModifierSystem
+}
+
+func (a *HungerSpeedModifierSystemAdapter) Update(world *core.World, deltaTime float32) {
+	if a.System == nil {
+		return
+	}
+	a.System.Update(world, deltaTime)
+}
+
+// StarvationDamageSystemAdapter адаптирует StarvationDamageSystem к старому интерфейсу System
+type StarvationDamageSystemAdapter struct {
+	System *simulation.StarvationDamageSystem
+}
+
+func (a *StarvationDamageSystemAdapter) Update(world *core.World, deltaTime float32) {
+	if a.System == nil {
+		return
+	}
 	a.System.Update(world, deltaTime)
 }
 

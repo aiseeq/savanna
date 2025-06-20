@@ -122,27 +122,43 @@ func initializeWorldAndSystems(
 	loader := animation.NewAnimationLoader()
 	loader.LoadHeadlessAnimations(wolfAnimationSystem, rabbitAnimationSystem)
 
-	// Создаём системы с зависимостями
+	// Создаём системы с зависимостями (SRP рефакторинг: разделённые системы)
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
-	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
+
+	// НОВЫЕ СИСТЕМЫ (следуют принципу SRP):
+	hungerSystem := simulation.NewHungerSystem() // 1. Только управление голодом
+	// 2. Только поиск травы и создание EatingState (DIP: использует интерфейс)
+	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem)
+	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem() // 3. Только влияние голода на скорость
+	starvationDamage := simulation.NewStarvationDamageSystem()       // 4. Только урон от голода
+
+	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem) // DIP: использует интерфейс VegetationProvider
 	combatSystem := simulation.NewCombatSystem()
 
-	// Добавляем системы в правильном порядке (ВАЖНО для корректной работы еды!)
-	// Используем адаптеры для систем с ISP интерфейсами
-	systemManager.AddSystem(vegetationSystem)
-	// 1. Создаёт EatingState для едящих животных
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
-	// 2. Дискретное поедание травы по кадрам анимации
-	systemManager.AddSystem(grassEatingSystem)
-	// 3. Проверяет EatingState и не мешает еде
-	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
-	// 4. Сбрасывает скорость едящих животных
+	// Добавляем системы в правильном порядке (КРИТИЧЕСКИ ВАЖЕН ДЛЯ ПИТАНИЯ!)
+	systemManager.AddSystem(vegetationSystem)              // 1. Рост травы
+	systemManager.AddSystem(&adapters.HungerSystemAdapter{ // 2. Управление голодом
+		System: hungerSystem,
+	})
+	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{ // 3. Создание EatingState
+		System: grassSearchSystem,
+	})
+	systemManager.AddSystem(grassEatingSystem)               // 4. Дискретное поедание травы
+	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{ // 5. Поведение (проверяет EatingState)
+		System: animalBehaviorSystem,
+	})
+	systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{ // 6. Влияние голода на скорость
+		System: hungerSpeedModifier,
+	})
 	movementSystem := simulation.NewMovementSystem(worldSizePixels, worldSizePixels)
-	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
-	// 5. Система боя работает после движения
-	systemManager.AddSystem(combatSystem)
+	systemManager.AddSystem(&adapters.MovementSystemAdapter{ // 7. Движение (сбрасывает скорость едящих)
+		System: movementSystem,
+	})
+	systemManager.AddSystem(combatSystem)                            // 8. Система боя
+	systemManager.AddSystem(&adapters.StarvationDamageSystemAdapter{ // 9. Урон от голода
+		System: starvationDamage,
+	})
 
 	return GameComponents{
 		World:            world,

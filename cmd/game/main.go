@@ -16,6 +16,7 @@ import (
 	"github.com/aiseeq/savanna/config"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
+	"github.com/aiseeq/savanna/internal/simulation"
 )
 
 // Game структура для GUI версии симулятора экосистемы саванны
@@ -52,16 +53,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Очищаем экран тёмным цветом
 	screen.Fill(color.RGBA{20, 30, 20, 255})
 
-	// Получаем состояние от менеджеров
+	// LoD Compliance: используем инкапсулированные методы
 	camera := g.cameraController.GetCamera()
-	terrain := g.gameWorld.GetTerrain()
-	world := g.gameWorld.GetWorld()
 
-	// Отрисовываем ландшафт
-	g.drawTerrain(screen, camera, terrain)
+	// Отрисовываем ландшафт (Game больше не знает о внутренних объектах)
+	g.gameWorld.DrawTerrain(screen, camera, g)
 
-	// Отрисовываем животных
-	g.drawAnimals(screen, camera, world)
+	// Отрисовываем животных (Game больше не знает о внутренних объектах)
+	g.gameWorld.DrawAnimals(screen, camera, g)
 
 	// Отрисовываем UI
 	g.drawUI(screen, camera)
@@ -73,6 +72,11 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 // drawTerrain отрисовывает ландшафт
+// DrawTerrain реализует TerrainRenderer (LoD compliance)
+func (g *Game) DrawTerrain(screen *ebiten.Image, camera Camera, terrain *generator.Terrain) {
+	g.drawTerrain(screen, camera, terrain)
+}
+
 func (g *Game) drawTerrain(screen *ebiten.Image, camera Camera, terrain *generator.Terrain) {
 	if terrain == nil {
 		return
@@ -136,6 +140,11 @@ func (g *Game) drawTerrain(screen *ebiten.Image, camera Camera, terrain *generat
 }
 
 // drawAnimals отрисовывает всех животных
+// DrawAnimals реализует AnimalRenderer (LoD compliance)
+func (g *Game) DrawAnimals(screen *ebiten.Image, camera Camera, world *core.World) {
+	g.drawAnimals(screen, camera, world)
+}
+
 func (g *Game) drawAnimals(screen *ebiten.Image, camera Camera, world *core.World) {
 	world.ForEachWith(core.MaskPosition|core.MaskAnimalType, func(entity core.EntityID) {
 		pos, ok := world.GetPosition(entity)
@@ -143,7 +152,7 @@ func (g *Game) drawAnimals(screen *ebiten.Image, camera Camera, world *core.Worl
 			return
 		}
 
-		animalType, ok := world.GetAnimalType(entity)
+		_, ok = world.GetAnimalType(entity)
 		if !ok {
 			return
 		}
@@ -165,8 +174,8 @@ func (g *Game) drawAnimals(screen *ebiten.Image, camera Camera, world *core.Worl
 			Zoom:    camera.Zoom,
 		})
 
-		// Получаем размер для полоски здоровья
-		radius := g.getAnimalRadius(animalType) * camera.Zoom
+		// Получаем размер для полоски здоровья из компонента Size
+		radius := g.getAnimalRadius(entity, world) * camera.Zoom
 
 		// Отрисовываем полоску здоровья
 		g.drawHealthBar(screen, entity, world, HealthBarParams{
@@ -256,15 +265,13 @@ func (g *Game) drawText(screen *ebiten.Image, textStr string, x, y float64, font
 
 // Helper-методы
 
-func (g *Game) getAnimalRadius(animalType core.AnimalType) float32 {
-	switch animalType {
-	case core.TypeRabbit:
-		return 12.0 // RabbitBaseRadius
-	case core.TypeWolf:
-		return 18.0 // WolfBaseRadius
-	default:
-		return 10.0
+// getAnimalRadius получает радиус животного из компонента Size (устраняет DRY нарушение)
+// Ранее размеры дублировались между game_balance.go и GUI кодом
+func (g *Game) getAnimalRadius(entity core.EntityID, world *core.World) float32 {
+	if size, ok := world.GetSize(entity); ok {
+		return size.Radius
 	}
+	return simulation.DefaultAnimalRadius // Фолбэк из централизованных констант
 }
 
 // HealthBarParams параметры отрисовки полоски здоровья

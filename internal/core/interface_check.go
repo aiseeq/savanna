@@ -5,17 +5,16 @@ package core
 
 // Статические проверки интерфейсов (проверяются на этапе компиляции)
 var (
-	// Основные упрощённые интерфейсы
-	_ ECSAccess        = (*World)(nil)
-	_ SimulationAccess = (*World)(nil)
-
-	// Legacy алиасы для обратной совместимости
+	// ПРИНЦИПЫ SOLID: проверка соответствия специализированных интерфейсов
+	_ ECSAccess            = (*World)(nil)
+	_ SimulationAccess     = (*World)(nil)
 	_ MovementSystemAccess = (*World)(nil)
-	_ FeedingSystemAccess  = (*World)(nil)
 	_ BehaviorSystemAccess = (*World)(nil)
-	_ AttackSystemAccess   = (*World)(nil)
-	_ EatingSystemAccess   = (*World)(nil)
-	_ DamageSystemAccess   = (*World)(nil)
-	_ CorpseSystemAccess   = (*World)(nil)
-	_ WorldAccess          = (*World)(nil)
+	_ CombatSystemAccess   = (*World)(nil)
+
+	// ISP УЛУЧШЕНИЯ: узкоспециализированные интерфейсы для конкретных систем
+	_ HungerSystemAccess              = (*World)(nil)
+	_ GrassSearchSystemAccess         = (*World)(nil)
+	_ StarvationDamageSystemAccess    = (*World)(nil)
+	_ HungerSpeedModifierSystemAccess = (*World)(nil)
 )

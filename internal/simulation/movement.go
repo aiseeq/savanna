@@ -96,6 +96,7 @@ func (ms *MovementSystem) updatePositions(world core.MovementSystemAccess, delta
 		pos.Y += vel.Y * deltaTime
 
 		world.SetPosition(entity, pos)
+		world.UpdateSpatialPosition(entity, pos) // Обновляем пространственную систему явно
 	})
 }
 
@@ -117,6 +118,7 @@ func (ms *MovementSystem) constrainToBounds(world core.MovementSystemAccess) {
 
 		if changed {
 			world.SetPosition(entity, pos)
+			world.UpdateSpatialPosition(entity, pos) // Обновляем пространственную систему явно
 		}
 	})
 }
@@ -219,51 +221,89 @@ func (ms *MovementSystem) reflectVelocityComponent(velocity *float32) {
 	}
 }
 
-// handleCollisions обрабатывает мягкие коллизии между животными
-// ОПТИМИЗИРОВАНО: O(n²) → O(n·k) используя SpatialGrid для broad-phase detection
+// handleCollisions обрабатывает мягкие коллизии между животными (KISS: простая структура)
 func (ms *MovementSystem) handleCollisions(world core.MovementSystemAccess) {
-	// Используем пространственные запросы вместо проверки "каждый с каждым"
+	ms.broadPhaseCollisionDetection(world)
+}
+
+// broadPhaseCollisionDetection ищет потенциальные коллизии (KISS: одна ответственность)
+func (ms *MovementSystem) broadPhaseCollisionDetection(world core.MovementSystemAccess) {
 	world.ForEachWith(core.MaskPosition|core.MaskSize, func(entity core.EntityID) {
-		pos, _ := world.GetPosition(entity)
-		size, _ := world.GetSize(entity)
-
-		// Ищем потенциальных соседей в радиусе возможных коллизий
-		// Увеличиваем радиус поиска для учёта движения и размеров других объектов
-		searchRadius := size.Radius * CollisionConstants.SearchRadiusMultiplier
-		nearby := world.QueryInRadius(pos.X, pos.Y, searchRadius)
-
-		// Проверяем коллизии только с близкими объектами
-		for _, nearbyEntity := range nearby {
-			if nearbyEntity != entity && nearbyEntity > entity {
-				// Условие > entity предотвращает дублирование проверок
-				ms.checkAndHandleCollision(world, entity, nearbyEntity)
-			}
-		}
+		candidates := ms.findCollisionCandidates(world, entity)
+		ms.processCollisionCandidates(world, entity, candidates)
 	})
 }
 
-// checkAndHandleCollision проверяет и обрабатывает коллизию между двумя сущностями (устраняет дублирование)
+// findCollisionCandidates находит кандидатов для проверки коллизий (KISS: простая логика)
+func (ms *MovementSystem) findCollisionCandidates(
+	world core.MovementSystemAccess,
+	entity core.EntityID,
+) []core.EntityID {
+	pos, _ := world.GetPosition(entity)
+	size, _ := world.GetSize(entity)
+
+	searchRadius := size.Radius * CollisionConstants.SearchRadiusMultiplier
+	return world.QueryInRadius(pos.X, pos.Y, searchRadius)
+}
+
+// processCollisionCandidates проверяет кандидатов и обрабатывает коллизии (KISS: простой цикл)
+func (ms *MovementSystem) processCollisionCandidates(
+	world core.MovementSystemAccess,
+	entity core.EntityID,
+	candidates []core.EntityID,
+) {
+	for _, candidate := range candidates {
+		if ms.shouldCheckCollision(entity, candidate) {
+			ms.checkAndHandleCollision(world, entity, candidate)
+		}
+	}
+}
+
+// shouldCheckCollision определяет нужно ли проверять коллизию (KISS: простая логика)
+func (ms *MovementSystem) shouldCheckCollision(entity1, entity2 core.EntityID) bool {
+	return entity2 != entity1 && entity2 > entity1 // Предотвращает дублирование проверок
+}
+
+// checkAndHandleCollision проверяет и обрабатывает коллизию (KISS: разделено на простые шаги)
 func (ms *MovementSystem) checkAndHandleCollision(world core.MovementSystemAccess, entity1, entity2 core.EntityID) {
+	circles := ms.createCollisionCircles(world, entity1, entity2)
+	collision := ms.detectCollision(circles.circle1, circles.circle2)
+
+	if collision.Colliding {
+		ms.separateEntities(world, entity1, entity2, collision)
+	}
+}
+
+// collisionCircles простая структура для передачи кругов (KISS)
+type collisionCircles struct {
+	circle1, circle2 physics.Circle
+}
+
+// createCollisionCircles создаёт круги для проверки коллизий (KISS: простое создание)
+func (ms *MovementSystem) createCollisionCircles(
+	world core.MovementSystemAccess,
+	entity1, entity2 core.EntityID,
+) collisionCircles {
 	pos1, _ := world.GetPosition(entity1)
 	pos2, _ := world.GetPosition(entity2)
 	size1, _ := world.GetSize(entity1)
 	size2, _ := world.GetSize(entity2)
 
-	// Проверяем коллизию кругов
-	circle1 := physics.Circle{
-		Center: physics.Vec2{X: pos1.X, Y: pos1.Y},
-		Radius: size1.Radius,
+	return collisionCircles{
+		circle1: physics.Circle{
+			Center: physics.Vec2{X: pos1.X, Y: pos1.Y},
+			Radius: size1.Radius,
+		},
+		circle2: physics.Circle{
+			Center: physics.Vec2{X: pos2.X, Y: pos2.Y},
+			Radius: size2.Radius,
+		},
 	}
-	circle2 := physics.Circle{
-		Center: physics.Vec2{X: pos2.X, Y: pos2.Y},
-		Radius: size2.Radius,
-	}
+}
 
-	collision := physics.CircleCircleCollisionWithDetails(circle1, circle2)
-	if collision.Colliding {
-		// Мягкое расталкивание
-		ms.separateEntities(world, entity1, entity2, collision)
-	}
+// detectCollision проверяет коллизию двух кругов (KISS: простая проверка)
+func (ms *MovementSystem) detectCollision(circle1, circle2 physics.Circle) physics.CollisionDetails {
+	return physics.CircleCircleCollisionWithDetails(circle1, circle2)
 }
 
 // separateEntities мягко расталкивает две сущности при коллизии
@@ -340,7 +380,9 @@ func (ms *MovementSystem) applyPositionSeparation(
 	pos2.Y += collision.Normal.Y * separationForce
 
 	world.SetPosition(entity1, pos1)
+	world.UpdateSpatialPosition(entity1, pos1) // Обновляем пространственную систему явно
 	world.SetPosition(entity2, pos2)
+	world.UpdateSpatialPosition(entity2, pos2) // Обновляем пространственную систему явно
 }
 
 // applyVelocitySeparation применяет мягкое расталкивание через скорость (helper-функция)
@@ -387,7 +429,10 @@ func (ms *MovementSystem) applyPredatorPreyVelocity(vel1, vel2 *core.Velocity, c
 }
 
 // applyNormalVelocitySeparation применяет обычное расталкивание как в StarCraft 2 (helper-функция)
-func (ms *MovementSystem) applyNormalVelocitySeparation(vel1, vel2 *core.Velocity, collision physics.CollisionDetails) {
+func (ms *MovementSystem) applyNormalVelocitySeparation(
+	vel1, vel2 *core.Velocity,
+	collision physics.CollisionDetails,
+) {
 
 	// Сначала останавливаем движение в сторону коллизии
 	dotProduct1 := vel1.X*collision.Normal.X + vel1.Y*collision.Normal.Y

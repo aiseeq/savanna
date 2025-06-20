@@ -90,3 +90,9 @@ func (ws *WorldState) GetEntitiesBuffer() []EntityID {
 	ws.entitiesBuffer = ws.entitiesBuffer[:0]
 	return ws.entitiesBuffer
 }
+
+// ClearSpatialProvider очищает пространственную систему
+// Добавлено для соблюдения LoD - избегаем цепочки вызовов в World.Clear()
+func (ws *WorldState) ClearSpatialProvider() {
+	ws.spatialProvider.Clear()
+}

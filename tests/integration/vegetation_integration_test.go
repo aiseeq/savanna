@@ -30,6 +30,7 @@ func TestVegetationIntegration_BasicFunctionality(t *testing.T) {
 	systemManager.AddSystem(vegSystem)
 
 	// Устанавливаем начальное количество травы
+	terrain.SetTileType(5, 5, generator.TileGrass)
 	terrain.SetGrassAmount(5, 5, 50.0)
 	initialGrass := terrain.GetGrassAmount(5, 5)
 

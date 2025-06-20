@@ -6,6 +6,7 @@ import (
 	"github.com/aiseeq/savanna/config"
 	"github.com/aiseeq/savanna/internal/adapters"
 	"github.com/aiseeq/savanna/internal/animation"
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
@@ -34,12 +35,11 @@ func TestRabbitFeedingBalance(t *testing.T) {
 	// Все системы как в реальной игре
 	systemManager := core.NewSystemManager()
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
-	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
 	behaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 
 	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.FeedingSystemAdapter{System: feedingSystem})
+	systemManager.AddSystem(adapters.NewFeedingSystemAdapter(vegetationSystem))
 	systemManager.AddSystem(grassEatingSystem)
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: behaviorSystem})
 
@@ -53,6 +53,7 @@ func TestRabbitFeedingBalance(t *testing.T) {
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 200, 200)
 	tileX := int(200 / 32)
 	tileY := int(200 / 32)
+	terrain.SetTileType(tileX, tileY, generator.TileGrass)
 	terrain.SetGrassAmount(tileX, tileY, 100.0)
 
 	// Делаем зайца голодным
@@ -62,7 +63,7 @@ func TestRabbitFeedingBalance(t *testing.T) {
 
 	deltaTime := float32(1.0 / 60.0)
 	// ИСПРАВЛЕНИЕ: Заяц теперь ест до полного насыщения, а не до RabbitHungryThreshold
-	satietyThreshold := float32(simulation.MaxHungerValue - simulation.SatietyTolerance) // 99.9%
+	satietyThreshold := float32(constants.MaxNutritionalValue - constants.SatietyTolerance) // 99.9%
 
 	t.Logf("Начальное состояние:")
 	t.Logf("  Голод зайца: %.1f%%", initialHunger)
