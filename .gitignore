@@ -58,4 +58,17 @@ config/local.yml
 
 # Build artifacts
 build/
-dist/cmd/game/DejaVuSansMono.ttf
+dist/
+
+# Specific binaries that get created in root
+debug_eating_system
+game
+headless
+
+# Windows specific files
+*.manifest
+*.rc
+
+# Font files that should only be in assets/
+cmd/*/*.ttf
+cmd/*/*.woff2
