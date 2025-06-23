@@ -341,6 +341,8 @@ func (w *World) FilterEntities(mask ComponentMask, predicate func(EntityID) bool
 // ===== ДОПОЛНИТЕЛЬНЫЕ МЕТОДЫ ДЛЯ СОВМЕСТИМОСТИ С ИНТЕРФЕЙСАМИ =====
 
 // FindNearestByType находит ближайшую сущность указанного типа в радиусе
+// ВХОДНЫЕ ПАРАМЕТРЫ: x,y в пикселях (позиции животных), radius в пикселях
+// ВНУТРЕННЯЯ ЛОГИКА: все расчеты в пикселях для совместимости с системой позиций
 func (w *World) FindNearestByType(x, y, radius float32, animalType AnimalType) (EntityID, bool) {
 	var nearestEntity EntityID
 	nearestDistance := radius * radius // Используем квадрат расстояния для быстрого сравнения
@@ -368,6 +370,17 @@ func (w *World) FindNearestByType(x, y, radius float32, animalType AnimalType) (
 	})
 
 	return nearestEntity, found
+}
+
+// FindNearestByTypeInTiles находит ближайшую сущность указанного типа в радиусе (в тайлах)
+// РЕФАКТОРИНГ: новая функция для работы с тайлами как базовой единицей измерения
+// ВХОДНЫЕ ПАРАМЕТРЫ: x,y в пикселях (позиции животных), radiusInTiles в тайлах
+// ВНУТРЕННЯЯ ЛОГИКА: конвертирует тайлы в пиксели и вызывает стандартную функцию
+func (w *World) FindNearestByTypeInTiles(x, y, radiusInTiles float32, animalType AnimalType) (EntityID, bool) {
+	// Импортируем константы для конвертации
+	const TileSizePixels = 32.0 // Временно используем константу прямо здесь
+	radiusInPixels := radiusInTiles * TileSizePixels
+	return w.FindNearestByType(x, y, radiusInPixels, animalType)
 }
 
 // QueryInRadius возвращает сущности в указанном радиусе (для SpatialQueries интерфейса)

@@ -32,9 +32,9 @@ func TestEnhancedDamageFlash(t *testing.T) {
 
 	animManager := animation.NewAnimationManager(wolfAnimSystem, rabbitAnimSystem)
 
-	// Создаём тестовую сцену: волк атакует зайца
+	// Создаём тестовую сцену: волк атакует зайца (очень близко для гарантированной атаки)
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
-	wolf := simulation.CreateAnimal(world, core.TypeWolf, 310, 300)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 300.5, 300) // Дистанция 0.5 < атака волка 0.9
 
 	// Делаем волка голодным для гарантированной атаки
 	world.SetHunger(wolf, core.Hunger{Value: 20.0})

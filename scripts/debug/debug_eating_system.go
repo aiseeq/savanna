@@ -10,6 +10,7 @@ import (
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // Константы диагностической системы (устраняет магические числа)
@@ -27,8 +28,8 @@ const (
 	MaxTicks       = SecondsToTest * TicksPerSecond // 720 тиков
 
 	// Параметры анимации
-	EmptyImageWidth  = 128 // Ширина пустого изображения для headless режима
-	EmptyImageHeight = 64  // Высота пустого изображения для headless режима
+	EmptyImageWidth  = 128 // Ширина пустого изображения для тестирования
+	EmptyImageHeight = 64  // Высота пустого изображения для тестирования
 
 	// Пороги скорости для определения типа анимации
 	IdleSpeedThreshold  = 0.1   // Порог неподвижности (скорость < 0.1)
@@ -93,9 +94,10 @@ func setupDebugSystems(
 
 	// Загружаем анимации
 	loader := animation.NewAnimationLoader()
-	loader.LoadHeadlessAnimations(wolfAnimSystem, rabbitAnimSystem)
+	emptyImg := ebiten.NewImage(128, 64)
+	loader.LoadAnimations(wolfAnimSystem, rabbitAnimSystem, emptyImg, emptyImg)
 
-	// Создаём системы с зависимостями ТОЧНО как в headless
+	// Создаём системы с зависимостями
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 
@@ -108,7 +110,7 @@ func setupDebugSystems(
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
 	combatSystem := simulation.NewCombatSystem()
 
-	// Добавляем системы в правильном порядке ТОЧНО как в headless
+	// Добавляем системы в правильном порядке
 	worldSizePixels := float32(cfg.World.Size * TileSizePixels)
 	systemManager.AddSystem(vegetationSystem)              // 1. Рост травы
 	systemManager.AddSystem(&adapters.HungerSystemAdapter{ // 2. Управление голодом
@@ -140,7 +142,7 @@ func populateDebugWorld(
 	world *core.World,
 	terrain *generator.Terrain,
 ) (wolves, rabbits []core.EntityID) {
-	// Размещаем животных ТОЧНО как в headless
+	// Размещаем животных
 	popGen := generator.NewPopulationGenerator(cfg, terrain)
 	placements := popGen.Generate()
 
@@ -173,12 +175,12 @@ func runDiagnosticLoop(
 		animationManager.UpdateAllAnimations(world, 1.0/TicksPerSecond)
 	}
 
-	// Диагностический цикл - ТОЧНО как в headless
+	// Диагностический цикл
 	deltaTime := float32(1.0 / TicksPerSecond)
 	maxTicks := MaxTicks
 
 	for tick := 0; tick < maxTicks; tick++ {
-		// Обновляем мир ТОЧНО как в headless
+		// Обновляем мир
 		world.Update(deltaTime)
 		systemManager.Update(world, deltaTime)
 

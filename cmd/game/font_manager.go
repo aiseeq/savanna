@@ -20,8 +20,7 @@ func NewFontManager() *FontManager {
 }
 
 // LoadFonts загружает все необходимые шрифты
-//
-//nolint:unparam // Возвращает error для consistency с интерфейсом, хотя не критично
+// Возвращает error только для критических ошибок, для некритичных использует fallback
 func (fm *FontManager) LoadFonts() error {
 	// Загружаем пользовательский шрифт DejaVuSansMono для дебаг информации
 	fontPath := filepath.Join("assets", "fonts", "DejaVuSansMono.ttf")
@@ -29,16 +28,17 @@ func (fm *FontManager) LoadFonts() error {
 	// Читаем файл шрифта
 	fontData, err := os.ReadFile(fontPath)
 	if err != nil {
-		// Если не удалось загрузить файл, используем дефолтный шрифт
+		// FALLBACK: Файл шрифта не найден - используем дефолтный шрифт
 		fm.debugFont = nil
-		return nil // Не критическая ошибка
+		return nil // Не критическая ошибка - есть fallback
 	}
 
 	// Создаём source из TTF данных
 	source, err := text.NewGoTextFaceSource(bytes.NewReader(fontData))
 	if err != nil {
+		// FALLBACK: Файл повреждён - используем дефолтный шрифт
 		fm.debugFont = nil
-		return nil // Не критическая ошибка
+		return nil // Не критическая ошибка - есть fallback
 	}
 
 	// Создаём text.GoTextFace
@@ -60,8 +60,4 @@ func (fm *FontManager) HasCustomFont() bool {
 	return fm.debugFont != nil
 }
 
-// DrawDebugText рендерит дебаг текст с правильным шрифтом
-func (fm *FontManager) DrawDebugText(screen interface{}, textStr string, x, y int) {
-	// Эта функция будет использоваться в drawUI для отрисовки текста
-	// Реализация будет добавлена в следующем коммите
-}
+// REMOVED: DrawDebugText - функция была неиспользуемой

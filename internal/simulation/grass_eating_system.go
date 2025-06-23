@@ -1,7 +1,6 @@
 package simulation
 
 import (
-	"github.com/aiseeq/savanna/internal/animation"
 	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 )
@@ -78,7 +77,7 @@ func (ges *GrassEatingSystem) isEatingAnimationFrameComplete(world *core.World, 
 	}
 
 	// Проверяем что животное в анимации поедания
-	if anim.CurrentAnim != int(animation.AnimEat) {
+	if anim.CurrentAnim != int(constants.AnimEat) {
 		return false
 	}
 

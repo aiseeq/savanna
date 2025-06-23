@@ -85,7 +85,15 @@ func TestWolfAttackBehavior(t *testing.T) {
 				tickCount, wolfPos.X, wolfPos.Y, wolfVel.X, wolfVel.Y, rabbitPos.X, rabbitPos.Y, distance)
 		}
 
-		// Обновляем только поведение волка вручную
+		// DEBUG: Проверяем компоненты волка перед обновлением поведения
+		if tickCount == 0 {
+			wolfBehavior, hasBehavior := world.GetBehavior(wolf)
+			wolfHunger, hasHunger := world.GetHunger(wolf)
+			t.Logf("DEBUG: Волк behavior=%+v (has=%t), hunger=%+v (has=%t)",
+				wolfBehavior, hasBehavior, wolfHunger, hasHunger)
+		}
+
+		// ИСПРАВЛЕНИЕ: Обновляем поведение волка вручную (как в TestWolfAttackBehavior)
 		terrain := terrainGen.Generate()
 		vegetationSystem := simulation.NewVegetationSystem(terrain)
 		animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
@@ -98,16 +106,32 @@ func TestWolfAttackBehavior(t *testing.T) {
 		tickCount++
 	}
 
-	// Финальные позиции
-	if world.IsAlive(wolf) {
+	// Финальные позиции и проверки
+	if !world.IsAlive(wolf) {
+		t.Errorf("❌ Волк не должен умереть в этом тесте")
+	} else {
 		wolfPos, _ := world.GetPosition(wolf)
 		t.Logf("Финальная позиция волка: (%.1f, %.1f)", wolfPos.X, wolfPos.Y)
+
+		// Проверяем что волк сдвинулся в сторону зайца
+		if wolfPos.X <= wolfX {
+			t.Errorf("❌ Волк не сдвинулся вправо к зайцу: начальная %.1f, финальная %.1f", wolfX, wolfPos.X)
+		}
 	}
 
-	if world.IsAlive(rabbit) {
+	if !world.IsAlive(rabbit) {
+		t.Logf("ℹ️ Заяц был убит волком - это нормальное поведение")
+	} else {
 		rabbitPos, _ := world.GetPosition(rabbit)
 		t.Logf("Финальная позиция зайца: (%.1f, %.1f)", rabbitPos.X, rabbitPos.Y)
+
+		// Если заяц жив, он должен был убежать от волка (сдвинуться вправо)
+		if rabbitPos.X <= rabbitX {
+			t.Errorf("❌ Заяц не убежал от волка: начальная %.1f, финальная %.1f", rabbitX, rabbitPos.X)
+		}
 	}
+
+	t.Logf("✅ Тест поведения волка завершен")
 }
 
 // TestWolfOvershooting проверяет перепрыгивание волка через зайца
@@ -118,9 +142,16 @@ func TestWolfOvershooting(t *testing.T) {
 	world := core.NewWorld(worldSizePixels, worldSizePixels, 54321)
 	systemManager := core.NewSystemManager()
 
+	// Создаем необходимые системы для волка
+	terrain := generator.NewTerrainGenerator(&config.Config{
+		World: config.WorldConfig{Size: 10, Seed: 54321},
+	}).Generate()
+	vegetationSystem := simulation.NewVegetationSystem(terrain)
+	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 	movementSystem := simulation.NewMovementSystem(worldSizePixels, worldSizePixels)
 
-	// Добавляем только движение, поведение будем вызывать вручную для волка
+	// ИСПРАВЛЕНИЕ: Добавляем BehaviorSystem для установки velocity волка
+	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
 	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
 
 	// Зайца ставим неподвижно, волка близко
@@ -151,6 +182,23 @@ func TestWolfOvershooting(t *testing.T) {
 				float32(i)/60.0, wolfPos.X, wolfPos.Y, rabbitPos.X, rabbitPos.Y, distance)
 		}
 
+		// DEBUG: Проверяем компоненты волка (только для первых 3 тиков)
+		if i < 3 {
+			wolfBehavior, hasBehavior := world.GetBehavior(wolf)
+			wolfHunger, hasHunger := world.GetHunger(wolf)
+			wolfVel, _ := world.GetVelocity(wolf)
+			wolfSpeed, hasSpeed := world.GetSpeed(wolf)
+			t.Logf("DEBUG Тик %d: Волк behavior=%+v (has=%t), hunger=%+v (has=%t)",
+				i, wolfBehavior, hasBehavior, wolfHunger, hasHunger)
+			t.Logf("DEBUG Тик %d: Волк velocity=(%.2f,%.2f), speed=%+v (has=%t)",
+				i, wolfVel.X, wolfVel.Y, wolfSpeed, hasSpeed)
+
+			// Попытка поиска зайца (в тайлах)
+			foundRabbit, found := world.FindNearestByTypeInTiles(wolfPos.X, wolfPos.Y, 5.0, core.TypeRabbit)
+			t.Logf("DEBUG Тик %d: FindNearestByType для волка: rabbit=%d, found=%t",
+				i, foundRabbit, found)
+		}
+
 		// Проверяем не перепрыгнул ли волк
 		if wolfPos.X > rabbitPos.X && i > 30 { // Если волк прошел за зайца
 			t.Logf("ВНИМАНИЕ: Волк перепрыгнул зайца на тике %d!", i)
@@ -166,4 +214,23 @@ func TestWolfOvershooting(t *testing.T) {
 		world.Update(deltaTime)
 		systemManager.Update(world, deltaTime)
 	}
+
+	// Финальные проверки
+	if world.IsAlive(wolf) {
+		wolfPos, _ := world.GetPosition(wolf)
+		t.Logf("Финальная позиция волка: (%.1f, %.1f)", wolfPos.X, wolfPos.Y)
+
+		// Волк должен был приблизиться к зайцу
+		if wolfPos.X <= 145 {
+			t.Errorf("❌ Волк не приблизился к зайцу: начальная 145, финальная %.1f", wolfPos.X)
+		}
+	} else {
+		t.Errorf("❌ Волк не должен умереть в этом тесте")
+	}
+
+	if !world.IsAlive(rabbit) {
+		t.Logf("ℹ️ Заяц был убит - нормальное поведение для голодного волка")
+	}
+
+	t.Logf("✅ Тест перепрыгивания завершен")
 }

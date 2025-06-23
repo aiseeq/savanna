@@ -1,7 +1,6 @@
 package simulation
 
 import (
-	"github.com/aiseeq/savanna/internal/animation"
 	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 )
@@ -77,7 +76,10 @@ func (es *EatingSystem) findCorpseToEat(world *core.World, predator core.EntityI
 		dx := predatorPos.X - corpsePos.X
 		dy := predatorPos.Y - corpsePos.Y
 		distance := dx*dx + dy*dy
-		if distance < closestDistance && distance <= EatingRange*EatingRange {
+
+		// ИСПРАВЛЕНИЕ: Конвертируем EatingRange из тайлов в пиксели
+		eatingRangePixels := EatingRange * float32(constants.TileSizePixels)
+		if distance < closestDistance && distance <= eatingRangePixels*eatingRangePixels {
 			closestDistance = distance
 			closestCorpse = corpse
 		}
@@ -171,7 +173,7 @@ func (es *EatingSystem) isEatingAnimationFrameComplete(world *core.World, entity
 	}
 
 	// Проверяем что животное в анимации поедания
-	if anim.CurrentAnim != int(animation.AnimEat) {
+	if anim.CurrentAnim != int(constants.AnimEat) {
 		return false
 	}
 

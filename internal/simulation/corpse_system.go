@@ -1,7 +1,6 @@
 package simulation
 
 import (
-	"github.com/aiseeq/savanna/internal/animation"
 	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 )
@@ -110,7 +109,7 @@ func CreateCorpseAndGetID(world *core.World, animal core.EntityID) core.EntityID
 	// Переключаем анимацию на смерть и ОСТАНАВЛИВАЕМ на последнем кадре
 	if world.HasComponent(animal, core.MaskAnimation) {
 		world.SetAnimation(animal, core.Animation{
-			CurrentAnim: int(animation.AnimDeathDying),
+			CurrentAnim: int(constants.AnimDeathDying),
 			Frame:       1,                             // ПОСЛЕДНИЙ кадр анимации смерти (застывает)
 			Timer:       constants.LargeAnimationTimer, // Большой таймер чтобы не переключалась
 			Playing:     false,                         // НЕ играет - застыла на последнем кадре

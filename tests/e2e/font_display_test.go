@@ -20,7 +20,7 @@ func TestFontDisplayE2E(t *testing.T) {
 	// Это основная функция для отображения текста в игре
 	t.Logf("✅ ebitenutil.DebugPrintAt доступен для отображения текста")
 
-	// Создаём полноценную игру в headless режиме
+	// Создаём полноценную игру в тестовом режиме
 	cfg := config.LoadDefaultConfig()
 	cfg.World.Size = 5 // Маленький мир для быстрого теста
 

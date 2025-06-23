@@ -8,6 +8,7 @@ import (
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // TestRabbitAnimations проверяет правильность анимаций зайца
@@ -33,7 +34,8 @@ func TestRabbitAnimations(t *testing.T) {
 	// Создаём анимационные системы
 	rabbitAnimSystem := animation.NewAnimationSystem()
 	loader := animation.NewAnimationLoader()
-	loader.LoadHeadlessAnimations(animation.NewAnimationSystem(), rabbitAnimSystem)
+	emptyImg := ebiten.NewImage(128, 64)
+	loader.LoadAnimations(animation.NewAnimationSystem(), rabbitAnimSystem, emptyImg, emptyImg)
 
 	// Создаём менеджер анимаций
 	animationManager := animation.NewAnimationManager(animation.NewAnimationSystem(), rabbitAnimSystem)

@@ -1,7 +1,6 @@
 package simulation
 
 import (
-	"github.com/aiseeq/savanna/internal/animation"
 	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 )
@@ -195,7 +194,7 @@ func (as *AttackSystem) startAttackState(world *core.World, predator, target cor
 	// АВТОМАТИЧЕСКИ устанавливаем анимацию атаки (если есть компонент Animation)
 	if world.HasComponent(predator, core.MaskAnimation) {
 		world.SetAnimation(predator, core.Animation{
-			CurrentAnim: int(animation.AnimAttack),
+			CurrentAnim: int(constants.AnimAttack),
 			Frame:       AttackFrameWindup,
 			Timer:       0,
 			Playing:     true,
@@ -237,7 +236,7 @@ func (as *AttackSystem) updateAttackStateWithAnimation(
 	switch attackState.Phase {
 	case core.AttackPhaseWindup:
 		// КАДР WINDUP: Замах - проверяем готовность к удару
-		if anim.CurrentAnim == int(animation.AnimAttack) && anim.Frame == AttackFrameStrike {
+		if anim.CurrentAnim == int(constants.AnimAttack) && anim.Frame == AttackFrameStrike {
 			// Переходим в фазу удара
 			attackState.Phase = core.AttackPhaseStrike
 			attackState.PhaseTimer = 0.0
@@ -253,7 +252,7 @@ func (as *AttackSystem) updateAttackStateWithAnimation(
 		}
 
 		// Проверяем завершение атаки
-		if !anim.Playing || anim.CurrentAnim != int(animation.AnimAttack) {
+		if !anim.Playing || anim.CurrentAnim != int(constants.AnimAttack) {
 			// Анимация завершена - устанавливаем кулдаун и удаляем состояние атаки
 			as.setAttackCooldown(predator)
 			world.RemoveAttackState(predator)
@@ -266,12 +265,9 @@ func (as *AttackSystem) updateAttackStateWithAnimation(
 func (as *AttackSystem) updateAttackStateWithTimer(
 	world *core.World, predator core.EntityID, attackState *core.AttackState,
 ) bool {
-	const WindupDuration = 0.08 // 5 тиков (примерно 0.083 сек)
-	const StrikeDuration = 0.2  // 0.2 секунды на удар
-
 	switch attackState.Phase {
 	case core.AttackPhaseWindup:
-		if attackState.PhaseTimer >= WindupDuration {
+		if attackState.PhaseTimer >= AttackWindupDuration {
 			// Время перейти к удару
 			attackState.Phase = core.AttackPhaseStrike
 			attackState.PhaseTimer = 0.0
@@ -285,7 +281,7 @@ func (as *AttackSystem) updateAttackStateWithTimer(
 		}
 
 		// Завершаем атаку по таймеру
-		if attackState.PhaseTimer >= StrikeDuration {
+		if attackState.PhaseTimer >= AttackStrikeDuration {
 			// Атака завершена - устанавливаем кулдаун и удаляем состояние
 			as.setAttackCooldown(predator)
 			world.RemoveAttackState(predator)
@@ -371,7 +367,7 @@ func (as *AttackSystem) dealDamageToTarget(world *core.World, attacker, target c
 	world.AddDamageFlash(target, core.DamageFlash{
 		Timer:     DamageFlashDuration,
 		Duration:  DamageFlashDuration,
-		Intensity: 1.0, // Максимальная интенсивность для лучшей видимости
+		Intensity: MaxDamageFlashIntensity, // Максимальная интенсивность для лучшей видимости
 	})
 
 	// Если цель умерла, превращаем её в труп
@@ -379,6 +375,10 @@ func (as *AttackSystem) dealDamageToTarget(world *core.World, attacker, target c
 		// ИСПРАВЛЕНИЕ: Сначала создаём труп, потом создаём EatingState для трупа
 		// createCorpse() возвращает ID новой сущности-трупа
 		corpseEntity := CreateCorpseAndGetID(world, target)
+
+		// ИСПРАВЛЕНИЕ КРИТИЧЕСКОГО БАГА: Сбрасываем AttackState при убийстве цели
+		// Согласно требованию 3.2.3 из docs/tasks/2025-06-22-rework.md
+		world.RemoveAttackState(attacker)
 
 		// ИСПРАВЛЕНИЕ БАГА: Автоматически начинаем поедание ТРУПА АТАКУЮЩИМ
 		// Это предотвращает переключение на других целей
@@ -417,13 +417,24 @@ func (as *AttackSystem) cleanupCooldowns(world *core.World) {
 func (as *AttackSystem) isWithinAttackRange(
 	attackerPos, targetPos core.Position, attackRange, targetRadius float32,
 ) bool {
-	// Вычисляем квадрат расстояния между центрами
-	dx := attackerPos.X - targetPos.X
-	dy := attackerPos.Y - targetPos.Y
+	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Позиции в ПИКСЕЛЯХ, размеры в ПИКСЕЛЯХ
+	// Конвертируем размеры из пикселей в тайлы для расчётов
+	attackRangeTiles := constants.SizeAttackRangeToTiles(attackRange)
+	targetRadiusTiles := constants.SizeRadiusToTiles(targetRadius)
+
+	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Конвертируем позиции из пикселей в тайлы
+	attackerPosTiles := constants.PixelsToTiles(attackerPos.X)
+	attackerPosTilesY := constants.PixelsToTiles(attackerPos.Y)
+	targetPosTiles := constants.PixelsToTiles(targetPos.X)
+	targetPosTilesY := constants.PixelsToTiles(targetPos.Y)
+
+	// Вычисляем квадрат расстояния между центрами (в тайлах)
+	dx := attackerPosTiles - targetPosTiles
+	dy := attackerPosTilesY - targetPosTilesY
 	distanceSquared := dx*dx + dy*dy
 
-	// Максимальная дистанция атаки: радиус атаки + радиус цели
-	maxAttackDistance := attackRange + targetRadius
+	// Максимальная дистанция атаки: радиус атаки + радиус цели (в тайлах)
+	maxAttackDistance := attackRangeTiles + targetRadiusTiles
 
 	// Сравниваем квадраты для избежания sqrt
 	return distanceSquared <= maxAttackDistance*maxAttackDistance

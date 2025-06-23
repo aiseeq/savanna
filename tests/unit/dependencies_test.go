@@ -104,7 +104,7 @@ func TestGoBuild(t *testing.T) {
 	}
 
 	// Проверяем компиляцию всех пакетов
-	cmd := exec.Command("go", "build", "./...")
+	cmd := exec.Command("go", "build", "-buildvcs=false", "./...")
 	cmd.Dir = projectRoot
 
 	output, err := cmd.CombinedOutput()

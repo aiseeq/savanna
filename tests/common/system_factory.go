@@ -10,44 +10,50 @@ import (
 )
 
 // CreateTestSystemManager создает стандартный набор систем для интеграционных тестов
-// Устраняет дублирование создания систем в 30+ тестах
+// ИСПРАВЛЕНО: Порядок систем согласно CLAUDE.md для правильной работы AttackState
 func CreateTestSystemManager(worldSize float32) *core.SystemManager {
 	systemManager := core.NewSystemManager()
 
-	// Создаем vegetation систему (нужна для feeding)
+	// 1. Vegetation система (рост травы)
 	vegetationSystem := CreateTestVegetationSystem(worldSize)
 	systemManager.AddSystem(vegetationSystem)
 
-	// КРИТИЧЕСКИ ВАЖНО: Анимационная система для корректной работы атак
-	animationAdapter := NewAnimationSystemAdapter()
-	systemManager.AddSystem(animationAdapter)
+	// 2. Hunger система (управление голодом) - ПЕРЕД GrassSearchSystem
+	hungerSystem := simulation.NewHungerSystem()
+	systemManager.AddSystem(&adapters.HungerSystemAdapter{System: hungerSystem})
 
-	// Системы движения
-	movementSystem := simulation.NewMovementSystem(worldSize, worldSize)
-	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
+	// 3. GrassSearch система (поиск травы и создание EatingState)
+	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem)
+	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{System: grassSearchSystem})
 
-	// Системы поведения
+	// 4. GrassEating система (дискретное поедание травы)
+	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
+	systemManager.AddSystem(&adapters.GrassEatingSystemAdapter{System: grassEatingSystem})
+
+	// 5. Behavior система (поведение - проверяет EatingState)
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
 
-	// Системы питания (НОВЫЕ СИСТЕМЫ - следуют принципу SRP)
-	hungerSystem := simulation.NewHungerSystem() // 1. Только управление голодом
-	// 2. Только поиск травы и создание EatingState (DIP: использует интерфейс)
-	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem)
-	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem() // 3. Только влияние голода на скорость
-	starvationDamage := simulation.NewStarvationDamageSystem()       // 4. Только урон от голода
-
-	systemManager.AddSystem(&adapters.HungerSystemAdapter{System: hungerSystem})
-	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{System: grassSearchSystem})
+	// 6. HungerSpeed система (влияние голода на скорость)
+	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem()
 	systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{System: hungerSpeedModifier})
-	systemManager.AddSystem(&adapters.StarvationDamageSystemAdapter{System: starvationDamage})
 
-	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem) // DIP: использует интерфейс VegetationProvider
-	systemManager.AddSystem(&adapters.GrassEatingSystemAdapter{System: grassEatingSystem})
+	// 7. Movement система (движение - сбрасывает скорость едящих)
+	movementSystem := simulation.NewMovementSystem(worldSize, worldSize)
+	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
 
-	// Боевые системы - используем новую CombatSystem
+	// 8. Combat система (бой и урон) - ПОСЛЕ движения согласно CLAUDE.md!
 	combatSystem := simulation.NewCombatSystem()
 	systemManager.AddSystem(combatSystem)
+
+	// 9. Starvation система (урон от голода)
+	starvationDamage := simulation.NewStarvationDamageSystem()
+	systemManager.AddSystem(&adapters.StarvationDamageSystemAdapter{System: starvationDamage})
+
+	// ДОПОЛНИТЕЛЬНЫЕ системы (порядок не критичен)
+	// Анимационная система (для корректной работы атак)
+	animationAdapter := NewAnimationSystemAdapter()
+	systemManager.AddSystem(animationAdapter)
 
 	// Системы урона и трупов
 	damageSystem := simulation.NewDamageSystem()

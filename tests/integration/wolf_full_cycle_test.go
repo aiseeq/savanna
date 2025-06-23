@@ -33,7 +33,7 @@ func TestWolfFullCycle(t *testing.T) {
 
 	// Создаём зайца и волка рядом
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
-	wolf := simulation.CreateAnimal(world, core.TypeWolf, 310, 300)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 301, 300) // Дистанция 1 пиксель для атаки
 
 	// Делаем волка очень голодным
 	world.SetHunger(wolf, core.Hunger{Value: 30.0})

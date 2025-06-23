@@ -30,10 +30,11 @@ func NewDeprecatedFeedingSystemAdapter(vegetation *simulation.VegetationSystem) 
 }
 
 func (a *DeprecatedFeedingSystemAdapter) Update(world *core.World, deltaTime float32) {
-	// Выполняем все 5 систем в правильном порядке (согласно CLAUDE.md)
-	a.hungerSystem.Update(world, deltaTime)        // 1. Управление голодом
+	// ИСПРАВЛЕНО: Правильный порядок согласно CLAUDE.md
+	// HungerSystem должна быть ПЕРЕД GrassSearchSystem но ПОСЛЕ GrassEatingSystem!
+	a.hungerSystem.Update(world, deltaTime)        // 1. Управление голодом (снижает голод)
 	a.grassSearchSystem.Update(world, deltaTime)   // 2. Поиск травы и создание EatingState
-	a.grassEatingSystem.Update(world, deltaTime)   // 3. Дискретное поедание травы
+	a.grassEatingSystem.Update(world, deltaTime)   // 3. Дискретное поедание травы (повышает голод)
 	a.hungerSpeedModifier.Update(world, deltaTime) // 4. Влияние голода на скорость
 	a.starvationDamage.Update(world, deltaTime)    // 5. Урон от голода
 }
@@ -104,6 +105,9 @@ type BehaviorSystemAdapter struct {
 }
 
 func (a *BehaviorSystemAdapter) Update(world *core.World, deltaTime float32) {
+	if a.System == nil {
+		return
+	}
 	a.System.Update(world, deltaTime)
 }
 

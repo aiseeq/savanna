@@ -1,7 +1,7 @@
 package simulation
 
 import (
-	"github.com/aiseeq/savanna/internal/animation"
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 )
 
@@ -40,10 +40,10 @@ func createEntityFromConfig(world *core.World, config core.AnimalConfig, x, y fl
 	// Тип животного определяется из анимации или конфигурации
 	world.AddAnimalType(entity, getAnimalTypeFromConfig(config))
 
-	// Размеры из конфигурации
+	// Размеры из конфигурации (конвертируем тайлы в пиксели для рендеринга)
 	world.AddSize(entity, core.Size{
-		Radius:      config.CollisionRadius,
-		AttackRange: config.AttackRange,
+		Radius:      config.CollisionRadius * constants.TileSizePixels,
+		AttackRange: config.AttackRange * constants.TileSizePixels,
 	})
 
 	// Скорость из конфигурации
@@ -69,7 +69,7 @@ func createEntityFromConfig(world *core.World, config core.AnimalConfig, x, y fl
 
 	// Анимация
 	world.AddAnimation(entity, core.Animation{
-		CurrentAnim: int(animation.AnimIdle),
+		CurrentAnim: int(constants.AnimIdle),
 		Frame:       0,
 		Timer:       0,
 		Playing:     true,

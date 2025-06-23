@@ -10,3 +10,11 @@ import (
 func isWolfAttacking(world *core.World, wolf core.EntityID) bool {
 	return common.IsWolfAttacking(world, wolf)
 }
+
+// abs возвращает абсолютное значение float32
+func abs(x float32) float32 {
+	if x < 0 {
+		return -x
+	}
+	return x
+}

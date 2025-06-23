@@ -34,9 +34,9 @@ func TestDamageFlashGUI(t *testing.T) {
 
 	animManager := animation.NewAnimationManager(wolfAnimSystem, rabbitAnimSystem)
 
-	// Создаём зайца и волка для реального боя
+	// Создаём зайца и волка для реального боя (очень близко)
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
-	wolf := simulation.CreateAnimal(world, core.TypeWolf, 310, 300) // Рядом для атаки
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 300.5, 300) // Дистанция 0.5 < атака волка 0.9
 
 	// Делаем волка голодным чтобы он атаковал
 	world.SetHunger(wolf, core.Hunger{Value: 30.0})

@@ -69,7 +69,7 @@ var StandardAnimationConfigs = map[AnimationType]AnimationConfig{
 	},
 }
 
-// AnimationLoader загрузчик анимаций (устраняет дублирование между GUI и headless)
+// AnimationLoader загрузчик анимаций
 type AnimationLoader struct{}
 
 // NewAnimationLoader создаёт новый загрузчик анимаций
@@ -113,21 +113,8 @@ func (al *AnimationLoader) LoadRabbitAnimations(animSystem *AnimationSystem, spr
 	}
 }
 
-// LoadHeadlessAnimations загружает анимации для headless режима с пустым изображением
-func (al *AnimationLoader) LoadHeadlessAnimations(wolfSystem, rabbitSystem *AnimationSystem) {
-	// Размеры пустого изображения для headless режима
-	const emptyImageWidth = 128
-	const emptyImageHeight = 64
-
-	emptyImg := ebiten.NewImage(emptyImageWidth, emptyImageHeight)
-
-	// Загружаем анимации для обеих систем
-	al.LoadWolfAnimations(wolfSystem, emptyImg)
-	al.LoadRabbitAnimations(rabbitSystem, emptyImg)
-}
-
-// LoadGUIAnimations загружает анимации для GUI режима с реальными спрайтами
-func (al *AnimationLoader) LoadGUIAnimations(
+// LoadAnimations загружает анимации с реальными спрайтами
+func (al *AnimationLoader) LoadAnimations(
 	wolfSystem, rabbitSystem *AnimationSystem,
 	wolfSprite, rabbitSprite *ebiten.Image,
 ) {

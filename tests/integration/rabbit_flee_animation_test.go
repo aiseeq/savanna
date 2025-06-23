@@ -8,6 +8,7 @@ import (
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // TestRabbitFleeAnimation проверяет анимацию зайца при побеге от волка
@@ -32,7 +33,8 @@ func TestRabbitFleeAnimation(t *testing.T) {
 	wolfAnimSystem := animation.NewAnimationSystem()
 	rabbitAnimSystem := animation.NewAnimationSystem()
 	loader := animation.NewAnimationLoader()
-	loader.LoadHeadlessAnimations(wolfAnimSystem, rabbitAnimSystem)
+	emptyImg := ebiten.NewImage(128, 64)
+	loader.LoadAnimations(wolfAnimSystem, rabbitAnimSystem, emptyImg, emptyImg)
 
 	// Создаём менеджер анимаций
 	animationManager := animation.NewAnimationManager(wolfAnimSystem, rabbitAnimSystem)

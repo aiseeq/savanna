@@ -7,6 +7,14 @@ import (
 	"github.com/aiseeq/savanna/config"
 )
 
+// max возвращает максимальное из двух целых чисел
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 // TileType определяет тип тайла на карте
 type TileType int8
 
@@ -31,9 +39,11 @@ const (
 
 // Terrain представляет сгенерированную карту мира
 type Terrain struct {
-	Size  int          // Размер мира в тайлах
-	Tiles [][]TileType // Типы тайлов [y][x]
-	Grass [][]float32  // Количество травы [y][x] (0-100)
+	Width  int          // Ширина мира в тайлах
+	Height int          // Высота мира в тайлах
+	Size   int          // Размер мира в тайлах (для обратной совместимости - max(Width, Height))
+	Tiles  [][]TileType // Типы тайлов [y][x]
+	Grass  [][]float32  // Количество травы [y][x] (0-100)
 }
 
 // TerrainGenerator генерирует детерминированные карты
@@ -54,20 +64,26 @@ func NewTerrainGenerator(cfg *config.Config) *TerrainGenerator {
 	}
 }
 
-// Generate создаёт новую карту согласно конфигурации
+// Generate создаёт новую карту согласно конфигурации (квадратную - для обратной совместимости)
 func (tg *TerrainGenerator) Generate() *Terrain {
 	size := tg.config.World.Size
+	return tg.GenerateRectangular(size, size)
+}
 
+// GenerateRectangular создаёт прямоугольную карту с заданными размерами
+func (tg *TerrainGenerator) GenerateRectangular(width, height int) *Terrain {
 	terrain := &Terrain{
-		Size:  size,
-		Tiles: make([][]TileType, size),
-		Grass: make([][]float32, size),
+		Width:  width,
+		Height: height,
+		Size:   max(width, height), // Для обратной совместимости
+		Tiles:  make([][]TileType, height),
+		Grass:  make([][]float32, height),
 	}
 
 	// Инициализируем массивы
-	for y := 0; y < size; y++ {
-		terrain.Tiles[y] = make([]TileType, size)
-		terrain.Grass[y] = make([]float32, size)
+	for y := 0; y < height; y++ {
+		terrain.Tiles[y] = make([]TileType, width)
+		terrain.Grass[y] = make([]float32, width)
 	}
 
 	// Генерируем в фиксированном порядке для детерминированности
@@ -82,8 +98,8 @@ func (tg *TerrainGenerator) Generate() *Terrain {
 
 // generateBaseLayer заполняет всю карту травой
 func (tg *TerrainGenerator) generateBaseLayer(terrain *Terrain) {
-	for y := 0; y < terrain.Size; y++ {
-		for x := 0; x < terrain.Size; x++ {
+	for y := 0; y < terrain.Height; y++ {
+		for x := 0; x < terrain.Width; x++ {
 			terrain.Tiles[y][x] = TileGrass
 		}
 	}
@@ -98,8 +114,8 @@ func (tg *TerrainGenerator) generateWaterBodies(terrain *Terrain) {
 	for i := 0; i < waterBodies; i++ {
 		// Случайная позиция с отступом от краёв
 		margin := int(maxRadius) + 2
-		availableWidth := terrain.Size - 2*margin
-		availableHeight := terrain.Size - 2*margin
+		availableWidth := terrain.Width - 2*margin
+		availableHeight := terrain.Height - 2*margin
 
 		// Проверяем что есть место для размещения
 		if availableWidth <= 0 || availableHeight <= 0 {
@@ -127,7 +143,7 @@ func (tg *TerrainGenerator) createCircularWater(terrain *Terrain, centerX, cente
 			y := centerY + dy
 
 			// Проверяем границы
-			if x < 0 || x >= terrain.Size || y < 0 || y >= terrain.Size {
+			if x < 0 || x >= terrain.Width || y < 0 || y >= terrain.Height {
 				continue
 			}
 
@@ -144,8 +160,8 @@ func (tg *TerrainGenerator) createCircularWater(terrain *Terrain, centerX, cente
 // generateWetlands создаёт влажную землю вокруг водоёмов
 func (tg *TerrainGenerator) generateWetlands(terrain *Terrain) {
 	// Создаём копию для проверки исходного состояния
-	for y := 0; y < terrain.Size; y++ {
-		for x := 0; x < terrain.Size; x++ {
+	for y := 0; y < terrain.Height; y++ {
+		for x := 0; x < terrain.Width; x++ {
 			// Если это трава рядом с водой - делаем влажной землёй
 			if terrain.Tiles[y][x] == TileGrass && tg.isNearWater(terrain, x, y) {
 				terrain.Tiles[y][x] = TileWetland
@@ -165,8 +181,8 @@ func (tg *TerrainGenerator) isNearWater(terrain *Terrain, x, y int) bool {
 			checkX := x + dx
 			checkY := y + dy
 
-			if checkX >= 0 && checkX < terrain.Size &&
-				checkY >= 0 && checkY < terrain.Size {
+			if checkX >= 0 && checkX < terrain.Width &&
+				checkY >= 0 && checkY < terrain.Height {
 				if terrain.Tiles[checkY][checkX] == TileWater {
 					return true
 				}
@@ -186,8 +202,8 @@ func (tg *TerrainGenerator) generateBushClusters(terrain *Terrain) {
 		var centerX, centerY int
 		attempts := 0
 		for attempts < MaxLakeAttempts { // Ограничиваем количество попыток
-			availableX := terrain.Size - MapEdgeMargin
-			availableY := terrain.Size - MapEdgeMargin
+			availableX := terrain.Width - MapEdgeMargin
+			availableY := terrain.Height - MapEdgeMargin
 
 			// Проверяем что есть место для размещения
 			if availableX <= 0 || availableY <= 0 {
@@ -228,7 +244,7 @@ func (tg *TerrainGenerator) createBushCluster(terrain *Terrain, centerX, centerY
 		y := centerY + int(radius*math.Sin(angle))
 
 		// Проверяем границы и возможность размещения
-		if x >= 0 && x < terrain.Size && y >= 0 && y < terrain.Size {
+		if x >= 0 && x < terrain.Width && y >= 0 && y < terrain.Height {
 			if terrain.Tiles[y][x] == TileGrass || terrain.Tiles[y][x] == TileWetland {
 				terrain.Tiles[y][x] = TileBush
 				terrain.Grass[y][x] = 0 // Кусты убивают траву
@@ -240,8 +256,8 @@ func (tg *TerrainGenerator) createBushCluster(terrain *Terrain, centerX, centerY
 
 // generateInitialGrass устанавливает начальное количество травы
 func (tg *TerrainGenerator) generateInitialGrass(terrain *Terrain) {
-	for y := 0; y < terrain.Size; y++ {
-		for x := 0; x < terrain.Size; x++ {
+	for y := 0; y < terrain.Height; y++ {
+		for x := 0; x < terrain.Width; x++ {
 			switch terrain.Tiles[y][x] {
 			case TileGrass:
 				// 70% тайлов с травой получают базовое количество
@@ -265,7 +281,7 @@ func (tg *TerrainGenerator) generateInitialGrass(terrain *Terrain) {
 
 // IsPassable проверяет можно ли пройти через тайл
 func (t *Terrain) IsPassable(x, y int) bool {
-	if x < 0 || x >= t.Size || y < 0 || y >= t.Size {
+	if x < 0 || x >= t.Width || y < 0 || y >= t.Height {
 		return false
 	}
 
@@ -275,7 +291,7 @@ func (t *Terrain) IsPassable(x, y int) bool {
 
 // GetTileType возвращает тип тайла в указанной позиции
 func (t *Terrain) GetTileType(x, y int) TileType {
-	if x < 0 || x >= t.Size || y < 0 || y >= t.Size {
+	if x < 0 || x >= t.Width || y < 0 || y >= t.Height {
 		return TileWater // За границами мира считаем как вода
 	}
 	return t.Tiles[y][x]
@@ -283,7 +299,7 @@ func (t *Terrain) GetTileType(x, y int) TileType {
 
 // SetTileType устанавливает тип тайла в указанной позиции (для тестов)
 func (t *Terrain) SetTileType(x, y int, tileType TileType) {
-	if x < 0 || x >= t.Size || y < 0 || y >= t.Size {
+	if x < 0 || x >= t.Width || y < 0 || y >= t.Height {
 		return // Игнорируем попытки изменить тайлы за границами
 	}
 	t.Tiles[y][x] = tileType
@@ -291,7 +307,7 @@ func (t *Terrain) SetTileType(x, y int, tileType TileType) {
 
 // GetGrassAmount возвращает количество травы в тайле
 func (t *Terrain) GetGrassAmount(x, y int) float32 {
-	if x < 0 || x >= t.Size || y < 0 || y >= t.Size {
+	if x < 0 || x >= t.Width || y < 0 || y >= t.Height {
 		return 0
 	}
 	return t.Grass[y][x]
@@ -299,7 +315,7 @@ func (t *Terrain) GetGrassAmount(x, y int) float32 {
 
 // SetGrassAmount устанавливает количество травы в тайле
 func (t *Terrain) SetGrassAmount(x, y int, amount float32) {
-	if x < 0 || x >= t.Size || y < 0 || y >= t.Size {
+	if x < 0 || x >= t.Width || y < 0 || y >= t.Height {
 		return
 	}
 
@@ -324,8 +340,8 @@ func (t *Terrain) GetStats() map[string]interface{} {
 	wetlandTiles := 0
 	totalGrass := float32(0)
 
-	for y := 0; y < t.Size; y++ {
-		for x := 0; x < t.Size; x++ {
+	for y := 0; y < t.Height; y++ {
+		for x := 0; x < t.Width; x++ {
 			switch t.Tiles[y][x] {
 			case TileGrass:
 				grassTiles++
@@ -340,7 +356,7 @@ func (t *Terrain) GetStats() map[string]interface{} {
 		}
 	}
 
-	totalTiles := t.Size * t.Size
+	totalTiles := t.Width * t.Height
 	stats["total_tiles"] = totalTiles
 	stats["grass_tiles"] = grassTiles
 	stats["water_tiles"] = waterTiles

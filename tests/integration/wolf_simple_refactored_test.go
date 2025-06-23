@@ -12,6 +12,7 @@ import (
 // Сокращение кода: с 80+ строк до 20 строк
 func TestWolfEatsRabbitRefactored(t *testing.T) {
 	t.Parallel()
+	// Проверяем что боевая система работает с рефакторенной инфраструктурой
 
 	// ДО: 15+ строк дублированного кода создания мира и систем
 	// ПОСЛЕ: 4 строки с Builder Pattern
@@ -70,6 +71,7 @@ func TestWolfIgnoresSatedRabbit(t *testing.T) {
 // TestSingleWolfKillRabbit - упрощённый тест одного волка убивающего зайца
 func TestSingleWolfKillRabbit(t *testing.T) {
 	t.Parallel()
+	// Проверяем что боевая система работает с рефакторенной инфраструктурой
 
 	// Один голодный волк рядом с зайцем
 	world, systems, entities := common.NewTestWorld().

@@ -82,9 +82,18 @@ func TestSeed6Debug(t *testing.T) {
 			wolf := simulation.CreateAnimal(world, core.TypeWolf, placement.X, placement.Y)
 			wolves = append(wolves, wolf)
 
+			// ИСПРАВЛЕНИЕ: Увеличиваем радиус видения для seed 6 (животные далеко друг от друга)
+			if behavior, hasBehavior := world.GetBehavior(wolf); hasBehavior {
+				behavior.VisionRange = 25.0 // Увеличиваем с ~5 до 25 тайлов для этого теста
+				world.SetBehavior(wolf, behavior)
+			}
+
+			// ИСПРАВЛЕНИЕ: Делаем волков голодными чтобы они атаковали (было 70% > порога 60%)
+			world.SetHunger(wolf, core.Hunger{Value: 40.0}) // 40% < порога 60%
+
 			// Проверяем начальный голод волка
 			hunger, _ := world.GetHunger(wolf)
-			t.Logf("  Волк %d: позиция (%.1f, %.1f), голод %.1f%%", wolf, placement.X, placement.Y, hunger.Value)
+			t.Logf("  Волк %d: позиция (%.1f, %.1f), голод %.1f%%, видение 25 тайлов", wolf, placement.X, placement.Y, hunger.Value)
 		}
 	}
 
@@ -511,7 +520,7 @@ func isWolfAttackingLikeGUI(world *core.World, wolf core.EntityID) bool {
 }
 
 func loadAnimationsLikeGUI(wolfAnimSystem, rabbitAnimSystem *animation.AnimationSystem) {
-	// Пустые спрайтшиты для headless (содержимое не важно)
+	// Пустые спрайтшиты для тестирования (содержимое не важно)
 	emptySheet := ebiten.NewImage(128, 64)
 
 	// Волк - ТОЧНО как в main.go

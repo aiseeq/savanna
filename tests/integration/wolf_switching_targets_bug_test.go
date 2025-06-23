@@ -37,16 +37,16 @@ func TestWolfSwitchingTargetsBug(t *testing.T) {
 
 	// Создаём сценарий: 1 волк + 2 зайца близко друг к другу
 	rabbit1 := simulation.CreateAnimal(world, core.TypeRabbit, 48, 48) // Центр мира
-	rabbit2 := simulation.CreateAnimal(world, core.TypeRabbit, 64, 48) // Рядом с первым
-	wolf := simulation.CreateAnimal(world, core.TypeWolf, 32, 48)      // Близко к обоим
+	rabbit2 := simulation.CreateAnimal(world, core.TypeRabbit, 49, 49) // Рядом с первым
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 47, 48)      // Близко к обоим
 
 	// Делаем волка очень голодным
 	world.SetHunger(wolf, core.Hunger{Value: 20.0}) // 20% - очень голодный
 
 	t.Logf("=== НАЧАЛЬНОЕ СОСТОЯНИЕ ===")
-	t.Logf("Волк на (32, 48), голод 20%%")
+	t.Logf("Волк на (47, 48), голод 20%%")
 	t.Logf("Заяц1 на (48, 48)")
-	t.Logf("Заяц2 на (64, 48)")
+	t.Logf("Заяц2 на (49, 49)")
 
 	deltaTime := float32(1.0 / 60.0)
 	firstTargetKilled := false

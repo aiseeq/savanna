@@ -24,7 +24,7 @@ func (am *AnimationManager) Update(world *core.World, deltaTime float32) {
 	am.UpdateAllAnimations(world, deltaTime)
 }
 
-// UpdateAllAnimations обновляет анимации всех животных (устраняет дублирование между GUI и headless)
+// UpdateAllAnimations обновляет анимации всех животных
 func (am *AnimationManager) UpdateAllAnimations(world *core.World, deltaTime float32) {
 	world.ForEachWith(core.MaskAnimalType|core.MaskAnimation, func(entity core.EntityID) {
 		am.updateAnimalAnimation(world, entity, deltaTime)

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/aiseeq/savanna/internal/animation"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // TestAnimationLoading проверяет что анимации правильно загружаются из файлов
@@ -12,15 +13,18 @@ func TestAnimationLoading(t *testing.T) {
 
 	t.Logf("=== TDD: Проверка загрузки анимаций из файлов ===")
 
-	// Проверяем что анимация Eat регистрируется для зайца в headless
-	t.Logf("\n--- Headless анимации ---")
+	// Проверяем что анимация Eat регистрируется для зайца
+	t.Logf("\n--- Анимации ---")
 	rabbitAnimSystem := animation.NewAnimationSystem()
 	loader := animation.NewAnimationLoader()
-	loader.LoadHeadlessAnimations(animation.NewAnimationSystem(), rabbitAnimSystem)
+
+	// Создаём пустые изображения для теста
+	emptyImg := ebiten.NewImage(128, 64)
+	loader.LoadAnimations(animation.NewAnimationSystem(), rabbitAnimSystem, emptyImg, emptyImg)
 
 	// Проверяем все анимации зайца
 	allAnimations := rabbitAnimSystem.GetAllAnimations()
-	t.Logf("Зарегистрированные анимации зайца в headless:")
+	t.Logf("Зарегистрированные анимации зайца:")
 	for animType, animData := range allAnimations {
 		t.Logf("  %s: %d кадров, %.1f FPS, зацикленная=%v",
 			animType.String(), animData.Frames, animData.FPS, animData.Loop)
@@ -29,9 +33,9 @@ func TestAnimationLoading(t *testing.T) {
 	// КРИТИЧЕСКАЯ ПРОВЕРКА: AnimEat должна быть зарегистрирована
 	eatAnim := rabbitAnimSystem.GetAnimation(animation.AnimEat)
 	if eatAnim == nil {
-		t.Errorf("❌ КРИТИЧЕСКАЯ ОШИБКА: AnimEat НЕ зарегистрирована для зайца в headless!")
+		t.Errorf("❌ КРИТИЧЕСКАЯ ОШИБКА: AnimEat НЕ зарегистрирована для зайца в тесте!")
 	} else {
-		t.Logf("✅ AnimEat зарегистрирована в headless: %d кадров", eatAnim.Frames)
+		t.Logf("✅ AnimEat зарегистрирована в тесте: %d кадров", eatAnim.Frames)
 	}
 
 	// Проверяем GUI анимации (имитируем loadRabbitAnimations из main.go)
@@ -92,17 +96,17 @@ func TestAnimationLoading(t *testing.T) {
 		t.Logf("✅ AnimEat зарегистрирована в GUI: %d кадров", guiEatAnim.Frames)
 	}
 
-	// Сравниваем headless и GUI
-	t.Logf("\n--- Сравнение headless и GUI ---")
-	headlessAnimations := rabbitAnimSystem.GetAllAnimations()
+	// Сравниваем тестовые и GUI анимации
+	t.Logf("\n--- Сравнение тестовых и GUI анимаций ---")
+	testAnimations := rabbitAnimSystem.GetAllAnimations()
 	guiAnimations := guiRabbitAnimSystem.GetAllAnimations()
 
-	t.Logf("Headless: %d анимаций, GUI: %d анимаций", len(headlessAnimations), len(guiAnimations))
+	t.Logf("Тестовые: %d анимаций, GUI: %d анимаций", len(testAnimations), len(guiAnimations))
 
-	// Проверяем что в GUI есть все анимации что и в headless
-	for animType := range headlessAnimations {
+	// Проверяем что в GUI есть все анимации что и в тестах
+	for animType := range testAnimations {
 		if _, exists := guiAnimations[animType]; !exists {
-			t.Errorf("❌ Анимация %s есть в headless но отсутствует в GUI", animType.String())
+			t.Errorf("❌ Анимация %s есть в тестах но отсутствует в GUI", animType.String())
 		}
 	}
 }

@@ -77,8 +77,8 @@ func (gss *GrassSearchSystem) manageGrassEating(
 	entity core.EntityID,
 	pos core.Position,
 ) {
-	// Ищем ближайшую траву
-	const grassSearchRadius = 30.0
+	// Ищем ближайшую траву в радиусе 1 тайла (32 пикселя в старой системе)
+	const grassSearchRadius = 1.0
 	_, _, found := gss.vegetation.FindNearestGrass(pos.X, pos.Y, grassSearchRadius, MinGrassAmountToFind)
 
 	if found {

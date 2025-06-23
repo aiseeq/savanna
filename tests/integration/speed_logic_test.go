@@ -9,14 +9,6 @@ import (
 	"github.com/aiseeq/savanna/internal/simulation"
 )
 
-// abs возвращает абсолютное значение float32
-func abs(x float32) float32 {
-	if x < 0 {
-		return -x
-	}
-	return x
-}
-
 // TestNewSpeedLogic проверяет новую логику влияния сытости и здоровья на скорость
 //
 //nolint:revive // function-length: Комплексный интеграционный тест скорости

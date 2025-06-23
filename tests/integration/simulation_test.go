@@ -57,7 +57,10 @@ func TestBasicSimulation(t *testing.T) {
 	// Создаем несколько животных
 	rabbit1 := simulation.CreateAnimal(world, core.TypeRabbit, 100, 100)
 	rabbit2 := simulation.CreateAnimal(world, core.TypeRabbit, 200, 200)
-	wolf1 := simulation.CreateAnimal(world, core.TypeWolf, 300, 300)
+	wolf1 := simulation.CreateAnimal(world, core.TypeWolf, 101, 100) // Близко к rabbit1
+
+	// Делаем волка голодным чтобы он охотился
+	world.SetHunger(wolf1, core.Hunger{Value: 30.0}) // 30% < 60% порога
 
 	// Проверяем что животные созданы
 	if world.GetEntityCount() != 3 {
@@ -66,9 +69,21 @@ func TestBasicSimulation(t *testing.T) {
 
 	// Запускаем симуляцию на 1 секунду
 	deltaTime := float32(1.0 / TestTPS)
+
 	for i := 0; i < TestTPS; i++ {
 		world.Update(deltaTime)
 		systemManager.Update(world, deltaTime)
+
+		// Логируем каждые 10 тиков
+		if i%10 == 0 {
+			rabbitPos, _ := world.GetPosition(rabbit1)
+			wolfPos, _ := world.GetPosition(wolf1)
+			rabbitVel, _ := world.GetVelocity(rabbit1)
+			wolfVel, _ := world.GetVelocity(wolf1)
+			t.Logf("Тик %d: заяц (%.1f,%.1f) vel(%.1f,%.1f), волк (%.1f,%.1f) vel(%.1f,%.1f)",
+				i, rabbitPos.X, rabbitPos.Y, rabbitVel.X, rabbitVel.Y,
+				wolfPos.X, wolfPos.Y, wolfVel.X, wolfVel.Y)
+		}
 	}
 
 	// Проверяем что животные живы и двигаются
@@ -228,34 +243,48 @@ func TestAnimalInteraction(t *testing.T) {
 	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{System: grassSearchSystem})
 	systemManager.AddSystem(&adapters.GrassEatingSystemAdapter{System: grassEatingSystem})
 
-	// Создаем зайца и волка на дистанции видимости
-	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 200, 200)
-	wolf := simulation.CreateAnimal(world, core.TypeWolf, 280, 200) // На расстоянии 80 единиц (в пределах видимости волка)
+	// Создаем зайца и волка очень близко для тайловой системы
+	rabbit1 := simulation.CreateAnimal(world, core.TypeRabbit, 100, 100)
+	wolf1 := simulation.CreateAnimal(world, core.TypeWolf, 101, 100) // Дистанция 1 пиксель
 
-	// Делаем волка голодным
-	world.SetHunger(wolf, core.Hunger{Value: 30.0}) // Ниже порога охоты (60%)
+	// Делаем волка голодным чтобы он охотился
+	world.SetHunger(wolf1, core.Hunger{Value: 30.0}) // 30% < 60% порога
 
-	initialRabbitPos, _ := world.GetPosition(rabbit)
-	initialWolfPos, _ := world.GetPosition(wolf)
+	initialRabbitPos, _ := world.GetPosition(rabbit1)
+	initialWolfPos, _ := world.GetPosition(wolf1)
 
-	// Запускаем симуляцию
+	// Запускаем симуляцию на 2 секунды
 	deltaTime := float32(1.0 / TestTPS)
-	for i := 0; i < TestTPS*2; i++ { // 2 секунды
+	for i := 0; i < TestTPS*2; i++ {
 		world.Update(deltaTime)
 		systemManager.Update(world, deltaTime)
 	}
 
-	// Проверяем что животные двигались
-	finalRabbitPos, _ := world.GetPosition(rabbit)
-	finalWolfPos, _ := world.GetPosition(wolf)
+	// Получаем финальные позиции животных после симуляции
+	finalRabbitPos, _ := world.GetPosition(rabbit1)
+	finalWolfPos, _ := world.GetPosition(wolf1)
 
 	rabbitMoved := finalRabbitPos.X != initialRabbitPos.X || finalRabbitPos.Y != initialRabbitPos.Y
 	wolfMoved := finalWolfPos.X != initialWolfPos.X || finalWolfPos.Y != initialWolfPos.Y
 
+	t.Logf("Начальные позиции: заяц (%.1f,%.1f), волк (%.1f,%.1f)",
+		initialRabbitPos.X, initialRabbitPos.Y, initialWolfPos.X, initialWolfPos.Y)
+	t.Logf("Финальные позиции: заяц (%.1f,%.1f), волк (%.1f,%.1f)",
+		finalRabbitPos.X, finalRabbitPos.Y, finalWolfPos.X, finalWolfPos.Y)
+	t.Logf("Движение: заяц %v, волк %v", rabbitMoved, wolfMoved)
+
+	// Проверяем что животные живы
+	if !world.IsAlive(rabbit1) {
+		t.Error("Rabbit should be alive")
+	}
+	if !world.IsAlive(wolf1) {
+		t.Error("Wolf should be alive")
+	}
+
+	// Проверяем что животные двигались
 	if !rabbitMoved {
 		t.Error("Rabbit should have moved")
 	}
-
 	if !wolfMoved {
 		t.Error("Wolf should have moved")
 	}

@@ -9,6 +9,14 @@ import (
 // Используйте LargeAnimalSizeThreshold и LargeAnimalHungerRate
 
 // FeedingSystem управляет голодом и его влиянием на животных
+// DEPRECATED: Эта система заменена на специализированные системы:
+// - HungerSystem: только уменьшение голода
+// - GrassSearchSystem: только поиск травы и создание EatingState
+// - GrassEatingSystem: только обработка поедания травы
+// - StarvationDamageSystem: только урон от голода
+// - HungerSpeedModifierSystem: только влияние голода на скорость
+//
+// Сохранена для совместимости с тестами. В новом коде используйте специализированные системы.
 type FeedingSystem struct {
 	healthDamageTimer float32                 // Таймер для нанесения урона здоровью
 	vegetation        core.VegetationProvider // Интерфейс для работы с растительностью (соблюдение DIP)
