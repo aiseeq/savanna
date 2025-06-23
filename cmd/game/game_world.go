@@ -138,12 +138,9 @@ func (gw *GameWorld) PopulateWorld(cfg *config.Config) {
 		tileX := placement.X / 32.0
 		tileY := placement.Y / 32.0
 
-		// DEBUG: Проверяем границы размещения
-		fmt.Printf("DEBUG Animal placement GUI: pixels(%.1f,%.1f) -> tiles(%.1f,%.1f), world bounds: %.1fx%.1f\n",
-			placement.X, placement.Y, tileX, tileY, worldWidth, worldHeight)
-
+		// Проверяем границы размещения (без дебаг спама)
 		if tileX < 0 || tileX > worldWidth || tileY < 0 || tileY > worldHeight {
-			fmt.Printf("WARNING: Animal placed outside world bounds in GUI mode!\n")
+			fmt.Printf("WARNING: Animal placed outside world bounds!\n")
 		}
 
 		simulation.CreateAnimal(gw.world, placement.Type, tileX, tileY)
@@ -154,9 +151,10 @@ func (gw *GameWorld) PopulateWorld(cfg *config.Config) {
 		fmt.Printf("Предупреждения размещения GUI: %v\n", errors)
 	}
 
+	// Сводка размещения животных (без детальной отладки)
 	popStats := popGen.GetStats(placements)
-	fmt.Printf("GUI размещено: %d зайцев (%d групп), %d волков\n",
-		popStats["rabbits"], popStats["rabbit_groups"], popStats["wolves"])
+	fmt.Printf("Размещено животных: %d зайцев, %d волков\n",
+		popStats["rabbits"], popStats["wolves"])
 }
 
 // GetStats возвращает типизированную статистику мира

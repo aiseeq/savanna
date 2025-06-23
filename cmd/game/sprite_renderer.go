@@ -8,6 +8,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"github.com/aiseeq/savanna/internal/animation"
 	"github.com/aiseeq/savanna/internal/constants"
@@ -204,11 +205,15 @@ func (sr *SpriteRenderer) DrawAnimalAt(
 	entity core.EntityID,
 	screenX, screenY, zoom float32,
 ) {
+	// Рисуем спрайт животного
 	sr.DrawAnimal(screen, world, entity, RenderParams{
 		ScreenX: screenX,
 		ScreenY: screenY,
 		Zoom:    zoom,
 	})
+
+	// ДОБАВЛЕНО: Отрисовываем UI элементы (health bar и hunger text) всегда
+	sr.drawUIElements(screen, world, entity, screenX, screenY)
 }
 
 // GetSpriteBounds возвращает размеры спрайта для животного (для расчёта коллизий)
@@ -245,4 +250,81 @@ func (sr *SpriteRenderer) applyDamageFlash(world *core.World, entity core.Entity
 	scale := 1.0 + intensity*constants.DamageFlashIntensityMultiplier
 
 	op.ColorScale.Scale(scale, scale, scale, 1.0) // R, G, B увеличиваются, A остается
+}
+
+// drawUIElements отрисовывает UI элементы над животным (health bar и hunger text)
+func (sr *SpriteRenderer) drawUIElements(screen *ebiten.Image, world *core.World, entity core.EntityID, screenX, screenY float32) {
+	// Рисуем health bar
+	sr.drawHealthBar(screen, world, entity, screenX, screenY)
+
+	// Рисуем hunger text
+	sr.drawHungerText(screen, world, entity, screenX, screenY)
+}
+
+// drawHealthBar отрисовывает полоску здоровья над животным
+func (sr *SpriteRenderer) drawHealthBar(screen *ebiten.Image, world *core.World, entity core.EntityID, screenX, screenY float32) {
+	health, hasHealth := world.GetHealth(entity)
+	if !hasHealth {
+		return
+	}
+
+	// Размеры полоски здоровья зависят от типа животного
+	var barWidth float32 = 48   // Увеличенная ширина для лучшей видимости
+	var barHeight float32 = 6   // Увеличенная высота
+	var barOffsetY float32 = 35 // Смещение над спрайтом
+
+	if animalType, hasType := world.GetAnimalType(entity); hasType {
+		switch animalType {
+		case core.TypeRabbit:
+			barWidth = 48
+			barOffsetY = 35
+		case core.TypeWolf:
+			barWidth = 60
+			barOffsetY = 40
+		}
+	}
+
+	barX := screenX - barWidth/2
+	barY := screenY - barOffsetY
+
+	// Фон полоски (красный)
+	vector.DrawFilledRect(screen, barX, barY, barWidth, barHeight, color.RGBA{200, 50, 50, 255}, false)
+
+	// Здоровье (зелёный)
+	var healthPercent float32
+	if health.Max > 0 {
+		healthPercent = float32(health.Current) / float32(health.Max)
+	}
+	healthWidth := barWidth * healthPercent
+	vector.DrawFilledRect(screen, barX, barY, healthWidth, barHeight, color.RGBA{50, 200, 50, 255}, false)
+}
+
+// drawHungerText отрисовывает значение голода над животным
+func (sr *SpriteRenderer) drawHungerText(screen *ebiten.Image, world *core.World, entity core.EntityID, screenX, screenY float32) {
+	hunger, hasHunger := world.GetHunger(entity)
+	if !hasHunger {
+		return
+	}
+
+	// Создаём текст голода
+	hungerText := fmt.Sprintf("%.0f%%", hunger.Value)
+
+	// Позиция текста (над полоской здоровья)
+	var textOffsetY float32 = 55 // Увеличенное смещение для лучшей видимости
+
+	if animalType, hasType := world.GetAnimalType(entity); hasType {
+		switch animalType {
+		case core.TypeRabbit:
+			textOffsetY = 55
+		case core.TypeWolf:
+			textOffsetY = 60
+		}
+	}
+
+	textX := float64(screenX - 20) // Смещаем влево для центровки
+	textY := float64(screenY - textOffsetY)
+
+	// Используем простой дефолтный шрифт (цвет всегда белый для простоты)
+	// TODO: В будущем можно добавить цветной текст через кастомный шрифт
+	ebitenutil.DebugPrintAt(screen, hungerText, int(textX), int(textY))
 }

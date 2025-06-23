@@ -256,7 +256,7 @@ func (gs *GameState) generateHealthBarInstructions(instructions *RenderInstructi
 			healthBarWidth = 32
 			healthBarOffset = 20
 		case core.TypeWolf:
-			healthBarWidth = 40 
+			healthBarWidth = 40
 			healthBarOffset = 30
 		}
 
@@ -345,10 +345,10 @@ func (gs *GameState) generateHungerDisplayInstructions(instructions *RenderInstr
 		// Настройка под размер спрайта конкретного животного
 		switch animalType {
 		case core.TypeRabbit:
-			hungerOffset = 35  // Выше хелсбара зайца
+			hungerOffset = 35 // Выше хелсбара зайца
 			textOffsetX = 8
 		case core.TypeWolf:
-			hungerOffset = 50  // Выше хелсбара волка
+			hungerOffset = 50 // Выше хелсбара волка
 			textOffsetX = 10
 		}
 
@@ -368,7 +368,7 @@ func (gs *GameState) generateHungerDisplayInstructions(instructions *RenderInstr
 		// Добавляем UI инструкцию для отображения сытости над животным
 		instruction := UIInstruction{
 			Text:     hungerText,
-			X:        float64(pos.X) - textOffsetX, // Центровка относительно спрайта
+			X:        float64(pos.X) - textOffsetX,  // Центровка относительно спрайта
 			Y:        float64(pos.Y) - hungerOffset, // Выше хелсбара
 			Color:    textColor,
 			FontSize: 12, // Чуть меньший шрифт для компактности
