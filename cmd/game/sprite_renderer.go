@@ -18,6 +18,9 @@ import (
 type SpriteRenderer struct {
 	// Загруженные спрайты для каждого типа животного
 	animalSprites map[core.AnimalType]AnimalSprites
+
+	// Переиспользуемые объекты для оптимизации производительности
+	drawOptions *ebiten.DrawImageOptions // Переиспользуемый объект для отрисовки
 }
 
 // AnimalSprites содержит все спрайты для одного типа животного
@@ -30,6 +33,7 @@ type AnimalSprites struct {
 func NewSpriteRenderer() *SpriteRenderer {
 	sr := &SpriteRenderer{
 		animalSprites: make(map[core.AnimalType]AnimalSprites),
+		drawOptions:   &ebiten.DrawImageOptions{}, // Инициализируем переиспользуемый объект
 	}
 
 	// Загружаем спрайты для всех типов животных
@@ -41,13 +45,12 @@ func NewSpriteRenderer() *SpriteRenderer {
 
 // loadAnimalSprites загружает все спрайты для указанного типа животного
 func (sr *SpriteRenderer) loadAnimalSprites(animalType core.AnimalType, prefix string) {
-	fmt.Printf("Загружаем спрайты для %v (префикс: %s)...\n", animalType, prefix)
 
 	sprites := AnimalSprites{
 		animations: make(map[animation.AnimationType][]*ebiten.Image),
 	}
 
-	// Определяем какие анимации загружать
+	// Определяем какие анимации загружать (соответствуют реальным файлам в assets)
 	animationTypes := []struct {
 		animType animation.AnimationType
 		name     string
@@ -67,12 +70,12 @@ func (sr *SpriteRenderer) loadAnimalSprites(animalType core.AnimalType, prefix s
 	}
 
 	sr.animalSprites[animalType] = sprites
-	fmt.Printf("✅ Спрайты для %v загружены\n", animalType)
 }
 
 // loadAnimationFrames загружает кадры одной анимации
 func (sr *SpriteRenderer) loadAnimationFrames(prefix, animName string, frameCount int) []*ebiten.Image {
-	var frames []*ebiten.Image
+	// ОПТИМИЗАЦИЯ: Предварительно выделяем слайс нужного размера
+	frames := make([]*ebiten.Image, 0, frameCount)
 
 	for i := 1; i <= frameCount; i++ {
 		filename := fmt.Sprintf("%s_%s_%d.png", prefix, animName, i)
@@ -80,8 +83,8 @@ func (sr *SpriteRenderer) loadAnimationFrames(prefix, animName string, frameCoun
 
 		img, _, err := ebitenutil.NewImageFromFile(filePath)
 		if err != nil {
-			fmt.Printf("⚠️  Не удалось загрузить %s: %v\n", filePath, err)
-			// Создаём fallback спрайт (цветной квадрат)
+			// FALLBACK: Создаём fallback спрайт при ошибке загрузки
+			fmt.Printf("⚠️  Спрайт не найден: %s (error: %v)\n", filePath, err)
 			img = sr.createFallbackSprite(constants.DefaultSpriteSize, constants.DefaultSpriteSize)
 		}
 
@@ -110,6 +113,11 @@ func (sr *SpriteRenderer) DrawAnimal(
 	entity core.EntityID,
 	params RenderParams,
 ) {
+	// БЕЗОПАСНОСТЬ: Проверяем входные параметры
+	if screen == nil || world == nil {
+		return
+	}
+
 	// Получаем тип животного
 	animalType, hasType := world.GetAnimalType(entity)
 	if !hasType {
@@ -130,6 +138,7 @@ func (sr *SpriteRenderer) DrawAnimal(
 
 	// Получаем кадры для текущей анимации
 	animType := animation.AnimationType(anim.CurrentAnim)
+
 	frames, hasFrames := sprites.animations[animType]
 	if !hasFrames || len(frames) == 0 {
 		return
@@ -146,8 +155,15 @@ func (sr *SpriteRenderer) DrawAnimal(
 
 	sprite := frames[frameIndex]
 
-	// Настраиваем отрисовку
-	op := &ebiten.DrawImageOptions{}
+	// ОПТИМИЗАЦИЯ: Используем переиспользуемый объект вместо создания нового
+	// БЕЗОПАСНОСТЬ: Проверяем что объект инициализирован
+	if sr.drawOptions == nil {
+		sr.drawOptions = &ebiten.DrawImageOptions{}
+	}
+
+	op := sr.drawOptions
+	op.GeoM.Reset()       // Сбрасываем матрицу трансформации
+	op.ColorScale.Reset() // Сбрасываем цветовые эффекты
 
 	// Масштабирование (разное для разных животных)
 	var spriteScale float64
@@ -181,6 +197,20 @@ func (sr *SpriteRenderer) DrawAnimal(
 	screen.DrawImage(sprite, op)
 }
 
+// DrawAnimalAt отрисовывает животное с указанными экранными координатами (для IsometricRenderer)
+func (sr *SpriteRenderer) DrawAnimalAt(
+	screen *ebiten.Image,
+	world *core.World,
+	entity core.EntityID,
+	screenX, screenY, zoom float32,
+) {
+	sr.DrawAnimal(screen, world, entity, RenderParams{
+		ScreenX: screenX,
+		ScreenY: screenY,
+		Zoom:    zoom,
+	})
+}
+
 // GetSpriteBounds возвращает размеры спрайта для животного (для расчёта коллизий)
 func (sr *SpriteRenderer) GetSpriteBounds(animalType core.AnimalType) image.Rectangle {
 	sprites, hasSprites := sr.animalSprites[animalType]
@@ -188,8 +218,8 @@ func (sr *SpriteRenderer) GetSpriteBounds(animalType core.AnimalType) image.Rect
 		return image.Rectangle{}
 	}
 
-	// Берём первый кадр idle анимации для получения размера
-	if frames, hasIdle := sprites.animations[animation.AnimIdle]; hasIdle && len(frames) > 0 {
+	// БЕЗОПАСНОСТЬ: Берём первый кадр idle анимации для получения размера
+	if frames, hasIdle := sprites.animations[animation.AnimIdle]; hasIdle && frames != nil && len(frames) > 0 {
 		return frames[0].Bounds()
 	}
 

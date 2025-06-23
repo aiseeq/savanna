@@ -3,8 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"image"
 	"image/color"
+	"image/png"
 	"log"
+	"math"
+	"net/http"
+	_ "net/http/pprof"
+	"os"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -16,6 +22,7 @@ import (
 	"github.com/aiseeq/savanna/config"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
+	"github.com/aiseeq/savanna/internal/rendering"
 	"github.com/aiseeq/savanna/internal/simulation"
 )
 
@@ -23,11 +30,18 @@ import (
 // Рефакторинг: разбита на специализированные менеджеры (соблюдение SRP)
 type Game struct {
 	// Менеджеры с единственными ответственностями
-	gameWorld        *GameWorld        // Управление симуляцией мира
-	cameraController *CameraController // Управление камерой
-	timeManager      *TimeManager      // Управление временем
-	spriteRenderer   *SpriteRenderer   // Отрисовка спрайтов животных
-	fontManager      *FontManager      // Управление шрифтами
+	gameWorld      *GameWorld      // Управление симуляцией мира
+	timeManager    *TimeManager    // Управление временем
+	spriteRenderer *SpriteRenderer // Отрисовка спрайтов животных
+	fontManager    *FontManager    // Управление шрифтами
+
+	// Изометрическая система отрисовки
+	isometricRenderer *rendering.IsometricRenderer // Изометрическая отрисовка
+	camera            *rendering.Camera            // Камера для изометрии
+	terrain           *generator.Terrain           // Ландшафт
+
+	// Дебаг режим
+	debugMode bool // Включен ли дебаг режим (F3)
 }
 
 // Update обновляет логику игры (рефакторинг: использует менеджеры)
@@ -38,8 +52,23 @@ func (g *Game) Update() error {
 	}
 
 	// Обновляем менеджеры (каждый отвечает за свою область)
-	g.cameraController.Update() // Управление камерой
-	g.timeManager.Update()      // Управление временем
+	g.timeManager.Update() // Управление временем
+
+	// Обновляем новую камеру
+	cameraUpdateDeltaTime := g.timeManager.GetDeltaTime()
+	g.camera.Update(cameraUpdateDeltaTime)
+
+	// Убрано автоматическое рецентрирование - камера должна быть статичной
+
+	// Переключение дебаг режима (F3)
+	if inpututil.IsKeyJustPressed(ebiten.KeyF3) {
+		g.debugMode = !g.debugMode
+	}
+
+	// Скриншот с дебаг-режимом (F2)
+	if inpututil.IsKeyJustPressed(ebiten.KeyF2) {
+		g.takeDebugScreenshot()
+	}
 
 	// Обновляем симуляцию с учётом времени
 	deltaTime := g.timeManager.GetDeltaTime()
@@ -50,20 +79,23 @@ func (g *Game) Update() error {
 
 // Draw отрисовывает кадр
 func (g *Game) Draw(screen *ebiten.Image) {
-	// Очищаем экран тёмным цветом
-	screen.Fill(color.RGBA{20, 30, 20, 255})
+	// Очищаем экран тёмным цветом саванны
+	screen.Fill(color.RGBA{101, 67, 33, 255}) // Коричневый цвет земли
 
-	// LoD Compliance: используем инкапсулированные методы
-	camera := g.cameraController.GetCamera()
+	// Используем новую изометрическую систему отрисовки
+	world := g.gameWorld.GetWorld()
+	g.isometricRenderer.RenderWorld(screen, g.terrain, world, g.camera)
 
-	// Отрисовываем ландшафт (Game больше не знает о внутренних объектах)
-	g.gameWorld.DrawTerrain(screen, camera, g)
+	// Дебаг отрисовка
+	if g.debugMode {
+		g.drawDebugInfo(screen, world)
+	}
 
-	// Отрисовываем животных (Game больше не знает о внутренних объектах)
-	g.gameWorld.DrawAnimals(screen, camera, g)
+	// Отрисовываем пользовательский интерфейс
+	g.drawUI(screen)
 
-	// Отрисовываем UI
-	g.drawUI(screen, camera)
+	// FPS счетчик (этап 7)
+	g.drawFPS(screen)
 }
 
 // Layout устанавливает размеры экрана
@@ -71,132 +103,11 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	return outsideWidth, outsideHeight
 }
 
-// drawTerrain отрисовывает ландшафт
-// DrawTerrain реализует TerrainRenderer (LoD compliance)
-func (g *Game) DrawTerrain(screen *ebiten.Image, camera Camera, terrain *generator.Terrain) {
-	g.drawTerrain(screen, camera, terrain)
-}
-
-func (g *Game) drawTerrain(screen *ebiten.Image, camera Camera, terrain *generator.Terrain) {
-	if terrain == nil {
-		return
-	}
-
-	// Определяем видимую область
-	bounds := screen.Bounds()
-	screenW, screenH := bounds.Dx(), bounds.Dy()
-	startX := int((camera.X) / 32)
-	startY := int((camera.Y) / 32)
-	endX := startX + int(float32(screenW)/(32*camera.Zoom)) + 2
-	endY := startY + int(float32(screenH)/(32*camera.Zoom)) + 2
-
-	// Ограничиваем области размером мира
-	size := terrain.GetSize()
-	if startX < 0 {
-		startX = 0
-	}
-	if startY < 0 {
-		startY = 0
-	}
-	if endX > size {
-		endX = size
-	}
-	if endY > size {
-		endY = size
-	}
-
-	// Отрисовываем тайлы
-	for y := startY; y < endY; y++ {
-		for x := startX; x < endX; x++ {
-			screenX := float32(x*32)*camera.Zoom - camera.X*camera.Zoom
-			screenY := float32(y*32)*camera.Zoom - camera.Y*camera.Zoom
-
-			// Получаем тип тайла и траву
-			tileType := terrain.GetTileType(x, y)
-			grassAmount := terrain.GetGrassAmount(x, y)
-
-			// Определяем цвет тайла
-			var tileColor color.RGBA
-			switch tileType {
-			case generator.TileGrass:
-				// Цвет травы зависит от количества
-				green := uint8(50 + grassAmount*2) // 50-250
-				tileColor = color.RGBA{20, green, 20, 255}
-			case generator.TileWater:
-				tileColor = color.RGBA{30, 50, 150, 255}
-			case generator.TileBush:
-				tileColor = color.RGBA{60, 80, 40, 255}
-			case generator.TileWetland:
-				tileColor = color.RGBA{40, 120, 60, 255}
-			default:
-				tileColor = color.RGBA{100, 100, 100, 255}
-			}
-
-			// Отрисовываем тайл
-			tileSize := 32 * camera.Zoom
-			vector.DrawFilledRect(screen, screenX, screenY, tileSize, tileSize, tileColor, false)
-		}
-	}
-}
-
-// drawAnimals отрисовывает всех животных
-// DrawAnimals реализует AnimalRenderer (LoD compliance)
-func (g *Game) DrawAnimals(screen *ebiten.Image, camera Camera, world *core.World) {
-	g.drawAnimals(screen, camera, world)
-}
-
-func (g *Game) drawAnimals(screen *ebiten.Image, camera Camera, world *core.World) {
-	world.ForEachWith(core.MaskPosition|core.MaskAnimalType, func(entity core.EntityID) {
-		pos, ok := world.GetPosition(entity)
-		if !ok {
-			return
-		}
-
-		_, ok = world.GetAnimalType(entity)
-		if !ok {
-			return
-		}
-
-		// Вычисляем позицию на экране
-		screenX := pos.X*camera.Zoom - camera.X*camera.Zoom
-		screenY := pos.Y*camera.Zoom - camera.Y*camera.Zoom
-
-		// Проверяем видимость
-		bounds := screen.Bounds()
-		if screenX < -50 || screenY < -50 || screenX > float32(bounds.Dx())+50 || screenY > float32(bounds.Dy())+50 {
-			return
-		}
-
-		// Отрисовываем животное как спрайт с анимацией
-		g.spriteRenderer.DrawAnimal(screen, world, entity, RenderParams{
-			ScreenX: screenX,
-			ScreenY: screenY,
-			Zoom:    camera.Zoom,
-		})
-
-		// Получаем размер для полоски здоровья из компонента Size
-		radius := g.getAnimalRadius(entity, world) * camera.Zoom
-
-		// Отрисовываем полоску здоровья
-		g.drawHealthBar(screen, entity, world, HealthBarParams{
-			ScreenX: screenX,
-			ScreenY: screenY,
-			Radius:  radius,
-		})
-
-		// Отрисовываем значение голода над животным
-		g.drawHungerText(screen, entity, world, HungerTextParams{
-			ScreenX: screenX,
-			ScreenY: screenY,
-			Radius:  radius,
-		})
-
-		// DamageFlash теперь применяется прямо к спрайту в SpriteRenderer
-	})
-}
+// REMOVED: Старые методы отрисовки terrain и animals
+// Новая изометрическая система отрисовки используется через isometricRenderer
 
 // drawUI отрисовывает пользовательский интерфейс
-func (g *Game) drawUI(screen *ebiten.Image, camera Camera) {
+func (g *Game) drawUI(screen *ebiten.Image) {
 	stats := g.gameWorld.GetStats()
 
 	// Получаем шрифт для отрисовки
@@ -206,16 +117,14 @@ func (g *Game) drawUI(screen *ebiten.Image, camera Camera) {
 	y := float64(10)
 	lineHeight := float64(20)
 
-	// Статистика животных
-	rabbitCount := stats["rabbits"].(int)
-	wolfCount := stats["wolves"].(int)
-	g.drawText(screen, fmt.Sprintf("Rabbits: %d", rabbitCount), 10, y, font)
+	// ТИПОБЕЗОПАСНОСТЬ: Статистика теперь типизирована
+	g.drawText(screen, fmt.Sprintf("Rabbits: %d", stats.Rabbits), 10, y, font)
 	y += lineHeight
-	g.drawText(screen, fmt.Sprintf("Wolves: %d", wolfCount), 10, y, font)
+	g.drawText(screen, fmt.Sprintf("Wolves: %d", stats.Wolves), 10, y, font)
 	y += lineHeight
 
 	// Масштаб и скорость
-	g.drawText(screen, fmt.Sprintf("Zoom: %.1fx", camera.Zoom), 10, y, font)
+	g.drawText(screen, fmt.Sprintf("Zoom: %.1fx", g.camera.GetZoom()), 10, y, font)
 	y += lineHeight
 
 	timeScale := g.timeManager.GetTimeScale()
@@ -246,6 +155,8 @@ func (g *Game) drawUI(screen *ebiten.Image, camera Camera) {
 		}
 	}
 }
+
+// REMOVED: legacy UI код был удалён и заменён на единую функцию drawUI
 
 // drawText рендерит текст с использованием пользовательского или дефолтного шрифта
 //
@@ -290,18 +201,34 @@ func (g *Game) drawHealthBar(
 		return
 	}
 
-	// Размеры полоски здоровья
-	barWidth := params.Radius * 2
-	barHeight := float32(4)
+	// ИСПРАВЛЕНИЕ: Размеры полоски здоровья зависят от размера СПРАЙТА, не от физического радиуса
+	var barWidth float32 = 32 // Стандартная ширина для зайца
+	var barHeight float32 = 4
+	var barOffsetY float32 = 25 // Смещение над спрайтом
+
+	// Настройка под тип животного
+	if animalType, hasType := world.GetAnimalType(entity); hasType {
+		switch animalType {
+		case core.TypeRabbit:
+			barWidth = 32
+			barOffsetY = 25
+		case core.TypeWolf:
+			barWidth = 40
+			barOffsetY = 30
+		}
+	}
+
 	barX := params.ScreenX - barWidth/2
-	barY := params.ScreenY - params.Radius - barHeight - 2
+	barY := params.ScreenY - barOffsetY
 
 	// Фон полоски (красный)
 	vector.DrawFilledRect(screen, barX, barY, barWidth, barHeight, color.RGBA{200, 50, 50, 255}, false)
 
-	//nolint:gocritic // commentedOutCode: Это описательный комментарий, не код
-	// Здоровье (зелёный)
-	healthPercent := float32(health.Current) / float32(health.Max)
+	// БЕЗОПАСНОСТЬ: Здоровье (зелёный) с защитой от деления на ноль
+	var healthPercent float32
+	if health.Max > 0 {
+		healthPercent = float32(health.Current) / float32(health.Max)
+	}
 	healthWidth := barWidth * healthPercent
 	vector.DrawFilledRect(screen, barX, barY, healthWidth, barHeight, color.RGBA{50, 200, 50, 255}, false)
 }
@@ -326,9 +253,22 @@ func (g *Game) drawHungerText(
 	// Создаём текст голода
 	hungerText := fmt.Sprintf("%.0f%%", hunger.Value)
 
+	// ИСПРАВЛЕНИЕ: Позиция текста зависит от размера СПРАЙТА, не от физического радиуса
+	var textOffsetY float32 = 40 // Стандартное смещение над спрайтом для зайца
+
+	// Настройка под тип животного
+	if animalType, hasType := world.GetAnimalType(entity); hasType {
+		switch animalType {
+		case core.TypeRabbit:
+			textOffsetY = 40
+		case core.TypeWolf:
+			textOffsetY = 45
+		}
+	}
+
 	// Позиция текста (над полоской здоровья)
 	textX := float64(params.ScreenX)
-	textY := float64(params.ScreenY - params.Radius - 25) // Над полоской здоровья
+	textY := float64(params.ScreenY - textOffsetY) // Над полоской здоровья
 
 	// Определяем цвет в зависимости от уровня голода
 	var textColor color.Color
@@ -359,13 +299,224 @@ func (g *Game) drawHungerText(
 	}
 }
 
+// drawDebugInfo отрисовывает дебаг информацию (F3)
+func (g *Game) drawDebugInfo(screen *ebiten.Image, world *core.World) {
+	// Отрисовываем границы тайлов
+	g.drawTileGrid(screen)
+
+	// Отрисовываем ID животных и их состояния
+	g.drawAnimalDebugInfo(screen, world)
+
+	// Отрисовываем камеру информацию
+	g.drawCameraInfo(screen)
+}
+
+// drawTileGrid отрисовывает сетку тайлов
+func (g *Game) drawTileGrid(screen *ebiten.Image) {
+	gridColor := color.RGBA{R: 100, G: 100, B: 100, A: 128} // Полупрозрачная сетка
+
+	// ОПТИМИЗАЦИЯ: Переиспользуемый буфер для точек ромба (избегаем аллокаций)
+	var points [8]float32 // 4 точки × 2 координаты
+
+	// Определяем видимую область (оптимизация производительности)
+	bounds := screen.Bounds()
+	screenW, screenH := float32(bounds.Dx()), float32(bounds.Dy())
+
+	// Углы экрана в мировых координатах
+	topLeftX, topLeftY := g.camera.ScreenToWorld(0, 0)
+	topRightX, topRightY := g.camera.ScreenToWorld(screenW, 0)
+	bottomLeftX, bottomLeftY := g.camera.ScreenToWorld(0, screenH)
+	bottomRightX, bottomRightY := g.camera.ScreenToWorld(screenW, screenH)
+
+	// Находим границы видимой области
+	minX := int(math.Floor(float64(min(min(topLeftX, topRightX), min(bottomLeftX, bottomRightX)))))
+	minY := int(math.Floor(float64(min(min(topLeftY, topRightY), min(bottomLeftY, bottomRightY)))))
+	maxX := int(math.Ceil(float64(max(max(topLeftX, topRightX), max(bottomLeftX, bottomRightX)))))
+	maxY := int(math.Ceil(float64(max(max(topLeftY, topRightY), max(bottomLeftY, bottomRightY)))))
+
+	// Ограничиваем видимую область размерами terrain
+	if minX < 0 {
+		minX = 0
+	}
+	if minY < 0 {
+		minY = 0
+	}
+	if maxX >= g.terrain.Width {
+		maxX = g.terrain.Width - 1
+	}
+	if maxY >= g.terrain.Height {
+		maxY = g.terrain.Height - 1
+	}
+
+	// Отрисовываем только видимые тайлы (frustum culling)
+	for y := minY; y <= maxY; y++ {
+		for x := minX; x <= maxX; x++ {
+			// Преобразуем в экранные координаты с учётом камеры
+			screenX, screenY := g.camera.WorldToScreen(float32(x), float32(y))
+
+			// Рисуем границы тайла
+			tileW := float32(rendering.TileWidth)  // Используем константу из пакета rendering
+			tileH := float32(rendering.TileHeight) // Используем константу из пакета rendering
+
+			// ОПТИМИЗАЦИЯ: Переиспользуем буфер вместо создания нового slice
+			points[0], points[1] = screenX, screenY-tileH/2 // Верх
+			points[2], points[3] = screenX+tileW/2, screenY // Право
+			points[4], points[5] = screenX, screenY+tileH/2 // Низ
+			points[6], points[7] = screenX-tileW/2, screenY // Лево
+
+			// Рисуем линии ромба
+			vector.StrokeLine(screen, points[0], points[1], points[2], points[3], 1, gridColor, false)
+			vector.StrokeLine(screen, points[2], points[3], points[4], points[5], 1, gridColor, false)
+			vector.StrokeLine(screen, points[4], points[5], points[6], points[7], 1, gridColor, false)
+			vector.StrokeLine(screen, points[6], points[7], points[0], points[1], 1, gridColor, false)
+		}
+	}
+}
+
+// drawAnimalDebugInfo отрисовывает дебаг информацию о животных
+func (g *Game) drawAnimalDebugInfo(screen *ebiten.Image, world *core.World) {
+	font := g.fontManager.GetDebugFont()
+
+	world.ForEachWith(core.MaskPosition|core.MaskAnimalType, func(entity core.EntityID) {
+		pos, hasPos := world.GetPosition(entity)
+		if !hasPos {
+			return
+		}
+
+		// Преобразуем в экранные координаты с учётом камеры
+		screenX, screenY := g.camera.WorldToScreen(pos.X, pos.Y)
+
+		// Проверяем видимость
+		bounds := screen.Bounds()
+		if screenX < -50 || screenY < -50 || screenX > float32(bounds.Dx())+50 || screenY > float32(bounds.Dy())+50 {
+			return
+		}
+
+		// Получаем размер и тип животного
+		radius := float32(8)               // Значение по умолчанию
+		var visionMultiplier float32 = 5.0 // По умолчанию
+
+		if size, hasSize := world.GetSize(entity); hasSize {
+			radius = size.Radius
+		}
+
+		// Определяем правильный множитель зрения по типу животного
+		if animalType, hasType := world.GetAnimalType(entity); hasType {
+			switch animalType {
+			case core.TypeRabbit:
+				visionMultiplier = 6.0 // RabbitVisionMultiplier из game_balance.go (обновлено)
+			case core.TypeWolf:
+				visionMultiplier = 6.7 // WolfVisionMultiplier из game_balance.go (обновлено)
+			default:
+				visionMultiplier = 8.0 // DefaultVisionMultiplier (обновлено)
+			}
+		}
+
+		// Рисуем физический размер (синий круг)
+		physicalColor := color.RGBA{R: 0, G: 150, B: 255, A: 128} // Синий полупрозрачный
+		vector.StrokeCircle(screen, screenX, screenY, radius, 1, physicalColor, false)
+
+		// Рисуем радиус обзора (жёлтый круг)
+		visionRadius := radius * visionMultiplier
+		visionColor := color.RGBA{R: 255, G: 255, B: 0, A: 64} // Желтый полупрозрачный
+		vector.StrokeCircle(screen, screenX, screenY, visionRadius, 2, visionColor, false)
+
+		// Отрисовываем ID животного
+		idText := fmt.Sprintf("ID:%d", entity)
+		textY := float64(screenY - radius - 35)
+
+		if font != nil {
+			op := &text.DrawOptions{}
+			op.GeoM.Translate(float64(screenX-20), textY)
+			op.ColorScale.ScaleWithColor(color.White)
+			text.Draw(screen, idText, font, op)
+		} else {
+			ebitenutil.DebugPrintAt(screen, idText, int(screenX-20), int(textY))
+		}
+
+		// ДОБАВЛЕНО: Отрисовываем хелсбар
+		g.drawHealthBar(screen, entity, world, HealthBarParams{
+			ScreenX: screenX,
+			ScreenY: screenY,
+			Radius:  radius,
+		})
+
+		// ДОБАВЛЕНО: Отрисовываем текст голода
+		g.drawHungerText(screen, entity, world, HungerTextParams{
+			ScreenX: screenX,
+			ScreenY: screenY,
+			Radius:  radius,
+		})
+	})
+}
+
+// drawCameraInfo отрисовывает информацию о камере
+func (g *Game) drawCameraInfo(screen *ebiten.Image) {
+	font := g.fontManager.GetDebugFont()
+
+	infoText := fmt.Sprintf("Camera: X=%.1f Y=%.1f Zoom=%.1fx",
+		g.camera.X, g.camera.Y, g.camera.GetZoom())
+
+	if font != nil {
+		op := &text.DrawOptions{}
+		op.GeoM.Translate(10, 150) // Под основным UI
+		op.ColorScale.ScaleWithColor(color.RGBA{R: 255, G: 255, B: 0, A: 255})
+		text.Draw(screen, infoText, font, op)
+	} else {
+		ebitenutil.DebugPrintAt(screen, infoText, 10, 150)
+	}
+}
+
+// drawFPS отрисовывает FPS счетчик
+func (g *Game) drawFPS(screen *ebiten.Image) {
+	font := g.fontManager.GetDebugFont()
+
+	// Получаем TPS и рассчитываем FPS
+	tps := ebiten.ActualTPS()
+	fps := ebiten.ActualFPS()
+
+	fpsText := fmt.Sprintf("FPS: %.1f / TPS: %.1f", fps, tps)
+
+	// Отображаем в правом верхнем углу
+	bounds := screen.Bounds()
+	x := float64(bounds.Dx() - 150)
+	y := float64(20)
+
+	if font != nil {
+		op := &text.DrawOptions{}
+		op.GeoM.Translate(x, y)
+		op.ColorScale.ScaleWithColor(color.White)
+		text.Draw(screen, fpsText, font, op)
+	} else {
+		ebitenutil.DebugPrintAt(screen, fpsText, int(x), int(y))
+	}
+}
+
 func main() {
+	// ПРОФИЛИРОВАНИЕ: Запускаем pprof сервер для анализа производительности
+	go func() {
+		log.Println("Запуск pprof сервера на http://localhost:6060")
+		log.Println("Для профиля CPU: go tool pprof http://localhost:6060/debug/pprof/profile")
+		log.Println("Для профиля памяти: go tool pprof http://localhost:6060/debug/pprof/heap")
+		if err := http.ListenAndServe("localhost:6060", nil); err != nil {
+			log.Printf("Ошибка pprof сервера: %v", err)
+		}
+	}()
+
 	// Парсим аргументы командной строки
 	var seedFlag = flag.Int64(
 		"seed", 0,
 		"Seed для детерминированной симуляции (если не указан, используется текущее время)",
 	)
+	var pprofFlag = flag.Bool(
+		"pprof", false,
+		"Включить профилирование производительности на порту 6060",
+	)
 	flag.Parse()
+
+	if *pprofFlag {
+		log.Println("Профилирование включено. Доступно на http://localhost:6060/debug/pprof/")
+	}
 
 	// Устанавливаем seed
 	var seed int64
@@ -383,15 +534,17 @@ func main() {
 	cfg := config.LoadDefaultConfig()
 	cfg.World.Seed = seed
 	terrainGen := generator.NewTerrainGenerator(cfg)
-	terrain := terrainGen.Generate()
+	// Генерируем прямоугольную карту для изометрической проекции (50x38 тайлов)
+	terrain := terrainGen.GenerateRectangular(50, 38)
 
-	// Создаём менеджеры (рефакторинг: разделение ответственностей)
-	gameWorld := NewGameWorld(1600, 1600, seed, terrain)
-	cameraController := NewCameraController()
+	// ИСПРАВЛЕНИЕ: Размеры мира в тайлах для изометрической проекции
+	worldWidthTiles := terrain.Width   // 50 тайлов
+	worldHeightTiles := terrain.Height // 38 тайлов
+	gameWorld := NewGameWorld(worldWidthTiles, worldHeightTiles, seed, terrain)
 	timeManager := NewTimeManager()
 
 	// Заполняем мир животными
-	gameWorld.PopulateWorld()
+	gameWorld.PopulateWorld(cfg)
 
 	// Создаём рендерер спрайтов
 	spriteRenderer := NewSpriteRenderer()
@@ -403,13 +556,45 @@ func main() {
 		log.Printf("Будет использован дефолтный шрифт")
 	}
 
+	// Создаём новую изометрическую систему отрисовки
+	isometricRenderer := rendering.NewIsometricRenderer()
+	camera := rendering.NewCamera(float32(terrain.Width), float32(terrain.Height))
+	camera.SetZoom(1.0) // Стандартный zoom 1x (как требуется)
+
+	// ИСПРАВЛЕНИЕ: Центрируем камеру правильно на центре карты
+	mapCenterTileX := float32(terrain.Width) / 2.0
+	mapCenterTileY := float32(terrain.Height) / 2.0
+
+	// DEBUG: Логируем координаты
+	fmt.Printf("DEBUG Camera: map center tile (%.1f, %.1f), terrain size %dx%d\n",
+		mapCenterTileX, mapCenterTileY, terrain.Width, terrain.Height)
+
+	// Изометрическая проекция центра карты в экранные координаты (БЕЗ камеры)
+	centerScreenX := (mapCenterTileX - mapCenterTileY) * 32 / 2 // TileWidth = 32
+	centerScreenY := (mapCenterTileX + mapCenterTileY) * 16 / 2 // TileHeight = 16
+
+	// Экран 1024x768, центр в (512, 384)
+	// Камера должна сместиться так, чтобы centerScreenX,centerScreenY стали 512,384
+	cameraX := centerScreenX - 512
+	cameraY := centerScreenY - 384
+	camera.SetPosition(cameraX, cameraY)
+
+	fmt.Printf("DEBUG Camera: center screen (%.1f, %.1f), camera offset (%.1f, %.1f)\n",
+		centerScreenX, centerScreenY, cameraX, cameraY)
+
+	// ИСПРАВЛЕНИЕ: Подключаем спрайтовый рендерер к изометрическому
+	isometricRenderer.SetSpriteRenderer(spriteRenderer)
+
 	// Создаём игру с менеджерами
 	game := &Game{
-		gameWorld:        gameWorld,
-		cameraController: cameraController,
-		timeManager:      timeManager,
-		spriteRenderer:   spriteRenderer,
-		fontManager:      fontManager,
+		gameWorld:         gameWorld,
+		timeManager:       timeManager,
+		spriteRenderer:    spriteRenderer,
+		fontManager:       fontManager,
+		isometricRenderer: isometricRenderer,
+		camera:            camera,
+		terrain:           terrain,
+		debugMode:         false, // По умолчанию выключен
 	}
 
 	// Настройки окна
@@ -423,4 +608,60 @@ func main() {
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// takeDebugScreenshot создаёт скриншот с включённым дебаг-режимом
+func (g *Game) takeDebugScreenshot() {
+	// Временно включаем дебаг-режим для скриншота
+	originalDebugMode := g.debugMode
+	g.debugMode = true
+
+	// Создаем изображение размером с экран
+	screen := ebiten.NewImage(1024, 768)
+
+	// Рендерим кадр с дебаг-информацией
+	g.Draw(screen)
+
+	// Восстанавливаем исходный дебаг-режим
+	g.debugMode = originalDebugMode
+
+	// Генерируем имя файла с временной меткой
+	timestamp := time.Now().Format("20060102_150405")
+	filename := fmt.Sprintf("tmp/debug_screenshot_%s.png", timestamp)
+
+	// Создаем директорию если её нет
+	os.MkdirAll("tmp", 0755)
+
+	// Сохраняем скриншот
+	rgba := screen.SubImage(screen.Bounds())
+	file, err := os.Create(filename)
+	if err != nil {
+		fmt.Printf("⚠️  Ошибка создания файла %s: %v\n", filename, err)
+		return
+	}
+	defer file.Close()
+
+	err = png.Encode(file, rgba.(image.Image))
+	if err != nil {
+		fmt.Printf("⚠️  Ошибка сохранения PNG %s: %v\n", filename, err)
+		return
+	}
+
+	fmt.Printf("📸 Дебаг-скриншот сохранён: %s\n", filename)
+}
+
+// min возвращает минимальное из двух float32
+func min(a, b float32) float32 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// max возвращает максимальное из двух float32
+func max(a, b float32) float32 {
+	if a > b {
+		return a
+	}
+	return b
 }

@@ -49,7 +49,7 @@ func (abs *AnimalBehaviorSystem) Update(world core.BehaviorSystemAccess, deltaTi
 	abs.updateBehaviorTimers(world, deltaTime)
 
 	// Обрабатываем поведение всех животных через универсальную логику
-	behaviorMask := core.MaskBehavior | core.MaskPosition | core.MaskVelocity | core.MaskSpeed | core.MaskHunger
+	behaviorMask := core.MaskBehavior | core.MaskPosition | core.MaskVelocity | core.MaskSpeed | core.MaskHunger | core.MaskAnimalConfig
 	world.ForEachWith(behaviorMask, func(entity core.EntityID) {
 		abs.updateAnimalBehavior(world, entity, deltaTime)
 	})
@@ -98,21 +98,27 @@ func (abs *AnimalBehaviorSystem) updateAnimalBehavior(
 	pos, _ := world.GetPosition(entity)
 	speed, _ := world.GetSpeed(entity)
 	hunger, _ := world.GetHunger(entity)
+	animalConfig, _ := world.GetAnimalConfig(entity)
 
 	// Используем стратегию поведения (Strategy pattern)
 	strategy, hasStrategy := abs.strategies[behavior.Type]
 	if hasStrategy {
 		components := AnimalComponents{
-			Behavior: behavior,
-			Position: pos,
-			Speed:    speed,
-			Hunger:   hunger,
+			Behavior:     behavior,
+			AnimalConfig: animalConfig,
+			Position:     pos,
+			Speed:        speed,
+			Hunger:       hunger,
 		}
 		targetVel := strategy.UpdateBehavior(world, entity, components)
 		world.SetVelocity(entity, targetVel)
 	} else {
-		// Fallback для неизвестных типов поведения
-		targetVel := RandomWalk.GetRandomWalkVelocity(world, entity, behavior, speed.Current*behavior.ContentSpeed)
+		// Fallback для неизвестных типов поведения - используем AnimalConfig если есть
+		var speed_multiplier float32 = behavior.ContentSpeed // Fallback к старому значению
+		if animalConfig.ContentSpeed > 0 {
+			speed_multiplier = animalConfig.ContentSpeed
+		}
+		targetVel := RandomWalk.GetRandomWalkVelocity(world, entity, behavior, speed.Current*speed_multiplier)
 		world.SetVelocity(entity, targetVel)
 	}
 }

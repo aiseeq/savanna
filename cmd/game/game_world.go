@@ -1,14 +1,27 @@
 package main
 
 import (
-	"github.com/hajimehoshi/ebiten/v2"
+	"fmt"
 
+	"github.com/aiseeq/savanna/config"
 	"github.com/aiseeq/savanna/internal/adapters"
-	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
 )
+
+// Константы популяции животных для начального размещения
+const (
+	InitialRabbitCount = 20 // Начальное количество зайцев
+	InitialWolfCount   = 3  // Начальное количество волков
+)
+
+// WorldStats содержит статистику мира (заменяет map[string]interface{})
+type WorldStats struct {
+	Rabbits      int `json:"rabbits"`      // Количество зайцев
+	Wolves       int `json:"wolves"`       // Количество волков
+	TotalAnimals int `json:"totalAnimals"` // Общее количество животных
+}
 
 // GameWorld управляет симуляцией мира и его системами
 // Соблюдает SRP - единственная ответственность: симуляция экосистемы
@@ -33,7 +46,7 @@ func NewGameWorld(worldWidth, worldHeight int, seed int64, terrain *generator.Te
 	}
 
 	// Инициализируем системы симуляции
-	gw.initializeSystems()
+	gw.initializeSystems(worldWidth, worldHeight)
 
 	return gw
 }
@@ -48,30 +61,8 @@ func (gw *GameWorld) GetTerrain() *generator.Terrain {
 	return gw.terrain
 }
 
-// LoD Compliance: инкапсулированные методы для отрисовки
-// Теперь Game не должен знать о внутренних объектах менеджеров
-
-// DrawTerrain отрисовывает ландшафт (соблюдение LoD)
-func (gw *GameWorld) DrawTerrain(screen *ebiten.Image, camera Camera, renderer TerrainRenderer) {
-	// Инкапсулируем логику, Game не получает прямой доступ к terrain
-	renderer.DrawTerrain(screen, camera, gw.terrain)
-}
-
-// DrawAnimals отрисовывает животных (соблюдение LoD)
-func (gw *GameWorld) DrawAnimals(screen *ebiten.Image, camera Camera, renderer AnimalRenderer) {
-	// Инкапсулируем логику, Game не получает прямой доступ к world
-	renderer.DrawAnimals(screen, camera, gw.world)
-}
-
-// TerrainRenderer интерфейс для отрисовки ландшафта (LoD)
-type TerrainRenderer interface {
-	DrawTerrain(screen *ebiten.Image, camera Camera, terrain *generator.Terrain)
-}
-
-// AnimalRenderer интерфейс для отрисовки животных (LoD)
-type AnimalRenderer interface {
-	DrawAnimals(screen *ebiten.Image, camera Camera, world *core.World)
-}
+// REMOVED: Старые методы отрисовки больше не используются
+// Новая изометрическая система отрисовки используется напрямую в main.go
 
 // Update обновляет симуляцию мира
 func (gw *GameWorld) Update(deltaTime float32) {
@@ -85,7 +76,7 @@ func (gw *GameWorld) Update(deltaTime float32) {
 }
 
 // initializeSystems инициализирует все системы симуляции
-func (gw *GameWorld) initializeSystems() {
+func (gw *GameWorld) initializeSystems(worldWidth, worldHeight int) {
 	// Создаём системы (SRP рефакторинг: разделённые специализированные системы)
 	vegetationSystem := simulation.NewVegetationSystem(gw.terrain)
 
@@ -98,8 +89,8 @@ func (gw *GameWorld) initializeSystems() {
 
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem) // DIP: использует интерфейс VegetationProvider
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
-	// Стандартные размеры мира
-	movementSystem := simulation.NewMovementSystem(constants.DefaultWorldSizePixels, constants.DefaultWorldSizePixels)
+	// Используем реальные размеры мира
+	movementSystem := simulation.NewMovementSystem(float32(worldWidth), float32(worldHeight))
 	// Уже включает DamageSystem внутри
 	combatSystem := simulation.NewCombatSystem()
 
@@ -134,31 +125,45 @@ func (gw *GameWorld) initializeSystems() {
 	}
 }
 
-// PopulateWorld заполняет мир животными (унифицированная система)
-func (gw *GameWorld) PopulateWorld() {
-	// Размещаем зайцев
-	for i := 0; i < 20; i++ {
-		x := gw.world.GetRNG().Float32() * constants.DefaultWorldSizePixels // Используем стандартные размеры мира
-		y := gw.world.GetRNG().Float32() * constants.DefaultWorldSizePixels
-		simulation.CreateAnimal(gw.world, core.TypeRabbit, x, y)
+// PopulateWorld заполняет мир животными используя PopulationGenerator
+func (gw *GameWorld) PopulateWorld(cfg *config.Config) {
+	// ИСПРАВЛЕНИЕ: Используем PopulationGenerator вместо случайного размещения
+	popGen := generator.NewPopulationGenerator(cfg, gw.terrain)
+	placements := popGen.Generate()
+
+	worldWidth, worldHeight := gw.world.GetWorldDimensions()
+
+	for _, placement := range placements {
+		// Преобразуем координаты из пикселей в тайлы (делим на размер тайла)
+		tileX := placement.X / 32.0
+		tileY := placement.Y / 32.0
+
+		// DEBUG: Проверяем границы размещения
+		fmt.Printf("DEBUG Animal placement GUI: pixels(%.1f,%.1f) -> tiles(%.1f,%.1f), world bounds: %.1fx%.1f\n",
+			placement.X, placement.Y, tileX, tileY, worldWidth, worldHeight)
+
+		if tileX < 0 || tileX > worldWidth || tileY < 0 || tileY > worldHeight {
+			fmt.Printf("WARNING: Animal placed outside world bounds in GUI mode!\n")
+		}
+
+		simulation.CreateAnimal(gw.world, placement.Type, tileX, tileY)
 	}
 
-	// Размещаем волков
-	for i := 0; i < 3; i++ {
-		x := gw.world.GetRNG().Float32() * constants.DefaultWorldSizePixels
-		y := gw.world.GetRNG().Float32() * constants.DefaultWorldSizePixels
-		simulation.CreateAnimal(gw.world, core.TypeWolf, x, y)
+	errors := popGen.ValidatePlacement(placements)
+	if len(errors) > 0 {
+		fmt.Printf("Предупреждения размещения GUI: %v\n", errors)
 	}
+
+	popStats := popGen.GetStats(placements)
+	fmt.Printf("GUI размещено: %d зайцев (%d групп), %d волков\n",
+		popStats["rabbits"], popStats["rabbit_groups"], popStats["wolves"])
 }
 
-// GetStats возвращает статистику мира
-func (gw *GameWorld) GetStats() map[string]interface{} {
-	stats := make(map[string]interface{})
+// GetStats возвращает типизированную статистику мира
+func (gw *GameWorld) GetStats() WorldStats {
+	var stats WorldStats
 
 	// Подсчитываем животных
-	rabbitCount := 0
-	wolfCount := 0
-
 	gw.world.ForEachWith(core.MaskAnimalType, func(entity core.EntityID) {
 		animalType, ok := gw.world.GetAnimalType(entity)
 		if !ok {
@@ -167,15 +172,12 @@ func (gw *GameWorld) GetStats() map[string]interface{} {
 
 		switch animalType {
 		case core.TypeRabbit:
-			rabbitCount++
+			stats.Rabbits++
 		case core.TypeWolf:
-			wolfCount++
+			stats.Wolves++
 		}
 	})
 
-	stats["rabbits"] = rabbitCount
-	stats["wolves"] = wolfCount
-	stats["total_animals"] = rabbitCount + wolfCount
-
+	stats.TotalAnimals = stats.Rabbits + stats.Wolves
 	return stats
 }

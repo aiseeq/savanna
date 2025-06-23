@@ -9,6 +9,7 @@ import (
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // TestRunWhileStoppedBug воспроизводит баг когда заяц показывает анимацию бега но стоит на месте
@@ -42,7 +43,8 @@ func TestRunWhileStoppedBug(t *testing.T) {
 	wolfAnimSystem := animation.NewAnimationSystem()
 	rabbitAnimSystem := animation.NewAnimationSystem()
 	loader := animation.NewAnimationLoader()
-	loader.LoadHeadlessAnimations(wolfAnimSystem, rabbitAnimSystem)
+	emptyImg := ebiten.NewImage(128, 64)
+	loader.LoadAnimations(wolfAnimSystem, rabbitAnimSystem, emptyImg, emptyImg)
 
 	// Создаём менеджер анимаций с resolver
 	animationManager := animation.NewAnimationManager(wolfAnimSystem, rabbitAnimSystem)
@@ -122,14 +124,16 @@ func TestRunWhileStoppedBug(t *testing.T) {
 			return
 		}
 
+		// ИСПРАВЛЕНИЕ: Обновленные пороги для новой системы анимаций
+		// RabbitWalkSpeedThreshold = 2.25 (квадрат скорости), что соответствует ~1.5 тайла/сек
 		// Если заяц замедлился до ходьбы - проверяем соответствие
-		if speed < 300.0 && speed > 0.1 && animType == animation.AnimRun {
+		if speed < 2.25 && speed > 0.1 && animType == animation.AnimRun {
 			t.Errorf("❌ БАГ: Заяц медленно движется (скорость %.2f) но показывает анимацию бега", speed)
 			return
 		}
 
-		// Если заяц успокоился полностью - тест успешен
-		if speed < 50.0 && (animType == animation.AnimIdle || animType == animation.AnimWalk) {
+		// Если заяц успокоился полностью - тест успешен (порог покоя = 0.1)
+		if speed < 0.1 && animType == animation.AnimIdle {
 			t.Logf("✅ Заяц успокоился на тике %d: скорость=%.2f анимация=%s", i, speed, animType.String())
 			return
 		}

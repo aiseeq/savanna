@@ -28,6 +28,12 @@ func (hs *HungerSystem) updateHunger(world core.HungerSystemAccess, entity core.
 		return
 	}
 
+	// ИСПРАВЛЕНИЕ: Животные не теряют голод когда едят!
+	// Проверяем есть ли EatingState - если есть, пропускаем снижение голода
+	if world.HasComponent(entity, core.MaskEatingState) {
+		return // Животное ест - голод не снижается
+	}
+
 	// Определяем скорость голода в зависимости от размера животного
 	hungerRate := float32(BaseHungerDecreaseRate)
 	if size, hasSize := world.GetSize(entity); hasSize {

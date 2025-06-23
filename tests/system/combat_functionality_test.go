@@ -10,6 +10,7 @@ import (
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // CombatTestWorld содержит все необходимые компоненты для тестирования боевой системы
@@ -39,8 +40,10 @@ func setupCombatWorld(t *testing.T, cfg *config.Config) *CombatTestWorld {
 	wolfAnimationSystem := animation.NewAnimationSystem()
 	rabbitAnimationSystem := animation.NewAnimationSystem()
 
-	// Загружаем анимации
-	loadAnimationsForTest(wolfAnimationSystem, rabbitAnimationSystem)
+	// Загружаем анимации для тестирования
+	loader := animation.NewAnimationLoader()
+	emptyImg := ebiten.NewImage(128, 64)
+	loader.LoadAnimations(wolfAnimationSystem, rabbitAnimationSystem, emptyImg, emptyImg)
 
 	// КРИТИЧЕСКИ ВАЖНО: AnimationManager для обновления анимаций в боевой системе
 	animationManager := animation.NewAnimationManager(wolfAnimationSystem, rabbitAnimationSystem)
@@ -313,4 +316,96 @@ func validateCombatResults(t *testing.T, world *core.World, _, _ int) {
 	}
 
 	t.Logf("📊 Финальная статистика: животных %d, трупов %d", finalAnimals, finalCorpses)
+}
+
+// getWolfAnimationTypeForTest определяет тип анимации для волка
+func getWolfAnimationTypeForTest(world *core.World, entity core.EntityID) animation.AnimationType {
+	if world.HasComponent(entity, core.MaskEatingState) {
+		return animation.AnimEat
+	}
+
+	if isWolfAttackingForTest(world, entity) {
+		return animation.AnimAttack
+	}
+
+	velocity, hasVel := world.GetVelocity(entity)
+	if !hasVel {
+		return animation.AnimIdle
+	}
+
+	speed := velocity.X*velocity.X + velocity.Y*velocity.Y
+
+	// ИСПРАВЛЕНИЕ: Используем правильные пороги для тайловой системы
+	if speed < 0.1 {
+		return animation.AnimIdle
+	} else if speed < 4.0 { // WolfWalkSpeedThreshold из animation/resolver.go
+		return animation.AnimWalk
+	} else {
+		return animation.AnimRun
+	}
+}
+
+// getRabbitAnimationTypeForTest определяет тип анимации для зайца
+func getRabbitAnimationTypeForTest(world *core.World, entity core.EntityID) animation.AnimationType {
+	if world.HasComponent(entity, core.MaskCorpse) {
+		return animation.AnimDeathDying
+	}
+
+	velocity, hasVel := world.GetVelocity(entity)
+	if !hasVel {
+		return animation.AnimIdle
+	}
+
+	speed := velocity.X*velocity.X + velocity.Y*velocity.Y
+
+	// ИСПРАВЛЕНИЕ: Используем правильные пороги для тайловой системы
+	if speed < 0.1 {
+		return animation.AnimIdle
+	} else if speed < 2.25 { // RabbitWalkSpeedThreshold из animation/resolver.go
+		return animation.AnimWalk
+	} else {
+		return animation.AnimRun
+	}
+}
+
+// isWolfAttackingForTest проверяет атакует ли волк
+func isWolfAttackingForTest(world *core.World, wolf core.EntityID) bool {
+	hunger, hasHunger := world.GetHunger(wolf)
+	if !hasHunger || hunger.Value >= 60.0 {
+		return false
+	}
+
+	pos, hasPos := world.GetPosition(wolf)
+	if !hasPos {
+		return false
+	}
+
+	nearestRabbit, foundRabbit := world.FindNearestByType(pos.X, pos.Y, 15.0, core.TypeRabbit)
+	if !foundRabbit {
+		return false
+	}
+
+	if world.HasComponent(nearestRabbit, core.MaskCorpse) {
+		return false
+	}
+
+	rabbitPos, hasRabbitPos := world.GetPosition(nearestRabbit)
+	if !hasRabbitPos {
+		return false
+	}
+
+	distance := (pos.X-rabbitPos.X)*(pos.X-rabbitPos.X) + (pos.Y-rabbitPos.Y)*(pos.Y-rabbitPos.Y)
+	return distance <= 13.0*13.0 // Используем текущий радиус
+}
+
+// TestCombatSystem тестирует что боевая система реально работает
+func TestCombatSystem(t *testing.T) {
+	t.Parallel()
+	cfg := config.LoadDefaultConfig()
+	cfg.World.Size = 10 // Очень маленький мир для гарантированных встреч
+	cfg.Population.Rabbits = 3
+	cfg.Population.Wolves = 2
+	cfg.World.Seed = 12345 // Детерминированный seed
+
+	testCombatFunctionality(t, cfg)
 }

@@ -39,7 +39,7 @@ func TestRealAnimationBehavior(t *testing.T) {
 
 	// Создаём животных В ЦЕНТРЕ маленькой карты
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 40, 48) // Центр
-	wolf := simulation.CreateAnimal(world, core.TypeWolf, 56, 48)     // Рядом с зайцем, на расстоянии 16 пикселей
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 41, 48)     // Рядом с зайцем, на расстоянии 1 пиксель
 
 	// Делаем волка ОЧЕНЬ голодным чтобы он точно атаковал
 	world.SetHunger(wolf, core.Hunger{Value: 5.0})

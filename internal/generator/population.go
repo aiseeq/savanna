@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 
@@ -151,13 +152,23 @@ func (pg *PopulationGenerator) placeWolves() []AnimalPlacement {
 func (pg *PopulationGenerator) findSuitableLocation(
 	existingPositions []struct{ x, y float32 }, minDistance float32,
 ) (x, y float32, found bool) {
-	worldSizePixels := float32(pg.terrain.Size) * TileSizePixels // Размер мира в пикселях
-	margin := MarginPixels                                       // Отступ от краёв карты
+	// ИСПРАВЛЕНИЕ: Используем реальные размеры карты (Width x Height) вместо квадратного Size
+	worldWidthPixels := float32(pg.terrain.Width) * TileSizePixels   // Ширина мира в пикселях
+	worldHeightPixels := float32(pg.terrain.Height) * TileSizePixels // Высота мира в пикселях
+	margin := MarginPixels                                           // Отступ от краёв карты
 
 	for attempts := 0; attempts < MaxAttemptsPlacement; attempts++ {
-		// Случайная позиция с отступом от краёв
-		x := margin + pg.rng.Float32()*(worldSizePixels-2*margin)
-		y := margin + pg.rng.Float32()*(worldSizePixels-2*margin)
+		// Случайная позиция с отступом от краёв - используем правильные границы для прямоугольной карты
+		x := margin + pg.rng.Float32()*(worldWidthPixels-2*margin)
+		y := margin + pg.rng.Float32()*(worldHeightPixels-2*margin)
+
+		// DEBUG: Проверяем границы
+		if attempts == 0 {
+			fmt.Printf("DEBUG PopulationGenerator: terrain %dx%d, worldPixels %.1fx%.1f, margin %.1f\n",
+				pg.terrain.Width, pg.terrain.Height, worldWidthPixels, worldHeightPixels, margin)
+			fmt.Printf("DEBUG PopulationGenerator: x range [%.1f, %.1f], y range [%.1f, %.1f]\n",
+				margin, worldWidthPixels-margin, margin, worldHeightPixels-margin)
+		}
 
 		// Проверяем что тайл проходим
 		tileX := int(x / TileSizePixels)

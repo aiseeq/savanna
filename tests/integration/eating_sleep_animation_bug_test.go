@@ -9,6 +9,7 @@ import (
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // TestEatingSleepAnimationBug воспроизводит баг когда заяц показывает анимацию сна вместо поедания
@@ -27,7 +28,7 @@ func TestEatingSleepAnimationBug(t *testing.T) {
 	terrain := terrainGen.Generate()
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
 
-	// Создаём все системы в том же порядке что в GUI/headless
+	// Создаём все системы в том же порядке что в игре
 	systemManager := core.NewSystemManager()
 	behaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 	movementSystem := simulation.NewMovementSystem(TestWorldSize, TestWorldSize)
@@ -42,7 +43,8 @@ func TestEatingSleepAnimationBug(t *testing.T) {
 	wolfAnimSystem := animation.NewAnimationSystem()
 	rabbitAnimSystem := animation.NewAnimationSystem()
 	loader := animation.NewAnimationLoader()
-	loader.LoadHeadlessAnimations(wolfAnimSystem, rabbitAnimSystem)
+	emptyImg := ebiten.NewImage(128, 64)
+	loader.LoadAnimations(wolfAnimSystem, rabbitAnimSystem, emptyImg, emptyImg)
 
 	// Создаём менеджер анимаций
 	animationManager := animation.NewAnimationManager(wolfAnimSystem, rabbitAnimSystem)

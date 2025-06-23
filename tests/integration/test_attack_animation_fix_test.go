@@ -22,7 +22,7 @@ func TestAttackAnimationFix(t *testing.T) {
 	animSystem.RegisterAnimation(animation.AnimIdle, 2, 1.0, true, nil)
 
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 800, 800)
-	wolf := simulation.CreateAnimal(world, core.TypeWolf, 810, 800)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 801, 800) // Дистанция 1 пиксель для атаки
 	world.SetHunger(wolf, core.Hunger{Value: 10.0})
 
 	initialHealth, _ := world.GetHealth(rabbit)

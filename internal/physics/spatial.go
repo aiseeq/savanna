@@ -2,12 +2,14 @@ package physics
 
 import (
 	"math"
+
+	"github.com/aiseeq/savanna/internal/constants"
 )
 
 // Константы размеров
 const (
-	TileSize   = 32  // Размер тайла в пикселях
-	EdgeOffset = 0.1 // Небольшой отступ от границы мира для предотвращения выхода за пределы
+	TileSize   = constants.TileSizePixels // РЕФАКТОРИНГ: используем константу из constants.go
+	EdgeOffset = 0.1                      // Небольшой отступ от границы мира для предотвращения выхода за пределы
 )
 
 // EntityID представляет уникальный идентификатор сущности

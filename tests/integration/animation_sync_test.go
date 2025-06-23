@@ -8,6 +8,7 @@ import (
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // TestAnimationVelocitySync проверяет синхронизацию анимации и скорости
@@ -34,7 +35,10 @@ func TestAnimationVelocitySync(t *testing.T) {
 	wolfAnimSystem := animation.NewAnimationSystem()
 	rabbitAnimSystem := animation.NewAnimationSystem()
 	loader := animation.NewAnimationLoader()
-	loader.LoadHeadlessAnimations(wolfAnimSystem, rabbitAnimSystem)
+
+	// Создаём пустые изображения для теста
+	emptyImg := ebiten.NewImage(128, 64)
+	loader.LoadAnimations(wolfAnimSystem, rabbitAnimSystem, emptyImg, emptyImg)
 
 	// Создаём менеджер анимаций
 	animationManager := animation.NewAnimationManager(wolfAnimSystem, rabbitAnimSystem)
@@ -104,7 +108,7 @@ func TestAnimationVelocitySync(t *testing.T) {
 	// СЦЕНАРИЙ 3: Заяц убегает от волка, потом волк уходит
 	t.Logf("\n--- Сценарий 3: Заяц убегает от волка, потом волк уходит ---")
 	rabbit3 := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
-	wolf := simulation.CreateAnimal(world, core.TypeWolf, 310, 300) // Близко к зайцу
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 301, 300) // Дистанция 1 пиксель
 	world.SetHunger(wolf, core.Hunger{Value: 50.0})                 // Голодный волк
 
 	// Симулируем поведение
@@ -135,8 +139,9 @@ func TestAnimationVelocitySync(t *testing.T) {
 
 		t.Logf("Тик %d (спокоен): скорость=%.2f анимация=%s", i, speed, animType.String())
 
-		// Если заяц успокоился - анимация должна быть Idle или медленная Walk
-		if speed < 50.0 && animType == animation.AnimRun {
+		// ИСПРАВЛЕНИЕ: Обновленные пороги анимаций (RabbitWalkSpeedThreshold = 2.25)
+		// Если заяц медленно движется - анимация НЕ должна быть Run
+		if speed < 2.25 && animType == animation.AnimRun {
 			t.Errorf("❌ ОШИБКА на тике %d: Заяц спокоен (скорость %.2f) но показывает анимацию бега",
 				i, speed)
 		}

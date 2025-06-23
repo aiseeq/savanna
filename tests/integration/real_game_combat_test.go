@@ -16,15 +16,20 @@ func TestRealGameCombat(t *testing.T) {
 	t.Parallel()
 	world := core.NewWorld(1600, 1600, 42) // Больший мир
 
-	// Создаём все системы как в реальной игре
+	// ИСПРАВЛЕНО: Правильный порядок систем согласно CLAUDE.md
 	systemManager := core.NewSystemManager()
-	combatSystem := simulation.NewCombatSystem()
-	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(nil) // nil vegetation для теста
-	movementSystem := simulation.NewMovementSystem(1600, 1600)
 
-	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
-	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
+	// СНАЧАЛА CombatSystem (создает AttackState)
+	combatSystem := simulation.NewCombatSystem()
 	systemManager.AddSystem(combatSystem)
+
+	// ПОТОМ BehaviorSystem (видит AttackState и пропускает атакующих)
+	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(nil) // nil vegetation для теста
+	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
+
+	// ПОСЛЕДНИМ MovementSystem (движение)
+	movementSystem := simulation.NewMovementSystem(1600, 1600)
+	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
 
 	// Создаём анимационную систему
 	wolfAnimationSystem := animation.NewAnimationSystem()
@@ -34,15 +39,15 @@ func TestRealGameCombat(t *testing.T) {
 	wolfAnimationSystem.RegisterAnimation(animation.AnimAttack, 2, 6.0, false, nil)
 	wolfAnimationSystem.RegisterAnimation(animation.AnimEat, 2, 2.0, true, nil)
 
-	// Создаём животных рядом друг с другом
+	// Создаём животных рядом друг с другом (для тайловой системы)
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 800, 800)
-	wolf := simulation.CreateAnimal(world, core.TypeWolf, 810, 800) // Очень близко
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 801, 800) // Дистанция 1 пиксель < атака волка 15 тайлов
 
 	// Делаем волка очень голодным
 	world.SetHunger(wolf, core.Hunger{Value: 10.0}) // 10% - очень голодный
 
 	t.Logf("=== ТЕСТ РЕАЛЬНОЙ ИГРЫ ===")
-	t.Logf("Заяц: (800, 800), Волк: (810, 800), расстояние: 10")
+	t.Logf("Заяц: (800, 800), Волк: (801, 800), расстояние: 1 пиксель")
 
 	initialHealth, _ := world.GetHealth(rabbit)
 	initialHunger, _ := world.GetHunger(wolf)

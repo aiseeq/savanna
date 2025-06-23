@@ -17,7 +17,8 @@ const (
 	LargeAnimationTimer = 999.0 // Большой таймер для остановки анимации
 
 	// Константы движения
-	MovementThreshold = 0.1 // Минимальная скорость для определения движения
+	MovementThreshold          = 0.1  // Минимальная скорость для определения движения
+	CriticalCollisionThreshold = 10.0 // Порог критической коллизии для логирования
 
 	// Константы питания
 	MaxNutritionalValue = 100.0 // Максимальная питательная ценность
@@ -73,3 +74,46 @@ const (
 	// Константы эффектов
 	DamageFlashIntensityMultiplier = 5.0 // Множитель интенсивности вспышки урона (белый эффект)
 )
+
+// ===== ФУНКЦИИ КОНВЕРТАЦИИ КООРДИНАТ =====
+// Унифицированные функции для конвертации между тайлами и пикселями
+// Устраняют магические числа 32.0 по всему коду
+
+// TilesToPixels конвертирует тайлы в пиксели
+func TilesToPixels(tiles float32) float32 {
+	return tiles * TileSizePixels
+}
+
+// PixelsToTiles конвертирует пиксели в тайлы
+func PixelsToTiles(pixels float32) float32 {
+	return pixels / TileSizePixels
+}
+
+// TilesToPixelsInt конвертирует тайлы в пиксели (int версия)
+func TilesToPixelsInt(tiles int) int {
+	return tiles * TileSizePixels
+}
+
+// PixelsToTilesInt конвертирует пиксели в тайлы (int версия)
+func PixelsToTilesInt(pixels int) int {
+	return pixels / TileSizePixels
+}
+
+// WorldSizePixels вычисляет размер мира в пикселях по размеру в тайлах
+func WorldSizePixels(tileSizeX, tileSizeY int) (float32, float32) {
+	return float32(tileSizeX * TileSizePixels), float32(tileSizeY * TileSizePixels)
+}
+
+// ===== ФУНКЦИИ КОНВЕРТАЦИИ РАЗМЕРОВ =====
+// Size компонент хранит размеры в пикселях (для рендеринга)
+// Но игровая логика работает в тайлах - нужна конвертация
+
+// SizeRadiusToTiles конвертирует радиус из Size компонента (пиксели) в тайлы для игровой логики
+func SizeRadiusToTiles(pixelRadius float32) float32 {
+	return pixelRadius / TileSizePixels
+}
+
+// SizeAttackRangeToTiles конвертирует радиус атаки из Size компонента (пиксели) в тайлы
+func SizeAttackRangeToTiles(pixelAttackRange float32) float32 {
+	return pixelAttackRange / TileSizePixels
+}

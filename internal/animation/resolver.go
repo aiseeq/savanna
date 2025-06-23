@@ -2,7 +2,7 @@ package animation
 
 import "github.com/aiseeq/savanna/internal/core"
 
-// AnimationResolver разрешает типы анимаций для животных (устраняет дублирование между GUI и headless)
+// AnimationResolver разрешает типы анимаций для животных
 type AnimationResolver struct{}
 
 // NewAnimationResolver создаёт новый резолвер анимаций
@@ -84,7 +84,7 @@ func (ar *AnimationResolver) resolveRabbitAnimationType(world *core.World, entit
 	}
 }
 
-// isWolfAttacking проверяет атакует ли волк (общая логика из GUI и headless)
+// isWolfAttacking проверяет атакует ли волк
 func (ar *AnimationResolver) isWolfAttacking(world *core.World, wolf core.EntityID) bool {
 	hunger, hasHunger := world.GetHunger(wolf)
 	if !hasHunger || hunger.Value > AttackThresholds.WolfHunger {
@@ -116,10 +116,12 @@ func (ar *AnimationResolver) isWolfAttacking(world *core.World, wolf core.Entity
 
 // Константы порогов скорости для анимаций (устраняет магические числа)
 const (
-	// Пороги скорости для переключения анимаций (квадрат скорости для оптимизации)
-	IdleSpeedThreshold       = 0.1   // Порог покоя (очень медленное движение)
-	WolfWalkSpeedThreshold   = 400.0 // Порог ходьбы волка (20*20 = 400)
-	RabbitWalkSpeedThreshold = 300.0 // Порог ходьбы зайца (около 17*17 = 289)
+	// УМЕНЬШЕНИЕ В 20 РАЗ: соответствует уменьшенным скоростям животных
+	// Базовая скорость зайца теперь 0.15, волка 0.2 тайла/сек
+	// С учетом множителей поведения (0.3-1.0) реальная скорость 0.05-0.2 тайла/сек
+	IdleSpeedThreshold       = 0.005 // Порог покоя (было 0.1, теперь 0.005)
+	WolfWalkSpeedThreshold   = 0.2   // Порог ходьбы волка (было 4.0, теперь 0.2)
+	RabbitWalkSpeedThreshold = 0.11  // Порог ходьбы зайца (было 2.25, теперь 0.11)
 
 	// Пороги для логики атак
 	WolfHungerAttackThreshold = 60.0 // Волк атакует если голод < 60%
@@ -133,9 +135,9 @@ var SpeedThresholds = struct {
 	WolfWalk   float32
 	RabbitWalk float32
 }{
-	Idle:       IdleSpeedThreshold,
-	WolfWalk:   WolfWalkSpeedThreshold,
-	RabbitWalk: RabbitWalkSpeedThreshold,
+	Idle:       IdleSpeedThreshold,       // 0.005 (уменьшено в 20 раз)
+	WolfWalk:   WolfWalkSpeedThreshold,   // 0.2 (уменьшено в 20 раз)
+	RabbitWalk: RabbitWalkSpeedThreshold, // 0.11 (уменьшено в ~20 раз)
 }
 
 // AttackThresholds константы для логики атак

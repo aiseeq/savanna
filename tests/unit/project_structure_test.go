@@ -28,7 +28,6 @@ func TestProjectStructure(t *testing.T) {
 		{"config dir", "config", true, true},
 		{"cmd dir", "cmd", true, true},
 		{"cmd/game dir", "cmd/game", true, true},
-		{"cmd/headless dir", "cmd/headless", true, true},
 		{"internal dir", "internal", true, true},
 		{"internal/core dir", "internal/core", true, true},
 		{"internal/simulation dir", "internal/simulation", true, true},
@@ -50,11 +49,9 @@ func TestProjectStructure(t *testing.T) {
 
 		// Main файлы
 		{"game main.go", "cmd/game/main.go", false, true},
-		{"headless main.go", "cmd/headless/main.go", false, true},
 
 		// Собранные бинари (могут отсутствовать)
 		{"game binary", "bin/savanna-game", false, false},
-		{"headless binary", "bin/savanna-headless", false, false},
 	}
 
 	// Получаем корневую папку проекта (поднимаемся на 2 уровня вверх)

@@ -107,6 +107,7 @@ type QueryProvider interface {
 type SpatialQueries interface {
 	QueryInRadius(x, y, radius float32) []EntityID
 	FindNearestByType(x, y, radius float32, animalType AnimalType) (EntityID, bool)
+	FindNearestByTypeInTiles(x, y, radiusInTiles float32, animalType AnimalType) (EntityID, bool) // РЕФАКТОРИНГ: поиск в тайлах
 	FindNearestAnimal(x, y, radius float32) (EntityID, bool)
 }
 
@@ -155,6 +156,8 @@ type HungerSystemAccess interface {
 	// Чтение голода
 	GetHunger(EntityID) (Hunger, bool)
 	GetSize(EntityID) (Size, bool) // Для расчёта скорости голода крупных животных
+	// Проверка компонентов для определения едят ли животные
+	HasComponent(EntityID, ComponentMask) bool
 	// Изменение голода
 	SetHunger(EntityID, Hunger) bool
 	// Итерация

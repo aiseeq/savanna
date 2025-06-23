@@ -1,8 +1,10 @@
 package simulation
 
 import (
+	"fmt"
 	"math"
 
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/physics"
 )
@@ -10,7 +12,8 @@ import (
 // Константы для оптимизированной системы коллизий (устраняет магические числа)
 const (
 	// Множители для радиусов и поиска
-	SearchRadiusMultiplier    = 3.0 // Ищем в радиусе в 3 раза больше размера объекта для broad-phase
+	// ИСПРАВЛЕНИЕ: Расталкивание только при физическом контакте
+	SearchRadiusMultiplier    = 1.1 // Ищем в радиусе чуть больше размера объекта (было 2.0)
 	SeparationForceMultiplier = 0.6 // Коэффициент силы разделения позиций при коллизии
 
 	// Параметры взаимодействий хищник-добыча
@@ -71,11 +74,12 @@ func (ms *MovementSystem) Update(world core.MovementSystemAccess, deltaTime floa
 	// Обновляем позиции по скорости
 	ms.updatePositions(world, deltaTime)
 
-	// Ограничиваем границами мира
-	ms.constrainToBounds(world)
-
-	// Обрабатываем коллизии между животными
+	// Обрабатываем коллизии между животными (мягкое расталкивание как в StarCraft)
 	ms.handleCollisions(world)
+
+	// ИСПРАВЛЕНИЕ: Ограничиваем границами мира ПОСЛЕ коллизий
+	// чтобы расталкивание не выталкивало животных за границы
+	ms.constrainToBounds(world)
 }
 
 // updatePositions обновляет позиции по скорости
@@ -91,9 +95,14 @@ func (ms *MovementSystem) updatePositions(world core.MovementSystemAccess, delta
 		pos, _ := world.GetPosition(entity)
 		vel, _ := world.GetVelocity(entity)
 
+		// РЕФАКТОРИНГ: Конвертируем скорость из тайлов/сек в пиксели/сек
+		// vel в тайлах/сек, pos в пикселях, используем унифицированную функцию конвертации
+		pixelVelX := constants.TilesToPixels(vel.X)
+		pixelVelY := constants.TilesToPixels(vel.Y)
+
 		// Обновляем позицию
-		pos.X += vel.X * deltaTime
-		pos.Y += vel.Y * deltaTime
+		pos.X += pixelVelX * deltaTime
+		pos.Y += pixelVelY * deltaTime
 
 		world.SetPosition(entity, pos)
 		world.UpdateSpatialPosition(entity, pos) // Обновляем пространственную систему явно
@@ -105,17 +114,19 @@ func (ms *MovementSystem) constrainToBounds(world core.MovementSystemAccess) {
 	world.ForEachWith(core.MaskPosition|core.MaskSize, func(entity core.EntityID) {
 		pos, _ := world.GetPosition(entity)
 		size, _ := world.GetSize(entity)
-		radius := size.Radius
+		// ИСПРАВЛЕНИЕ: Радиус уже в тайлах после перехода к тайловой системе
+		radiusInTiles := constants.SizeRadiusToTiles(size.Radius) // Конвертируем пиксели в тайлы
 		changed := false
 
 		// Проверяем все границы через helper функции
-		if ms.constrainXBounds(&pos, radius, &changed) {
-			ms.reflectVelocityX(world, entity, pos.X, radius)
+		if ms.constrainXBounds(&pos, radiusInTiles, &changed) {
+			ms.reflectVelocityX(world, entity, pos.X, radiusInTiles)
 		}
-		if ms.constrainYBounds(&pos, radius, &changed) {
-			ms.reflectVelocityY(world, entity, pos.Y, radius)
+		if ms.constrainYBounds(&pos, radiusInTiles, &changed) {
+			ms.reflectVelocityY(world, entity, pos.Y, radiusInTiles)
 		}
 
+		// Обновляем позицию только если она изменилась
 		if changed {
 			world.SetPosition(entity, pos)
 			world.UpdateSpatialPosition(entity, pos) // Обновляем пространственную систему явно
@@ -127,16 +138,19 @@ func (ms *MovementSystem) constrainToBounds(world core.MovementSystemAccess) {
 func (ms *MovementSystem) constrainXBounds(pos *core.Position, radius float32, changed *bool) bool {
 	boundsHit := false
 
+	// ИСПРАВЛЕНИЕ: Симметричные границы с минимальным отступом
+	const margin = 0.1 // Минимальный отступ для избежания проблем с округлением
+
 	// Левая граница
-	if pos.X-radius < 0 {
-		pos.X = radius
+	if pos.X-radius < margin {
+		pos.X = margin + radius
 		*changed = true
 		boundsHit = true
 	}
 
 	// Правая граница
-	if pos.X+radius > ms.worldWidth {
-		pos.X = ms.worldWidth - radius
+	if pos.X+radius > ms.worldWidth-margin {
+		pos.X = ms.worldWidth - margin - radius
 		*changed = true
 		boundsHit = true
 	}
@@ -148,16 +162,19 @@ func (ms *MovementSystem) constrainXBounds(pos *core.Position, radius float32, c
 func (ms *MovementSystem) constrainYBounds(pos *core.Position, radius float32, changed *bool) bool {
 	boundsHit := false
 
+	// ИСПРАВЛЕНИЕ: Симметричные границы с минимальным отступом
+	const margin = 0.1 // Минимальный отступ для избежания проблем с округлением
+
 	// Верхняя граница
-	if pos.Y-radius < 0 {
-		pos.Y = radius
+	if pos.Y-radius < margin {
+		pos.Y = margin + radius
 		*changed = true
 		boundsHit = true
 	}
 
 	// Нижняя граница
-	if pos.Y+radius > ms.worldHeight {
-		pos.Y = ms.worldHeight - radius
+	if pos.Y+radius > ms.worldHeight-margin {
+		pos.Y = ms.worldHeight - margin - radius
 		*changed = true
 		boundsHit = true
 	}
@@ -177,8 +194,9 @@ func (ms *MovementSystem) reflectVelocityX(
 
 	vel, _ := world.GetVelocity(entity)
 
-	// Определяем направление отражения
-	shouldReflect := (posX <= radius && vel.X < 0) || (posX >= ms.worldWidth-radius && vel.X > 0)
+	// ИСПРАВЛЕНИЕ: Симметричные границы с минимальным отступом
+	const margin = 0.1 // Синхронизировано с constrainXBounds
+	shouldReflect := (posX <= margin+radius && vel.X < 0) || (posX >= ms.worldWidth-margin-radius && vel.X > 0)
 
 	if shouldReflect {
 		ms.reflectVelocityComponent(&vel.X)
@@ -198,8 +216,9 @@ func (ms *MovementSystem) reflectVelocityY(
 
 	vel, _ := world.GetVelocity(entity)
 
-	// Определяем направление отражения
-	shouldReflect := (posY <= radius && vel.Y < 0) || (posY >= ms.worldHeight-radius && vel.Y > 0)
+	// ИСПРАВЛЕНИЕ: Симметричные границы с минимальным отступом
+	const margin = 0.1 // Синхронизировано с constrainYBounds
+	shouldReflect := (posY <= margin+radius && vel.Y < 0) || (posY >= ms.worldHeight-margin-radius && vel.Y > 0)
 
 	if shouldReflect {
 		ms.reflectVelocityComponent(&vel.Y)
@@ -242,7 +261,8 @@ func (ms *MovementSystem) findCollisionCandidates(
 	pos, _ := world.GetPosition(entity)
 	size, _ := world.GetSize(entity)
 
-	searchRadius := size.Radius * CollisionConstants.SearchRadiusMultiplier
+	searchRadiusPixels := size.Radius * CollisionConstants.SearchRadiusMultiplier
+	searchRadius := constants.SizeRadiusToTiles(searchRadiusPixels) // Конвертируем в тайлы для поиска
 	return world.QueryInRadius(pos.X, pos.Y, searchRadius)
 }
 
@@ -292,11 +312,11 @@ func (ms *MovementSystem) createCollisionCircles(
 	return collisionCircles{
 		circle1: physics.Circle{
 			Center: physics.Vec2{X: pos1.X, Y: pos1.Y},
-			Radius: size1.Radius,
+			Radius: constants.SizeRadiusToTiles(size1.Radius), // Конвертируем в тайлы
 		},
 		circle2: physics.Circle{
 			Center: physics.Vec2{X: pos2.X, Y: pos2.Y},
-			Radius: size2.Radius,
+			Radius: constants.SizeRadiusToTiles(size2.Radius), // Конвертируем в тайлы
 		},
 	}
 }
@@ -370,8 +390,22 @@ func (ms *MovementSystem) applyPositionSeparation(
 ) {
 	separationForce := collision.Penetration * CollisionConstants.SeparationForceMultiplier
 
+	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Ограничиваем силу расталкивания!
+	const MaxSeparationForce = 2.0 // Максимум 2 тайла за раз
+	if separationForce > MaxSeparationForce {
+		separationForce = MaxSeparationForce
+	}
+
 	pos1, _ := world.GetPosition(entity1)
 	pos2, _ := world.GetPosition(entity2)
+
+	// Логируем только критические коллизии
+	if collision.Penetration > constants.CriticalCollisionThreshold {
+		fmt.Printf("CRITICAL Collision: entities %d-%d, penetration=%.2f\n",
+			entity1, entity2, collision.Penetration)
+	}
+
+	// Сохраняем исходные позиции для проверки (убрано - не используются)
 
 	// Применяем разделение
 	pos1.X -= collision.Normal.X * separationForce
@@ -379,10 +413,41 @@ func (ms *MovementSystem) applyPositionSeparation(
 	pos2.X += collision.Normal.X * separationForce
 	pos2.Y += collision.Normal.Y * separationForce
 
+	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем что новые позиции в границах мира
+	pos1Bounded := ms.boundPosition(pos1)
+	pos2Bounded := ms.boundPosition(pos2)
+
+	// Если расталкивание выходит за границы, применяем ограниченные позиции
+	if pos1Bounded != pos1 || pos2Bounded != pos2 {
+		pos1, pos2 = pos1Bounded, pos2Bounded
+	}
+
 	world.SetPosition(entity1, pos1)
 	world.UpdateSpatialPosition(entity1, pos1) // Обновляем пространственную систему явно
 	world.SetPosition(entity2, pos2)
 	world.UpdateSpatialPosition(entity2, pos2) // Обновляем пространственную систему явно
+}
+
+// boundPosition ограничивает позицию границами мира
+func (ms *MovementSystem) boundPosition(pos core.Position) core.Position {
+	result := pos
+
+	// ИСПРАВЛЕНИЕ: Симметричные границы с минимальным отступом
+	const margin = 0.1 // Синхронизировано с constrainToBounds
+
+	if result.X < margin {
+		result.X = margin
+	} else if result.X > ms.worldWidth-margin {
+		result.X = ms.worldWidth - margin
+	}
+
+	if result.Y < margin {
+		result.Y = margin
+	} else if result.Y > ms.worldHeight-margin {
+		result.Y = ms.worldHeight - margin
+	}
+
+	return result
 }
 
 // applyVelocitySeparation применяет мягкое расталкивание через скорость (helper-функция)

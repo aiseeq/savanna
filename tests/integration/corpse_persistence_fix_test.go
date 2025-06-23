@@ -211,8 +211,8 @@ func TestCorpseToCarrionTransition(t *testing.T) {
 	t.Logf("Начальная питательность трупа: %.1f", initialCorpse.NutritionalValue)
 
 	// Создаём волка который будет есть частично
-	wolf := simulation.CreateAnimal(world, core.TypeWolf, 302, 300)
-	world.SetHunger(wolf, core.Hunger{Value: 50.0}) // Умеренно голодный
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 300, 300) // На той же позиции что и труп
+	world.SetHunger(wolf, core.Hunger{Value: 30.0})                 // Очень голодный
 
 	deltaTime := float32(1.0 / 60.0)
 

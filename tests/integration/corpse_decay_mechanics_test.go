@@ -3,8 +3,10 @@ package integration
 import (
 	"testing"
 
+	"github.com/aiseeq/savanna/config"
 	"github.com/aiseeq/savanna/internal/animation"
 	"github.com/aiseeq/savanna/internal/core"
+	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
 )
 
@@ -24,6 +26,15 @@ func TestCorpseDecayMechanics(t *testing.T) {
 
 	world := core.NewWorld(640, 640, 42)
 	combatSystem := simulation.NewCombatSystem()
+	eatingSystem := simulation.NewEatingSystem() // Система поедания трупов
+
+	// Создаём vegetation систему для поведения
+	cfg := config.LoadDefaultConfig()
+	cfg.World.Size = int(640 / 32)
+	terrainGen := generator.NewTerrainGenerator(cfg)
+	terrain := terrainGen.Generate()
+	vegetationSystem := simulation.NewVegetationSystem(terrain)
+	behaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 
 	// ИСПРАВЛЕНИЕ: Добавляем анимационную систему для работы дискретного поедания
 	wolfAnimSystem := animation.NewAnimationSystem()
@@ -38,7 +49,7 @@ func TestCorpseDecayMechanics(t *testing.T) {
 
 	// Создаём зайца и волка
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
-	wolf := simulation.CreateAnimal(world, core.TypeWolf, 310, 300)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 301, 300) // Дистанция 1 пиксель
 
 	// Делаем волка голодным
 	world.SetHunger(wolf, core.Hunger{Value: 30.0})
@@ -73,7 +84,9 @@ func TestCorpseDecayMechanics(t *testing.T) {
 
 	// Фаза 2: Волк начинает есть труп
 	for i := 0; i < 60; i++ { // 1 секунда для начала поедания
+		behaviorSystem.Update(world, deltaTime) // КРИТИЧЕСКИ: поиск трупа!
 		combatSystem.Update(world, deltaTime)
+		eatingSystem.Update(world, deltaTime) // КРИТИЧЕСКИ: система поедания трупов!
 		animManager.UpdateAllAnimations(world, deltaTime)
 		if world.HasComponent(wolf, core.MaskEatingState) {
 			eatingState, _ := world.GetEatingState(wolf)
@@ -92,7 +105,9 @@ func TestCorpseDecayMechanics(t *testing.T) {
 	t.Logf("\n=== ФАЗА ЧАСТИЧНОГО ПОЕДАНИЯ ===")
 
 	for i := 0; i < 180; i++ { // 3 секунды поедания
+		behaviorSystem.Update(world, deltaTime) // КРИТИЧЕСКИ: поиск трупа!
 		combatSystem.Update(world, deltaTime)
+		eatingSystem.Update(world, deltaTime) // КРИТИЧЕСКИ: система поедания трупов!
 		animManager.UpdateAllAnimations(world, deltaTime)
 
 		// ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ: Проверяем состояние волка и анимации каждые 10 тиков
@@ -144,7 +159,9 @@ func TestCorpseDecayMechanics(t *testing.T) {
 
 	// Обновляем систему чтобы волк перестал есть
 	for i := 0; i < 60; i++ {
+		behaviorSystem.Update(world, deltaTime) // КРИТИЧЕСКИ: поиск трупа!
 		combatSystem.Update(world, deltaTime)
+		eatingSystem.Update(world, deltaTime) // КРИТИЧЕСКИ: система поедания трупов!
 		animManager.UpdateAllAnimations(world, deltaTime)
 		if !world.HasComponent(wolf, core.MaskEatingState) {
 			t.Logf("Волк перестал есть на тике %d", i)
@@ -202,7 +219,9 @@ func TestCorpseDecayMechanics(t *testing.T) {
 
 	// Симулируем долгое время без поедания (труп должен гнить)
 	for i := 0; i < 3900; i++ { // 65 секунд гниения (полное разложение гарантировано)
+		behaviorSystem.Update(world, deltaTime) // КРИТИЧЕСКИ: поиск трупа!
 		combatSystem.Update(world, deltaTime)
+		eatingSystem.Update(world, deltaTime) // КРИТИЧЕСКИ: система поедания трупов!
 		animManager.UpdateAllAnimations(world, deltaTime)
 
 		// ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ: Отслеживаем превращение труп → падаль
@@ -298,8 +317,8 @@ func TestCorpseNutritionDepletion(t *testing.T) {
 	t.Logf("=== ТЕСТ ИСТОЩЕНИЯ ПИТАТЕЛЬНОСТИ ===")
 	t.Logf("Установлена питательность: 5.0 единиц")
 
-	// Создаём очень голодного волка для агрессивного поедания
-	wolf := simulation.CreateAnimal(world, core.TypeWolf, 302, 300)
+	// Создаём очень голодного волка для агрессивного поедания (на той же позиции что и труп)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 300, 300)
 	world.SetHunger(wolf, core.Hunger{Value: 5.0}) // Очень голодный
 
 	deltaTime := float32(1.0 / 60.0)

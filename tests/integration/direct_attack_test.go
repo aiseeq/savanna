@@ -23,7 +23,7 @@ func TestDirectAttack(t *testing.T) {
 
 	// Создаём зайца и волка рядом (в радиусе атаки)
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
-	wolf := simulation.CreateAnimal(world, core.TypeWolf, 310, 300) // На расстоянии 10 пикселей (в радиусе атаки)
+	wolf := simulation.CreateAnimal(world, core.TypeWolf, 301, 300) // Дистанция 1 пиксель для атаки
 
 	// Проверяем начальное здоровье
 	initialHealth, _ := world.GetHealth(rabbit)

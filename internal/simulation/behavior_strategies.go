@@ -28,10 +28,11 @@ func NewHerbivoreBehaviorStrategy(vegetation VegetationProvider) *HerbivoreBehav
 
 // AnimalComponents группирует компоненты животного для поведения
 type AnimalComponents struct {
-	Behavior core.Behavior
-	Position core.Position
-	Speed    core.Speed
-	Hunger   core.Hunger
+	Behavior     core.Behavior
+	AnimalConfig core.AnimalConfig
+	Position     core.Position
+	Speed        core.Speed
+	Hunger       core.Hunger
 }
 
 // UpdateBehavior реализует поведение травоядных (KISS: упрощено разбиением на методы)
@@ -60,9 +61,9 @@ func (h *HerbivoreBehaviorStrategy) handlePredatorEscape(
 	entity core.EntityID,
 	components AnimalComponents,
 ) *core.Velocity {
-	nearestPredator, foundPredator := world.FindNearestByType(
+	nearestPredator, foundPredator := world.FindNearestByTypeInTiles(
 		components.Position.X, components.Position.Y,
-		components.Behavior.VisionRange, core.TypeWolf,
+		components.AnimalConfig.VisionRange, core.TypeWolf, // РЕФАКТОРИНГ: используем AnimalConfig вместо Behavior
 	)
 	if !foundPredator {
 		return nil // Хищника нет
@@ -74,16 +75,29 @@ func (h *HerbivoreBehaviorStrategy) handlePredatorEscape(
 	}
 
 	predatorPos, _ := world.GetPosition(nearestPredator)
+
+	// Базовое направление побега (от хищника)
 	escapeDir := physics.Vec2{X: components.Position.X - predatorPos.X, Y: components.Position.Y - predatorPos.Y}
 	escapeDir = escapeDir.Normalize()
 
-	// Обновляем таймер направления в поведении
-	components.Behavior.DirectionTimer = components.Behavior.MinDirectionTime
+	// ИСПРАВЛЕНИЕ: Добавляем отталкивание от границ мира для предотвращения кластеризации в углах
+	worldWidth, worldHeight := world.GetWorldDimensions()
+	boundaryRepulsion := h.calculateBoundaryRepulsion(components.Position, worldWidth, worldHeight)
+
+	// Комбинируем направление побега с отталкиванием от границ
+	finalEscapeDir := physics.Vec2{
+		X: escapeDir.X + boundaryRepulsion.X,
+		Y: escapeDir.Y + boundaryRepulsion.Y,
+	}
+	finalEscapeDir = finalEscapeDir.Normalize()
+
+	// Обновляем таймер направления в поведении используя значения из AnimalConfig
+	components.Behavior.DirectionTimer = components.AnimalConfig.MinDirectionTime
 	world.SetBehavior(entity, components.Behavior)
 
 	return &core.Velocity{
-		X: escapeDir.X * components.Speed.Current,
-		Y: escapeDir.Y * components.Speed.Current,
+		X: finalEscapeDir.X * components.Speed.Current,
+		Y: finalEscapeDir.Y * components.Speed.Current,
 	}
 }
 
@@ -94,23 +108,12 @@ func (h *HerbivoreBehaviorStrategy) handleFeeding(
 	components AnimalComponents,
 ) *core.Velocity {
 	isCurrentlyEating := world.HasComponent(entity, core.MaskEatingState)
-	if !(components.Hunger.Value < components.Behavior.HungerThreshold || isCurrentlyEating) || h.vegetation == nil {
+	if !(components.Hunger.Value < components.AnimalConfig.HungerThreshold || isCurrentlyEating) || h.vegetation == nil {
 		return nil // Не голоден и не ест
 	}
 
-	// Получаем конфигурацию животного для размеров
-	config, hasConfig := world.GetAnimalConfig(entity)
-	if !hasConfig {
-		// Нет конфигурации - используем случайное движение
-		vel := RandomWalk.GetRandomWalkVelocity(
-			world, entity, components.Behavior,
-			components.Speed.Current*components.Behavior.WanderingSpeed,
-		)
-		return &vel
-	}
-
-	// Проверяем находимся ли мы рядом с травой
-	if velocity := h.checkLocalGrass(components, config); velocity != nil {
+	// Проверяем находимся ли мы рядом с травой используя AnimalConfig из компонентов
+	if velocity := h.checkLocalGrass(components, components.AnimalConfig); velocity != nil {
 		return velocity
 	}
 
@@ -151,26 +154,26 @@ func (h *HerbivoreBehaviorStrategy) searchForGrass(
 ) *core.Velocity {
 	grassX, grassY, foundGrass := h.vegetation.FindNearestGrass(
 		components.Position.X, components.Position.Y,
-		components.Behavior.VisionRange, MinGrassAmountToFind,
+		components.AnimalConfig.VisionRange, MinGrassAmountToFind,
 	)
 	if foundGrass {
 		// Идём к траве
 		grassDir := physics.Vec2{X: grassX - components.Position.X, Y: grassY - components.Position.Y}
 		grassDir = grassDir.Normalize()
 
-		components.Behavior.DirectionTimer = components.Behavior.MinDirectionTime
+		components.Behavior.DirectionTimer = components.AnimalConfig.MinDirectionTime
 		world.SetBehavior(entity, components.Behavior)
 
 		return &core.Velocity{
-			X: grassDir.X * components.Speed.Current * components.Behavior.SearchSpeed,
-			Y: grassDir.Y * components.Speed.Current * components.Behavior.SearchSpeed,
+			X: grassDir.X * components.Speed.Current * components.AnimalConfig.SearchSpeed,
+			Y: grassDir.Y * components.Speed.Current * components.AnimalConfig.SearchSpeed,
 		}
 	}
 
 	// Трава не найдена - продолжаем случайное движение в поисках
 	vel := RandomWalk.GetRandomWalkVelocity(
 		world, entity, components.Behavior,
-		components.Speed.Current*components.Behavior.WanderingSpeed,
+		components.Speed.Current*components.AnimalConfig.WanderingSpeed,
 	)
 	return &vel
 }
@@ -183,7 +186,7 @@ func (h *HerbivoreBehaviorStrategy) handleIdleBehavior(
 ) core.Velocity {
 	return RandomWalk.GetRandomWalkVelocity(
 		world, entity, components.Behavior,
-		components.Speed.Current*components.Behavior.ContentSpeed,
+		components.Speed.Current*components.AnimalConfig.ContentSpeed,
 	)
 }
 
@@ -209,11 +212,11 @@ func (p *PredatorBehaviorStrategy) UpdateBehavior(
 	}
 
 	// Хищники охотятся только когда голодны
-	if components.Hunger.Value < components.Behavior.HungerThreshold {
+	if components.Hunger.Value < components.AnimalConfig.HungerThreshold {
 		// Ищем ближайшую добычу (травоядных)
-		nearestPrey, foundPrey := world.FindNearestByType(
+		nearestPrey, foundPrey := world.FindNearestByTypeInTiles(
 			components.Position.X, components.Position.Y,
-			components.Behavior.VisionRange, core.TypeRabbit,
+			components.AnimalConfig.VisionRange, core.TypeRabbit, // РЕФАКТОРИНГ: используем AnimalConfig вместо Behavior
 		)
 		if foundPrey {
 			preyPos, _ := world.GetPosition(nearestPrey)
@@ -225,8 +228,8 @@ func (p *PredatorBehaviorStrategy) UpdateBehavior(
 			}
 			huntDir = huntDir.Normalize()
 
-			// Обновляем таймер направления в поведении
-			components.Behavior.DirectionTimer = components.Behavior.MinDirectionTime
+			// Обновляем таймер направления в поведении используя значения из AnimalConfig
+			components.Behavior.DirectionTimer = components.AnimalConfig.MinDirectionTime
 			world.SetBehavior(entity, components.Behavior)
 
 			return core.Velocity{
@@ -237,16 +240,66 @@ func (p *PredatorBehaviorStrategy) UpdateBehavior(
 			// Добыча не найдена - блуждаем в поисках
 			return RandomWalk.GetRandomWalkVelocity(
 				world, entity, components.Behavior,
-				components.Speed.Current*components.Behavior.WanderingSpeed,
+				components.Speed.Current*components.AnimalConfig.WanderingSpeed,
 			)
 		}
 	} else {
 		// Сыт - спокойное движение
 		return RandomWalk.GetRandomWalkVelocity(
 			world, entity, components.Behavior,
-			components.Speed.Current*components.Behavior.ContentSpeed,
+			components.Speed.Current*components.AnimalConfig.ContentSpeed,
 		)
 	}
+}
+
+// calculateBoundaryRepulsion вычисляет вектор отталкивания от границ мира
+// Предотвращает кластеризацию животных в углах карты
+func (h *HerbivoreBehaviorStrategy) calculateBoundaryRepulsion(position core.Position, worldWidth, worldHeight float32) physics.Vec2 {
+	// Процент от размера мира для начала отталкивания (5% от каждого края)
+	const boundaryZonePercent = 0.05
+
+	boundaryThresholdX := worldWidth * boundaryZonePercent  // 5% от ширины
+	boundaryThresholdY := worldHeight * boundaryZonePercent // 5% от высоты
+
+	repulsion := physics.Vec2{X: 0, Y: 0}
+
+	// Отталкивание от левой границы
+	if position.X < boundaryThresholdX {
+		force := (boundaryThresholdX - position.X) / boundaryThresholdX // 0-1, сильнее ближе к границе
+		repulsion.X += force                                            // Толкает вправо
+	}
+
+	// Отталкивание от правой границы
+	if position.X > worldWidth-boundaryThresholdX {
+		distanceFromRightEdge := worldWidth - position.X
+		force := (boundaryThresholdX - distanceFromRightEdge) / boundaryThresholdX
+		repulsion.X -= force // Толкает влево
+	}
+
+	// Отталкивание от верхней границы
+	if position.Y < boundaryThresholdY {
+		force := (boundaryThresholdY - position.Y) / boundaryThresholdY
+		repulsion.Y += force // Толкает вниз
+	}
+
+	// Отталкивание от нижней границы
+	if position.Y > worldHeight-boundaryThresholdY {
+		distanceFromBottomEdge := worldHeight - position.Y
+		force := (boundaryThresholdY - distanceFromBottomEdge) / boundaryThresholdY
+		repulsion.Y -= force // Толкает вверх
+	}
+
+	// Нормализуем силу отталкивания чтобы она не была слишком сильной
+	// Максимальная сила отталкивания составляет 50% от направления побега
+	const maxRepulsionStrength = 0.5
+	repulsionMagnitude := repulsion.Length()
+	if repulsionMagnitude > maxRepulsionStrength {
+		repulsion = repulsion.Normalize()
+		repulsion.X *= maxRepulsionStrength
+		repulsion.Y *= maxRepulsionStrength
+	}
+
+	return repulsion
 }
 
 // УДАЛЕНО: getRandomWalkVelocityWithBehavior заменена на RandomWalk.GetRandomWalkVelocity

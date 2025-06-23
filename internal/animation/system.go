@@ -4,20 +4,22 @@ import (
 	"image"
 	"math"
 
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// AnimationType тип анимации
-type AnimationType uint8
+// AnimationType тип анимации - используем из constants
+type AnimationType = constants.AnimationType
 
+// Константы анимации для совместимости
 const (
-	AnimIdle AnimationType = iota
-	AnimWalk
-	AnimRun
-	AnimDeathDying
-	AnimDeathDecay
-	AnimEat
-	AnimAttack
+	AnimIdle       = constants.AnimIdle
+	AnimWalk       = constants.AnimWalk
+	AnimRun        = constants.AnimRun
+	AnimDeathDying = constants.AnimDeathDying
+	AnimDeathDecay = constants.AnimDeathDecay
+	AnimEat        = constants.AnimEat
+	AnimAttack     = constants.AnimAttack
 )
 
 // Константы анимационной системы
@@ -40,27 +42,7 @@ const (
 	Layout5Cols = 5 // 5x5 для максимальных анимаций
 )
 
-// String возвращает название анимации
-func (at AnimationType) String() string {
-	switch at {
-	case AnimIdle:
-		return "Idle"
-	case AnimWalk:
-		return "Walk"
-	case AnimRun:
-		return "Run"
-	case AnimDeathDying:
-		return "Death Dying"
-	case AnimDeathDecay:
-		return "Death Decay"
-	case AnimEat:
-		return "Eat"
-	case AnimAttack:
-		return "Attack"
-	default:
-		return "Unknown"
-	}
-}
+// String method is now available from constants.AnimationType
 
 // AnimationData описывает параметры анимации
 type AnimationData struct {

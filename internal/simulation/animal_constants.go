@@ -11,18 +11,13 @@ package simulation
 
 // Размеры и скорости животных (алиасы от game_balance.go)
 const (
-	RabbitRadius = RabbitBaseRadius // DEPRECATED: используйте RabbitBaseRadius
-	RabbitSpeed  = RabbitBaseSpeed  // DEPRECATED: используйте RabbitBaseSpeed
-	WolfRadius   = WolfBaseRadius   // DEPRECATED: используйте WolfBaseRadius
-	WolfSpeed    = WolfBaseSpeed    // DEPRECATED: используйте WolfBaseSpeed
+	// УДАЛЕНЫ: RabbitRadius, WolfRadius - не используются
+	RabbitSpeed = RabbitBaseSpeed // DEPRECATED: используйте RabbitBaseSpeed
+	WolfSpeed   = WolfBaseSpeed   // DEPRECATED: используйте WolfBaseSpeed
 )
 
-// Производные константы (вычисляемые от базовых)
-const (
-	WolfAttackRange   = WolfBaseRadius * WolfAttackRangeMultiplier // DEPRECATED
-	VisionRangeRabbit = RabbitBaseRadius * RabbitVisionMultiplier  // DEPRECATED
-	VisionRangeWolf   = WolfBaseRadius * WolfVisionMultiplier      // DEPRECATED
-)
+// Производные константы (вычисляемые от базовых) - ПОКА НЕ ИСПОЛЬЗУЮТСЯ
+// УДАЛЕНЫ: WolfAttackRange, VisionRangeRabbit, VisionRangeWolf
 
 // Пороги поведения (алиасы от game_balance.go)
 const (
@@ -31,13 +26,16 @@ const (
 
 // === МИГРАЦИОННОЕ РУКОВОДСТВО ===
 //
-// Вместо:  simulation.RabbitRadius
-// Теперь:  simulation.RabbitBaseRadius
+// УДАЛЕННЫЕ КОНСТАНТЫ (замените в коде):
+// Вместо:  simulation.RabbitRadius    → simulation.RabbitBaseRadius
+// Вместо:  simulation.WolfRadius      → simulation.WolfBaseRadius
+// Вместо:  simulation.WolfAttackRange → simulation.WolfBaseRadius * simulation.WolfAttackRangeMultiplier
+// Вместо:  simulation.VisionRangeRabbit → simulation.RabbitBaseRadius * simulation.RabbitVisionMultiplier
+// Вместо:  simulation.VisionRangeWolf   → simulation.WolfBaseRadius * simulation.WolfVisionMultiplier
 //
-// Вместо:  simulation.WolfAttackRange
-// Теперь:  simulation.WolfBaseRadius * simulation.WolfAttackRangeMultiplier
-//
-// Вместо:  simulation.VisionRangeRabbit
-// Теперь:  simulation.RabbitBaseRadius * simulation.RabbitVisionMultiplier
+// ОСТАВШИЕСЯ DEPRECATED КОНСТАНТЫ (требуют миграции):
+// Вместо:  simulation.RabbitSpeed → simulation.RabbitBaseSpeed
+// Вместо:  simulation.WolfSpeed   → simulation.WolfBaseSpeed
+// Вместо:  simulation.RabbitHungryThreshold → simulation.RabbitHungerThreshold
 //
 // Все основные константы централизованы в game_balance.go для единого управления балансом.

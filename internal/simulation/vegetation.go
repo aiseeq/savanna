@@ -1,6 +1,7 @@
 package simulation
 
 import (
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 )
@@ -8,9 +9,9 @@ import (
 // Константы системы растительности
 const (
 	// Базовые параметры роста (выводятся от логики игры)
-	TileSizeVegetation = 32    // Размер тайла в пикселях
-	GrassMaxAmount     = 100.0 // Максимальное количество травы на тайле
-	GrassGrowthRate    = 0.5   // Рост травы за секунду (0.5 единиц/сек)
+	TileSizeVegetation = constants.TileSizePixels // РЕФАКТОРИНГ: используем константу из constants.go
+	GrassMaxAmount     = 100.0                    // Максимальное количество травы на тайле
+	GrassGrowthRate    = 0.5                      // Рост травы за секунду (0.5 единиц/сек)
 
 	// Множители скорости роста для разных типов почвы
 	WetlandGrowthMultiplier = 1.5 // Влажная земля - трава растёт в 1.5 раза быстрее

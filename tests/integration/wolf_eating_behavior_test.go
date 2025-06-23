@@ -51,9 +51,9 @@ func TestWolfEatingBehaviorImproved(t *testing.T) {
 	animationSystem.RegisterAnimation(animation.AnimEat, 2, 4.0, true, nil) // 4 FPS = 0.25 сек на кадр
 	animationResolver := animation.NewAnimationResolver()
 
-	// Создаём волка и зайца на расстоянии
+	// Создаём волка и зайца близко (для тайловой системы)
 	wolfStartX, wolfStartY := float32(200), float32(200)
-	rabbitX, rabbitY := float32(220), float32(220) // На расстоянии от волка
+	rabbitX, rabbitY := float32(200.2), float32(200.2) // Очень близко для новых размеров
 
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, wolfStartX, wolfStartY)
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, rabbitX, rabbitY)
