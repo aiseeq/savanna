@@ -565,11 +565,7 @@ func main() {
 	mapCenterTileX := float32(terrain.Width) / 2.0
 	mapCenterTileY := float32(terrain.Height) / 2.0
 
-	// DEBUG: Логируем координаты
-	fmt.Printf("DEBUG Camera: map center tile (%.1f, %.1f), terrain size %dx%d\n",
-		mapCenterTileX, mapCenterTileY, terrain.Width, terrain.Height)
-
-	// Изометрическая проекция центра карты в экранные координаты (БЕЗ камеры)
+	// Изометрическая проекция центра карты в экранные координаты
 	centerScreenX := (mapCenterTileX - mapCenterTileY) * 32 / 2 // TileWidth = 32
 	centerScreenY := (mapCenterTileX + mapCenterTileY) * 16 / 2 // TileHeight = 16
 
@@ -578,9 +574,6 @@ func main() {
 	cameraX := centerScreenX - 512
 	cameraY := centerScreenY - 384
 	camera.SetPosition(cameraX, cameraY)
-
-	fmt.Printf("DEBUG Camera: center screen (%.1f, %.1f), camera offset (%.1f, %.1f)\n",
-		centerScreenX, centerScreenY, cameraX, cameraY)
 
 	// ИСПРАВЛЕНИЕ: Подключаем спрайтовый рендерер к изометрическому
 	isometricRenderer.SetSpriteRenderer(spriteRenderer)
