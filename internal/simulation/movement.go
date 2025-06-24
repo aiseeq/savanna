@@ -85,15 +85,25 @@ func (ms *MovementSystem) Update(world core.MovementSystemAccess, deltaTime floa
 // updatePositions обновляет позиции по скорости
 func (ms *MovementSystem) updatePositions(world core.MovementSystemAccess, deltaTime float32) {
 	world.ForEachWith(core.MaskPosition|core.MaskVelocity, func(entity core.EntityID) {
-		// ВАЖНО: Животные не двигаются во время поедания (реализм!)
+		// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем EatingState в САМОМ НАЧАЛЕ, до всех операций
 		if world.HasComponent(entity, core.MaskEatingState) {
 			// Сбрасываем скорость в ноль для едящих животных
 			world.SetVelocity(entity, core.Velocity{X: 0, Y: 0})
-			return // Животное ест, не двигается
+			return // Животное ест, не двигается - выходим ДО любых изменений позиции
+		}
+
+		// Читаем скорость
+		vel, hasVel := world.GetVelocity(entity)
+		if !hasVel {
+			return // Нет скорости
+		}
+
+		// Пропускаем неподвижных животных (оптимизация)
+		if vel.X == 0 && vel.Y == 0 {
+			return
 		}
 
 		pos, _ := world.GetPosition(entity)
-		vel, _ := world.GetVelocity(entity)
 
 		// РЕФАКТОРИНГ: Конвертируем скорость из тайлов/сек в пиксели/сек
 		// vel в тайлах/сек, pos в пикселях, используем унифицированную функцию конвертации
@@ -112,6 +122,11 @@ func (ms *MovementSystem) updatePositions(world core.MovementSystemAccess, delta
 // constrainToBounds ограничивает сущности границами мира (рефакторинг: устранено дублирование кода)
 func (ms *MovementSystem) constrainToBounds(world core.MovementSystemAccess) {
 	world.ForEachWith(core.MaskPosition|core.MaskSize, func(entity core.EntityID) {
+		// ИСПРАВЛЕНИЕ: Не двигаем едящих животных
+		if world.HasComponent(entity, core.MaskEatingState) {
+			return // Животное ест, не ограничиваем границами
+		}
+
 		pos, _ := world.GetPosition(entity)
 		size, _ := world.GetSize(entity)
 		// ИСПРАВЛЕНИЕ: Радиус уже в тайлах после перехода к тайловой системе
@@ -138,19 +153,21 @@ func (ms *MovementSystem) constrainToBounds(world core.MovementSystemAccess) {
 func (ms *MovementSystem) constrainXBounds(pos *core.Position, radius float32, changed *bool) bool {
 	boundsHit := false
 
-	// ИСПРАВЛЕНИЕ: Симметричные границы с минимальным отступом
-	const margin = 0.1 // Минимальный отступ для избежания проблем с округлением
+	// ИСПРАВЛЕНИЕ: Конвертируем границы мира в пиксели для сравнения с позицией
+	worldWidthPixels := constants.TilesToPixels(ms.worldWidth)
+	radiusPixels := constants.TilesToPixels(radius) // Конвертируем радиус в тайлах в пиксели
+	const marginPixels = 3.2                        // Минимальный отступ в пикселях (0.1 тайла * 32)
 
 	// Левая граница
-	if pos.X-radius < margin {
-		pos.X = margin + radius
+	if pos.X-radiusPixels < marginPixels {
+		pos.X = marginPixels + radiusPixels
 		*changed = true
 		boundsHit = true
 	}
 
 	// Правая граница
-	if pos.X+radius > ms.worldWidth-margin {
-		pos.X = ms.worldWidth - margin - radius
+	if pos.X+radiusPixels > worldWidthPixels-marginPixels {
+		pos.X = worldWidthPixels - marginPixels - radiusPixels
 		*changed = true
 		boundsHit = true
 	}
@@ -162,19 +179,21 @@ func (ms *MovementSystem) constrainXBounds(pos *core.Position, radius float32, c
 func (ms *MovementSystem) constrainYBounds(pos *core.Position, radius float32, changed *bool) bool {
 	boundsHit := false
 
-	// ИСПРАВЛЕНИЕ: Симметричные границы с минимальным отступом
-	const margin = 0.1 // Минимальный отступ для избежания проблем с округлением
+	// ИСПРАВЛЕНИЕ: Конвертируем границы мира в пиксели для сравнения с позицией
+	worldHeightPixels := constants.TilesToPixels(ms.worldHeight)
+	radiusPixels := constants.TilesToPixels(radius) // Конвертируем радиус в тайлах в пиксели
+	const marginPixels = 3.2                        // Минимальный отступ в пикселях (0.1 тайла * 32)
 
 	// Верхняя граница
-	if pos.Y-radius < margin {
-		pos.Y = margin + radius
+	if pos.Y-radiusPixels < marginPixels {
+		pos.Y = marginPixels + radiusPixels
 		*changed = true
 		boundsHit = true
 	}
 
 	// Нижняя граница
-	if pos.Y+radius > ms.worldHeight-margin {
-		pos.Y = ms.worldHeight - margin - radius
+	if pos.Y+radiusPixels > worldHeightPixels-marginPixels {
+		pos.Y = worldHeightPixels - marginPixels - radiusPixels
 		*changed = true
 		boundsHit = true
 	}
@@ -248,6 +267,11 @@ func (ms *MovementSystem) handleCollisions(world core.MovementSystemAccess) {
 // broadPhaseCollisionDetection ищет потенциальные коллизии (KISS: одна ответственность)
 func (ms *MovementSystem) broadPhaseCollisionDetection(world core.MovementSystemAccess) {
 	world.ForEachWith(core.MaskPosition|core.MaskSize, func(entity core.EntityID) {
+		// ИСПРАВЛЕНИЕ: Не двигаем едящих животных
+		if world.HasComponent(entity, core.MaskEatingState) {
+			return // Животное ест, не участвует в коллизиях
+		}
+
 		candidates := ms.findCollisionCandidates(world, entity)
 		ms.processCollisionCandidates(world, entity, candidates)
 	})

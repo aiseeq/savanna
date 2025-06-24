@@ -16,6 +16,24 @@ func RunSimulation(world *core.World, systemManager *core.SystemManager, ticks i
 	}
 }
 
+// RunSimulationWithAnimations запускает симуляцию с анимациями (для тестов боя)
+// ИСПРАВЛЕНИЕ: Анимации обновляются ПЕРЕД системами, как в GUI режиме
+func RunSimulationWithAnimations(world *core.World, systemBundle *TestSystemBundle, ticks int) {
+	if systemBundle == nil {
+		return
+	}
+
+	for i := 0; i < ticks; i++ {
+		// 1. СНАЧАЛА обновляем анимации (как в GUI режиме)
+		if systemBundle.AnimationAdapter != nil {
+			systemBundle.AnimationAdapter.Update(world, StandardDeltaTime)
+		}
+
+		// 2. ПОТОМ обновляем все игровые системы
+		systemBundle.SystemManager.Update(world, StandardDeltaTime)
+	}
+}
+
 // RunSimulationForDuration запускает симуляцию на заданное время
 func RunSimulationForDuration(world *core.World, systemManager *core.SystemManager, duration time.Duration) {
 	ticks := int(duration.Seconds() * StandardTPS)

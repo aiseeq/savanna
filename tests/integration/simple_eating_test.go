@@ -4,11 +4,12 @@ import (
 	"testing"
 
 	"github.com/aiseeq/savanna/config"
-	"github.com/aiseeq/savanna/internal/adapters"
 	"github.com/aiseeq/savanna/internal/animation"
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
+	"github.com/aiseeq/savanna/tests/common"
 )
 
 // TestSimpleEating максимально простой тест: 1 заяц на 1x1 карте ест траву
@@ -32,37 +33,14 @@ func TestSimpleEating(t *testing.T) {
 	terrain.SetTileType(0, 0, generator.TileGrass)
 	terrain.SetGrassAmount(0, 0, 100.0) // Много травы
 
+	// ИСПРАВЛЕНИЕ: Используем централизованный системный менеджер с НАШИМ terrain
+	// И получаем анимационный адаптер отдельно для правильного порядка обновления
+	bundle := common.CreateTestSystemBundleWithTerrain(32, terrain)
+	systemManager := bundle.SystemManager
+	animationAdapter := bundle.AnimationAdapter
+
+	// Создаём отдельную vegetation систему для доступа к траве в тестах (с тем же terrain!)
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
-
-	// Создаём все необходимые системы
-	systemManager := core.NewSystemManager()
-
-	// НОВЫЕ СИСТЕМЫ (следуют принципу SRP):
-	hungerSystem := simulation.NewHungerSystem()                           // 1. Только управление голодом
-	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem) // 2. Только поиск травы и создание EatingState
-	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem()       // 3. Только влияние голода на скорость
-	starvationDamage := simulation.NewStarvationDamageSystem()             // 4. Только урон от голода
-
-	behaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
-	movementSystem := simulation.NewMovementSystem(32, 32)
-
-	systemManager.AddSystem(vegetationSystem)              // 1. Рост травы
-	systemManager.AddSystem(&adapters.HungerSystemAdapter{ // 2. Управление голодом
-		System: hungerSystem,
-	})
-	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{ // 3. Создание EatingState
-		System: grassSearchSystem,
-	})
-	// 4. Поведение (проверяет EatingState)
-	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: behaviorSystem})
-	systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{ // 5. Влияние голода на скорость
-		System: hungerSpeedModifier,
-	})
-	// 6. Движение (сбрасывает скорость едящих)
-	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
-	systemManager.AddSystem(&adapters.StarvationDamageSystemAdapter{ // 7. Урон от голода
-		System: starvationDamage,
-	})
 
 	// Создаём анимационную систему с РЕАЛЬНЫМИ файлами
 	rabbitAnimSystem := animation.NewAnimationSystem()
@@ -100,8 +78,8 @@ func TestSimpleEating(t *testing.T) {
 	// Создаём зайца в центре единственного тайла
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 16, 16) // Центр 32x32 тайла
 
-	// Делаем зайца ОЧЕНЬ голодным чтобы он точно ел
-	world.SetHunger(rabbit, core.Hunger{Value: 50.0})    // 50% голода - точно будет есть
+	// Делаем зайца ОЧЕНЬ голодным чтобы он точно ел (меньше порога 90%)
+	world.SetHunger(rabbit, core.Hunger{Value: 10.0})    // 10% голода - очень голодный, точно будет есть
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0}) // Стоит на месте
 
 	t.Logf("\n--- Начальное состояние ---")
@@ -112,6 +90,21 @@ func TestSimpleEating(t *testing.T) {
 	t.Logf("Позиция зайца: (%.1f, %.1f)", pos.X, pos.Y)
 	t.Logf("Голод зайца: %.1f%%", hunger.Value)
 	t.Logf("Трава в позиции: %.1f единиц", grassAmount)
+
+	// Дополнительная отладка
+	rabbitConfig, _ := world.GetAnimalConfig(rabbit)
+	collisionRadiusPixels := constants.TilesToPixels(rabbitConfig.CollisionRadius)
+	t.Logf("Радиус коллизий зайца: %.1f тайла = %.1f пикселей", rabbitConfig.CollisionRadius, collisionRadiusPixels)
+
+	// Проверяем находит ли система траву
+	grassX, grassY, foundGrass := vegetationSystem.FindNearestGrass(pos.X, pos.Y, collisionRadiusPixels, 10.0)
+	t.Logf("Поиск травы в радиусе %.1f: найдено=%v, позиция=(%.1f, %.1f)", collisionRadiusPixels, foundGrass, grassX, grassY)
+
+	// Проверяем с дальностью зрения (как делает GrassSearchSystem)
+	rabbitBehavior, _ := world.GetBehavior(rabbit)
+	visionRangePixels := constants.TilesToPixels(rabbitBehavior.VisionRange)
+	grassX2, grassY2, foundGrass2 := vegetationSystem.FindNearestGrass(pos.X, pos.Y, visionRangePixels, 10.0)
+	t.Logf("Поиск травы в радиусе зрения %.1f: найдено=%v, позиция=(%.1f, %.1f)", visionRangePixels, foundGrass2, grassX2, grassY2)
 
 	deltaTime := float32(1.0 / 60.0)
 
@@ -134,8 +127,10 @@ func TestSimpleEating(t *testing.T) {
 		t.Logf("  Голод: %.1f%%, Трава: %.1f, Скорость: %.2f", hunger.Value, grassBefore, speed)
 		t.Logf("  EatingState: %v, Анимация: %s (код %d)", isEatingBefore, animTypeBefore.String(), anim.CurrentAnim)
 
-		// ОБНОВЛЯЕМ ВСЕ СИСТЕМЫ
+		// ОБНОВЛЯЕМ ВСЕ СИСТЕМЫ В ПРАВИЛЬНОМ ПОРЯДКЕ (как в GUI режиме)
 		world.Update(deltaTime)
+		// КРИТИЧЕСКИ ВАЖНО: Анимации ПЕРЕД системами!
+		animationAdapter.Update(world, deltaTime)
 		systemManager.Update(world, deltaTime)
 
 		// КРИТИЧЕСКИ ВАЖНО: Обновляем анимации как в GUI!

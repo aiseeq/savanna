@@ -1,6 +1,7 @@
 package simulation
 
 import (
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 )
 
@@ -77,9 +78,14 @@ func (gss *GrassSearchSystem) manageGrassEating(
 	entity core.EntityID,
 	pos core.Position,
 ) {
-	// Ищем ближайшую траву в радиусе 1 тайла (32 пикселя в старой системе)
-	const grassSearchRadius = 1.0
-	_, _, found := gss.vegetation.FindNearestGrass(pos.X, pos.Y, grassSearchRadius, MinGrassAmountToFind)
+	// ИСПРАВЛЕНИЕ: Используем дальность зрения животного, а не фиксированный радиус
+	behavior, _ := world.GetBehavior(entity) // Мы уже проверили наличие в processHerbivoreFeeding
+	visionRange := behavior.VisionRange
+
+	// ИСПРАВЛЕНИЕ: FindNearestGrass ожидает радиус в пикселях, а VisionRange в тайлах
+	visionRangePixels := constants.TilesToPixels(visionRange)
+
+	_, _, found := gss.vegetation.FindNearestGrass(pos.X, pos.Y, visionRangePixels, MinGrassAmountToFind)
 
 	if found {
 		// Создаём состояние поедания травы

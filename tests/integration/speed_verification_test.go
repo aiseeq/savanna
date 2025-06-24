@@ -82,8 +82,8 @@ func TestAnimalSpeedsAreReasonable(t *testing.T) {
 	}
 
 	// Проверяем ожидаемые значения из game_balance.go
-	expectedRabbitSpeed := float32(3.0) // RabbitBaseSpeed
-	expectedWolfSpeed := float32(4.0)   // WolfBaseSpeed
+	expectedRabbitSpeed := float32(0.6) // RabbitBaseSpeed
+	expectedWolfSpeed := float32(1.0)   // WolfBaseSpeed
 
 	if rabbitSpeed.Base != expectedRabbitSpeed {
 		t.Errorf("❌ Неправильная базовая скорость зайца: ожидалась %.1f, получена %.1f",

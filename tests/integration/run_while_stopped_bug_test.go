@@ -125,15 +125,15 @@ func TestRunWhileStoppedBug(t *testing.T) {
 		}
 
 		// ИСПРАВЛЕНИЕ: Обновленные пороги для новой системы анимаций
-		// RabbitWalkSpeedThreshold = 2.25 (квадрат скорости), что соответствует ~1.5 тайла/сек
-		// Если заяц замедлился до ходьбы - проверяем соответствие
-		if speed < 2.25 && speed > 0.1 && animType == animation.AnimRun {
+		// RabbitWalkSpeedThreshold = 0.11 (квадрат скорости), что соответствует порогу ходьбы
+		// Если заяц замедлился ниже порога ходьбы - проверяем соответствие
+		if speed < 0.11 && speed > 0.005 && animType == animation.AnimRun {
 			t.Errorf("❌ БАГ: Заяц медленно движется (скорость %.2f) но показывает анимацию бега", speed)
 			return
 		}
 
-		// Если заяц успокоился полностью - тест успешен (порог покоя = 0.1)
-		if speed < 0.1 && animType == animation.AnimIdle {
+		// Если заяц успокоился полностью - тест успешен (порог покоя = 0.005)
+		if speed < 0.005 && animType == animation.AnimIdle {
 			t.Logf("✅ Заяц успокоился на тике %d: скорость=%.2f анимация=%s", i, speed, animType.String())
 			return
 		}

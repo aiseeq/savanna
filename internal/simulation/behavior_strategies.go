@@ -3,6 +3,7 @@ package simulation
 import (
 	"math"
 
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/physics"
 )
@@ -126,9 +127,11 @@ func (h *HerbivoreBehaviorStrategy) checkLocalGrass(
 	components AnimalComponents,
 	config core.AnimalConfig,
 ) *core.Velocity {
+	// ИСПРАВЛЕНИЕ: Конвертируем радиус коллизий из тайлов в пиксели для FindNearestGrass
+	collisionRadiusPixels := constants.TilesToPixels(config.CollisionRadius)
 	localGrassX, localGrassY, hasLocalGrass := h.vegetation.FindNearestGrass(
 		components.Position.X, components.Position.Y,
-		config.CollisionRadius, MinGrassAmountToFind,
+		collisionRadiusPixels, MinGrassAmountToFind,
 	)
 	if !hasLocalGrass {
 		return nil
@@ -138,7 +141,9 @@ func (h *HerbivoreBehaviorStrategy) checkLocalGrass(
 	dy := components.Position.Y - localGrassY
 	distanceToLocalGrass := math.Sqrt(float64(dx*dx + dy*dy))
 
-	if distanceToLocalGrass <= float64(config.CollisionRadius*GrassProximityMultiplier) {
+	// ИСПРАВЛЕНИЕ: Конвертируем радиус коллизий из тайлов в пиксели для проверки расстояния
+	collisionRadiusPixelsForCheck := constants.TilesToPixels(config.CollisionRadius)
+	if distanceToLocalGrass <= float64(collisionRadiusPixelsForCheck*GrassProximityMultiplier) {
 		// Мы рядом с травой - останавливаемся и едим
 		return &core.Velocity{X: 0, Y: 0}
 	}
@@ -152,9 +157,11 @@ func (h *HerbivoreBehaviorStrategy) searchForGrass(
 	entity core.EntityID,
 	components AnimalComponents,
 ) *core.Velocity {
+	// ИСПРАВЛЕНИЕ: Конвертируем дальность зрения из тайлов в пиксели для FindNearestGrass
+	visionRangePixels := constants.TilesToPixels(components.AnimalConfig.VisionRange)
 	grassX, grassY, foundGrass := h.vegetation.FindNearestGrass(
 		components.Position.X, components.Position.Y,
-		components.AnimalConfig.VisionRange, MinGrassAmountToFind,
+		visionRangePixels, MinGrassAmountToFind,
 	)
 	if foundGrass {
 		// Идём к траве

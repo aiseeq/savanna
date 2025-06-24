@@ -16,6 +16,7 @@ func TestEatingFrameValidation_DiscreteNutrition(t *testing.T) {
 	terrain := &generator.Terrain{
 		Width:  10,
 		Height: 10,
+		Size:   10, // ИСПРАВЛЕНИЕ: нужно установить Size для GetSize()
 		Tiles:  make([][]generator.TileType, 10),
 		Grass:  make([][]float32, 10),
 	}
@@ -150,6 +151,7 @@ func TestEatingFrameValidation_IntegrationWithSystems(t *testing.T) {
 	terrain := &generator.Terrain{
 		Width:  10,
 		Height: 10,
+		Size:   10, // ИСПРАВЛЕНИЕ: нужно установить Size для GetSize()
 		Tiles:  make([][]generator.TileType, 10),
 		Grass:  make([][]float32, 10),
 	}
@@ -235,6 +237,7 @@ func TestEatingFrameValidation_SystemOrder(t *testing.T) {
 	terrain := &generator.Terrain{
 		Width:  10,
 		Height: 10,
+		Size:   10, // ИСПРАВЛЕНИЕ: нужно установить Size для GetSize()
 		Tiles:  make([][]generator.TileType, 10),
 		Grass:  make([][]float32, 10),
 	}
@@ -263,7 +266,19 @@ func TestEatingFrameValidation_SystemOrder(t *testing.T) {
 	}
 
 	// Шаг 2: GrassEatingSystem обрабатывает дискретное питание
-	// Анимация должна быть установлена на кадр 1 для получения питательности
+	// Сначала устанавливаем анимацию на кадр 0
+	world.SetAnimation(rabbit, core.Animation{
+		CurrentAnim: int(constants.AnimEat),
+		Frame:       0,
+		Timer:       0,
+		Playing:     true,
+		FacingRight: true,
+	})
+
+	// Вызываем GrassEatingSystem на кадре 0 - не должен дать питательность
+	grassEatingSystem.Update(world, 1.0/60.0)
+
+	// Теперь переключаем на кадр 1 - должен дать питательность при переходе 0→1
 	world.SetAnimation(rabbit, core.Animation{
 		CurrentAnim: int(constants.AnimEat),
 		Frame:       1,

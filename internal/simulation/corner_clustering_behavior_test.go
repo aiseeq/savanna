@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 )
@@ -18,6 +19,7 @@ func TestCornerClusteringBehavior_RabbitEscapesFromCorner(t *testing.T) {
 	terrain := &generator.Terrain{
 		Width:  int(worldWidth),
 		Height: int(worldHeight),
+		Size:   int(max(worldWidth, worldHeight)), // ИСПРАВЛЕНИЕ: нужно установить Size для GetSize()
 		Tiles:  make([][]generator.TileType, int(worldHeight)),
 		Grass:  make([][]float32, int(worldHeight)),
 	}
@@ -33,18 +35,29 @@ func TestCornerClusteringBehavior_RabbitEscapesFromCorner(t *testing.T) {
 	vegetationSystem := NewVegetationSystem(terrain)
 	behaviorSystem := NewAnimalBehaviorSystem(vegetationSystem)
 
-	// Размещаем волка в центре мира
-	centerX := worldWidth / 2  // 25
-	centerY := worldHeight / 2 // 19
-	_ = CreateAnimal(world, core.TypeWolf, centerX, centerY)
+	// ИСПРАВЛЕНИЕ: Добавляем MovementSystem чтобы зайцы реально двигались
+	// BehaviorSystem только устанавливает Velocity, MovementSystem обновляет Position
+	movementSystem := NewMovementSystem(worldWidth, worldHeight)
+
+	// Размещаем волка в центре мира (конвертируем тайлы в пиксели)
+	centerXTiles := worldWidth / 2                         // 25 тайлов
+	centerYTiles := worldHeight / 2                        // 19 тайлов
+	centerXPixels := constants.TilesToPixels(centerXTiles) // 25 * 32 = 800 пикселей
+	centerYPixels := constants.TilesToPixels(centerYTiles) // 19 * 32 = 608 пикселей
+	_ = CreateAnimal(world, core.TypeWolf, centerXPixels, centerYPixels)
 
 	// Размещаем зайца рядом с волком, но ближе к углу (левый верхний угол)
-	rabbitX := centerX - 5 // 20 (близко к волку)
-	rabbitY := centerY - 5 // 14 (близко к волку, но ближе к верхнему краю)
-	rabbit := CreateAnimal(world, core.TypeRabbit, rabbitX, rabbitY)
+	rabbitXTiles := centerXTiles - 5                       // 20 тайлов (близко к волку)
+	rabbitYTiles := centerYTiles - 5                       // 14 тайлов (близко к волку, но ближе к верхнему краю)
+	rabbitXPixels := constants.TilesToPixels(rabbitXTiles) // 20 * 32 = 640 пикселей
+	rabbitYPixels := constants.TilesToPixels(rabbitYTiles) // 14 * 32 = 448 пикселей
+	rabbit := CreateAnimal(world, core.TypeRabbit, rabbitXPixels, rabbitYPixels)
+
+	// ИСПРАВЛЕНИЕ: Делаем зайца сытым чтобы он не искал еду, а убегал от волка
+	world.SetHunger(rabbit, core.Hunger{Value: 95.0}) // Сытый заяц (выше порога 90%)
 
 	t.Logf("Initial positions: Wolf(%.1f, %.1f), Rabbit(%.1f, %.1f)",
-		centerX, centerY, rabbitX, rabbitY)
+		centerXPixels, centerYPixels, rabbitXPixels, rabbitYPixels)
 
 	// Запоминаем начальную позицию зайца
 	initialPos, _ := world.GetPosition(rabbit)
@@ -52,22 +65,28 @@ func TestCornerClusteringBehavior_RabbitEscapesFromCorner(t *testing.T) {
 	// Симулируем 10 секунд (600 тиков)
 	deltaTime := float32(1.0 / 60.0)
 	for tick := 0; tick < 600; tick++ {
+		// ИСПРАВЛЕНИЕ: Сначала BehaviorSystem устанавливает Velocity, потом MovementSystem обновляет Position
 		behaviorSystem.Update(world, deltaTime)
+		movementSystem.Update(world, deltaTime)
 	}
 
 	// Проверяем финальную позицию зайца
 	finalPos, _ := world.GetPosition(rabbit)
 
+	// ИСПРАВЛЕНИЕ: Конвертируем размеры мира в пиксели для сравнения с позициями
+	worldWidthPixels := constants.TilesToPixels(worldWidth)
+	worldHeightPixels := constants.TilesToPixels(worldHeight)
+
 	// Определяем находится ли заяц в углу карты
 	// Угол определяется как область в пределах 10% от каждого края
 	const cornerThreshold = 0.1
-	cornerZoneX := worldWidth * cornerThreshold  // 5 тайлов от края
-	cornerZoneY := worldHeight * cornerThreshold // 3.8 тайла от края
+	cornerZoneX := worldWidthPixels * cornerThreshold  // 10% от ширины в пикселях
+	cornerZoneY := worldHeightPixels * cornerThreshold // 10% от высоты в пикселях
 
 	inLeftCorner := finalPos.X < cornerZoneX
-	inRightCorner := finalPos.X > worldWidth-cornerZoneX
+	inRightCorner := finalPos.X > worldWidthPixels-cornerZoneX
 	inTopCorner := finalPos.Y < cornerZoneY
-	inBottomCorner := finalPos.Y > worldHeight-cornerZoneY
+	inBottomCorner := finalPos.Y > worldHeightPixels-cornerZoneY
 
 	isInCorner := (inLeftCorner || inRightCorner) && (inTopCorner || inBottomCorner)
 
@@ -75,7 +94,7 @@ func TestCornerClusteringBehavior_RabbitEscapesFromCorner(t *testing.T) {
 		t.Errorf("Rabbit ended up in corner! Final position: (%.1f, %.1f)",
 			finalPos.X, finalPos.Y)
 		t.Errorf("Corner zones: X < %.1f or X > %.1f, Y < %.1f or Y > %.1f",
-			cornerZoneX, worldWidth-cornerZoneX, cornerZoneY, worldHeight-cornerZoneY)
+			cornerZoneX, worldWidthPixels-cornerZoneX, cornerZoneY, worldHeightPixels-cornerZoneY)
 	}
 
 	// Дополнительная проверка: заяц должен двигаться от начальной позиции
@@ -87,15 +106,16 @@ func TestCornerClusteringBehavior_RabbitEscapesFromCorner(t *testing.T) {
 	}
 
 	// Проверяем что заяц не прижался к границе
-	const edgeThreshold = 1.0 // 1 тайл от края
-	nearLeftEdge := finalPos.X < edgeThreshold
-	nearRightEdge := finalPos.X > worldWidth-edgeThreshold
-	nearTopEdge := finalPos.Y < edgeThreshold
-	nearBottomEdge := finalPos.Y > worldHeight-edgeThreshold
+	const edgeThresholdTiles = 1.0 // 1 тайл от края
+	edgeThresholdPixels := constants.TilesToPixels(edgeThresholdTiles)
+	nearLeftEdge := finalPos.X < edgeThresholdPixels
+	nearRightEdge := finalPos.X > worldWidthPixels-edgeThresholdPixels
+	nearTopEdge := finalPos.Y < edgeThresholdPixels
+	nearBottomEdge := finalPos.Y > worldHeightPixels-edgeThresholdPixels
 
 	if nearLeftEdge || nearRightEdge || nearTopEdge || nearBottomEdge {
-		t.Errorf("Rabbit is too close to world edge! Position: (%.1f, %.1f), World: %.1fx%.1f",
-			finalPos.X, finalPos.Y, worldWidth, worldHeight)
+		t.Errorf("Rabbit is too close to world edge! Position: (%.1f, %.1f), World: %.1fx%.1f pixels",
+			finalPos.X, finalPos.Y, worldWidthPixels, worldHeightPixels)
 	}
 
 	t.Logf("SUCCESS: Rabbit escaped from corner clustering")

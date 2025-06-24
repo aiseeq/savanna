@@ -4,11 +4,9 @@ import (
 	"math"
 	"testing"
 
-	"github.com/aiseeq/savanna/config"
-	"github.com/aiseeq/savanna/internal/adapters"
 	"github.com/aiseeq/savanna/internal/core"
-	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
+	"github.com/aiseeq/savanna/tests/common"
 )
 
 // TestWolfAttackBehavior исследует поведение волка при атаке зайца
@@ -16,31 +14,12 @@ import (
 //nolint:revive // Интеграционный тест может быть длинным
 func TestWolfAttackBehavior(t *testing.T) {
 	t.Parallel()
-	// Создаем минимальную симуляцию
-	cfg := &config.Config{
-		World: config.WorldConfig{
-			Size: 10,
-			Seed: 12345, // Фиксированный seed для воспроизводимости
-		},
-	}
-
-	terrainGen := generator.NewTerrainGenerator(cfg)
-	terrain := terrainGen.Generate()
-
 	// Создаем мир и системы
 	worldSizePixels := float32(320) // 10 * 32
 	world := core.NewWorld(worldSizePixels, worldSizePixels, 12345)
-	systemManager := core.NewSystemManager()
 
-	// Создаем только необходимые системы
-	vegetationSystem := simulation.NewVegetationSystem(terrain)
-	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
-	movementSystem := simulation.NewMovementSystem(worldSizePixels, worldSizePixels)
-
-	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
-	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
-	systemManager.AddSystem(adapters.NewFeedingSystemAdapter(vegetationSystem))
+	// ИСПРАВЛЕНИЕ: Используем централизованный системный менеджер для правильного порядка систем
+	systemManager := common.CreateTestSystemManager(worldSizePixels)
 
 	// Создаем волка и зайца рядом друг с другом
 	rabbitX, rabbitY := float32(160), float32(160) // Центр мира
@@ -93,11 +72,7 @@ func TestWolfAttackBehavior(t *testing.T) {
 				wolfBehavior, hasBehavior, wolfHunger, hasHunger)
 		}
 
-		// ИСПРАВЛЕНИЕ: Обновляем поведение волка вручную (как в TestWolfAttackBehavior)
-		terrain := terrainGen.Generate()
-		vegetationSystem := simulation.NewVegetationSystem(terrain)
-		animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
-		animalBehaviorSystem.Update(world, deltaTime)
+		// Обновляем поведение волка через централизованный системный менеджер
 
 		// Обновляем движение для всех
 		world.Update(deltaTime)
@@ -140,19 +115,9 @@ func TestWolfOvershooting(t *testing.T) {
 	// Создаем простую симуляцию
 	worldSizePixels := float32(320)
 	world := core.NewWorld(worldSizePixels, worldSizePixels, 54321)
-	systemManager := core.NewSystemManager()
 
-	// Создаем необходимые системы для волка
-	terrain := generator.NewTerrainGenerator(&config.Config{
-		World: config.WorldConfig{Size: 10, Seed: 54321},
-	}).Generate()
-	vegetationSystem := simulation.NewVegetationSystem(terrain)
-	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
-	movementSystem := simulation.NewMovementSystem(worldSizePixels, worldSizePixels)
-
-	// ИСПРАВЛЕНИЕ: Добавляем BehaviorSystem для установки velocity волка
-	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
-	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
+	// ИСПРАВЛЕНИЕ: Используем централизованный системный менеджер для правильного порядка систем
+	systemManager := common.CreateTestSystemManager(worldSizePixels)
 
 	// Зайца ставим неподвижно, волка близко
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 160, 160)

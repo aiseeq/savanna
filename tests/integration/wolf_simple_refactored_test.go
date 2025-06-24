@@ -15,12 +15,12 @@ func TestWolfEatsRabbitRefactored(t *testing.T) {
 	// Проверяем что боевая система работает с рефакторенной инфраструктурой
 
 	// ДО: 15+ строк дублированного кода создания мира и систем
-	// ПОСЛЕ: 4 строки с Builder Pattern
-	world, systems, entities := common.NewTestWorld().
+	// ПОСЛЕ: 4 строки с Builder Pattern + анимации для тестов боя
+	world, systemBundle, entities := common.NewTestWorld().
 		WithSize(common.MediumWorldSize).
 		AddRabbit(300, 300, common.SatedPercentage, common.RabbitMaxHealth).
 		AddWolfNearRabbit(common.CloseDistance, common.VeryHungryPercentage).
-		Build()
+		BuildWithAnimations()
 
 	rabbit := entities.Rabbits[0]
 	wolf := entities.Wolves[0]
@@ -31,8 +31,8 @@ func TestWolfEatsRabbitRefactored(t *testing.T) {
 	common.LogEntityState(t, world, wolf, "Волк")
 
 	// ДО: 20+ строк симуляции с ручными циклами
-	// ПОСЛЕ: 1 строка
-	common.RunSimulation(world, systems, common.FiveSecondTicks)
+	// ПОСЛЕ: 1 строка С АНИМАЦИЯМИ (исправление для тестов боя)
+	common.RunSimulationWithAnimations(world, systemBundle, common.FiveSecondTicks)
 
 	// ДО: 15+ строк проверок результата
 	// ПОСЛЕ: 3 строки с готовыми assert'ами
@@ -74,11 +74,11 @@ func TestSingleWolfKillRabbit(t *testing.T) {
 	// Проверяем что боевая система работает с рефакторенной инфраструктурой
 
 	// Один голодный волк рядом с зайцем
-	world, systems, entities := common.NewTestWorld().
+	world, systemBundle, entities := common.NewTestWorld().
 		WithSmallSize().
 		AddRabbit(100, 100, common.SatedPercentage, common.RabbitMaxHealth).
 		AddWolf(102, 100, common.VeryHungryPercentage). // Очень близко
-		Build()
+		BuildWithAnimations()
 
 	rabbit := entities.Rabbits[0]
 	wolf := entities.Wolves[0]
@@ -88,7 +88,7 @@ func TestSingleWolfKillRabbit(t *testing.T) {
 	common.LogEntityState(t, world, rabbit, "Заяц")
 	common.LogEntityState(t, world, wolf, "Волк")
 
-	common.RunSimulation(world, systems, common.FiveSecondTicks)
+	common.RunSimulationWithAnimations(world, systemBundle, common.FiveSecondTicks)
 
 	// Заяц должен умереть (проверяем создание трупа)
 	corpseCount := world.CountEntitiesWith(core.MaskCorpse)

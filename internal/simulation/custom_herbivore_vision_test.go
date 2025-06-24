@@ -3,6 +3,7 @@ package simulation
 import (
 	"testing"
 
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 )
@@ -19,6 +20,7 @@ func TestCustomHerbivoreVision_LargeVisionRange(t *testing.T) {
 	terrain := &generator.Terrain{
 		Width:  50,
 		Height: 50,
+		Size:   50, // ИСПРАВЛЕНИЕ: нужно установить Size для GetSize()
 		Tiles:  make([][]generator.TileType, 50),
 		Grass:  make([][]float32, 50),
 	}
@@ -31,16 +33,18 @@ func TestCustomHerbivoreVision_LargeVisionRange(t *testing.T) {
 		}
 	}
 
-	// Создаем стандартного зайца для сравнения
-	standardRabbit := CreateAnimal(world, core.TypeRabbit, 25.0, 25.0) // Центр карты
+	// Создаем стандартного зайца для сравнения (позиция в пикселях)
+	centerX := constants.TilesToPixels(25.0) // 25 тайлов * 32 = 800 пикселей
+	centerY := constants.TilesToPixels(25.0) // 25 тайлов * 32 = 800 пикселей
+	standardRabbit := CreateAnimal(world, core.TypeRabbit, centerX, centerY)
 	standardConfig, _ := world.GetAnimalConfig(standardRabbit)
 	standardVisionRange := standardConfig.VisionRange
 
 	// Создаем кастомное травоядное с увеличенным в 2 раза радиусом зрения
 	customHerbivore := world.CreateEntity()
 
-	// Устанавливаем позицию
-	world.AddPosition(customHerbivore, core.Position{X: 25.0, Y: 25.0})
+	// Устанавливаем позицию (в пикселях)
+	world.AddPosition(customHerbivore, core.Position{X: centerX, Y: centerY})
 
 	// Устанавливаем тип животного
 	world.AddAnimalType(customHerbivore, core.TypeRabbit)
@@ -135,6 +139,7 @@ func TestCustomHerbivoreVision_VisionRangeValidation(t *testing.T) {
 	terrain := &generator.Terrain{
 		Width:  20,
 		Height: 20,
+		Size:   20, // ИСПРАВЛЕНИЕ: нужно установить Size для GetSize()
 		Tiles:  make([][]generator.TileType, 20),
 		Grass:  make([][]float32, 20),
 	}
@@ -174,9 +179,11 @@ func TestCustomHerbivoreVision_VisionRangeValidation(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Создаем кастомное травоядное в позиции (5, 5)
+			// Создаем кастомное травоядное в тайле (5, 5) в пикселях
 			customHerbivore := world.CreateEntity()
-			world.AddPosition(customHerbivore, core.Position{X: 5.0, Y: 5.0})
+			positionX := constants.TilesToPixels(5.0) // 5 тайл * 32 = 160 пикселей
+			positionY := constants.TilesToPixels(5.0) // 5 тайл * 32 = 160 пикселей
+			world.AddPosition(customHerbivore, core.Position{X: positionX, Y: positionY})
 			world.AddAnimalType(customHerbivore, core.TypeRabbit)
 
 			// Кастомная конфигурация с тестовым радиусом зрения

@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"github.com/aiseeq/savanna/config"
-	"github.com/aiseeq/savanna/internal/adapters"
 	"github.com/aiseeq/savanna/internal/animation"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
+	"github.com/aiseeq/savanna/tests/common"
 )
 
 // TestGrassColorChangeE2E проверяет что цвет травы меняется при её поедании
@@ -20,7 +20,8 @@ func TestGrassColorChangeE2E(t *testing.T) {
 	t.Logf("=== TDD: Проверка изменения цвета травы ===")
 
 	// Создаём минимальный мир
-	world := core.NewWorld(200, 200, 12345)
+	worldWidth := float32(200.0)
+	world := core.NewWorld(worldWidth, worldWidth, 12345)
 
 	// Создаём terrain с травой
 	cfg := config.LoadDefaultConfig()
@@ -56,11 +57,8 @@ found:
 	t.Logf("Тайл с травой: (%d,%d), тип=%d", grassTileX, grassTileY, terrain.GetTileType(grassTileX, grassTileY))
 	t.Logf("Заяц будет размещен на: (%.1f, %.1f)", rabbitX, rabbitY)
 
-	// Создаём системы питания
+	// Создаём vegetation систему для доступа к траве
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
-
-	// Используем объединенную систему питания как в реальной игре
-	deprecatedFeedingAdapter := adapters.NewDeprecatedFeedingSystemAdapter(vegetationSystem)
 
 	// Создаём анимационную систему ТОЧНО как в игре
 	animationSystem := animation.NewAnimationSystem()
@@ -69,9 +67,8 @@ found:
 	animationSystem.RegisterAnimation(animation.AnimRun, 2, 12.0, true, nil)
 	animationSystem.RegisterAnimation(animation.AnimEat, 2, 4.0, true, nil)
 
-	systemManager := core.NewSystemManager()
-	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(deprecatedFeedingAdapter)
+	// ИСПРАВЛЕНИЕ: Используем terrain из этого теста, а не создаем новый
+	systemManager := common.CreateTestSystemManagerWithTerrain(worldWidth, terrain)
 
 	// Создаём зайца в центре тайла с травой
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, rabbitX, rabbitY)

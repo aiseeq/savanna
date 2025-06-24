@@ -8,47 +8,37 @@ import (
 // Адаптеры для систем с ISP интерфейсами для совместимости со старым интерфейсом System
 // Рефакторинг SRP: разделены специализированные системы вместо монолитного FeedingSystem
 
-// DeprecatedFeedingSystemAdapter DEPRECATED: используйте новые специализированные системы
-// Оставлен для обратной совместимости с тестами
+// ВРЕМЕННОЕ ВОССТАНОВЛЕНИЕ для совместимости тестов
+// TODO: Заменить все тесты на использование common.CreateTestSystemManager()
+
+// DeprecatedFeedingSystemAdapter DEPRECATED: используйте common.CreateTestSystemManager()
 type DeprecatedFeedingSystemAdapter struct {
-	hungerSystem        *simulation.HungerSystem
-	grassSearchSystem   *simulation.GrassSearchSystem
-	grassEatingSystem   *simulation.GrassEatingSystem
-	hungerSpeedModifier *simulation.HungerSpeedModifierSystem
-	starvationDamage    *simulation.StarvationDamageSystem
+	systemManager *core.SystemManager
 }
 
-// NewDeprecatedFeedingSystemAdapter создаёт адаптер для обратной совместимости
+// NewDeprecatedFeedingSystemAdapter создаёт временный адаптер для совместимости
 func NewDeprecatedFeedingSystemAdapter(vegetation *simulation.VegetationSystem) *DeprecatedFeedingSystemAdapter {
-	return &DeprecatedFeedingSystemAdapter{
-		hungerSystem:        simulation.NewHungerSystem(),
-		grassSearchSystem:   simulation.NewGrassSearchSystem(vegetation),
-		grassEatingSystem:   simulation.NewGrassEatingSystem(vegetation),
-		hungerSpeedModifier: simulation.NewHungerSpeedModifierSystem(),
-		starvationDamage:    simulation.NewStarvationDamageSystem(),
-	}
+	// Создаем мини-менеджер только с системами питания
+	manager := core.NewSystemManager()
+	manager.AddSystem(&HungerSystemAdapter{System: simulation.NewHungerSystem()})
+	manager.AddSystem(&GrassSearchSystemAdapter{System: simulation.NewGrassSearchSystem(vegetation)})
+	manager.AddSystem(&GrassEatingSystemAdapter{System: simulation.NewGrassEatingSystem(vegetation)})
+	manager.AddSystem(&HungerSpeedModifierSystemAdapter{System: simulation.NewHungerSpeedModifierSystem()})
+	manager.AddSystem(&StarvationDamageSystemAdapter{System: simulation.NewStarvationDamageSystem()})
+
+	return &DeprecatedFeedingSystemAdapter{systemManager: manager}
 }
 
 func (a *DeprecatedFeedingSystemAdapter) Update(world *core.World, deltaTime float32) {
-	// ИСПРАВЛЕНО: Правильный порядок согласно CLAUDE.md
-	// HungerSystem должна быть ПЕРЕД GrassSearchSystem но ПОСЛЕ GrassEatingSystem!
-	a.hungerSystem.Update(world, deltaTime)        // 1. Управление голодом (снижает голод)
-	a.grassSearchSystem.Update(world, deltaTime)   // 2. Поиск травы и создание EatingState
-	a.grassEatingSystem.Update(world, deltaTime)   // 3. Дискретное поедание травы (повышает голод)
-	a.hungerSpeedModifier.Update(world, deltaTime) // 4. Влияние голода на скорость
-	a.starvationDamage.Update(world, deltaTime)    // 5. Урон от голода
+	a.systemManager.Update(world, deltaTime)
 }
 
-// FeedingSystemAdapter DEPRECATED: структура для обратной совместимости
-type FeedingSystemAdapter struct {
-	*DeprecatedFeedingSystemAdapter
-}
+// FeedingSystemAdapter DEPRECATED: алиас для совместимости
+type FeedingSystemAdapter = DeprecatedFeedingSystemAdapter
 
-// NewFeedingSystemAdapter DEPRECATED: создаёт адаптер для обратной совместимости
+// NewFeedingSystemAdapter DEPRECATED: алиас для совместимости
 func NewFeedingSystemAdapter(vegetation *simulation.VegetationSystem) *FeedingSystemAdapter {
-	return &FeedingSystemAdapter{
-		DeprecatedFeedingSystemAdapter: NewDeprecatedFeedingSystemAdapter(vegetation),
-	}
+	return NewDeprecatedFeedingSystemAdapter(vegetation)
 }
 
 // HungerSystemAdapter адаптирует HungerSystem к старому интерфейсу System

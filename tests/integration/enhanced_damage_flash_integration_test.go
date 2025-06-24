@@ -1,11 +1,11 @@
-package e2e
+package integration
 
 import (
 	"testing"
 
-	"github.com/aiseeq/savanna/internal/animation"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/simulation"
+	"github.com/aiseeq/savanna/tests/common"
 )
 
 // TestEnhancedDamageFlash - E2E тест для проверки усиленного DamageFlash эффекта
@@ -22,15 +22,8 @@ func TestEnhancedDamageFlash(t *testing.T) {
 	world := core.NewWorld(640, 640, 42)
 	combatSystem := simulation.NewCombatSystem()
 
-	// Настраиваем анимационную систему
-	wolfAnimSystem := animation.NewAnimationSystem()
-	rabbitAnimSystem := animation.NewAnimationSystem()
-
-	wolfAnimSystem.RegisterAnimation(animation.AnimAttack, 2, 1.0, false, nil)
-	wolfAnimSystem.RegisterAnimation(animation.AnimIdle, 2, 1.0, true, nil)
-	rabbitAnimSystem.RegisterAnimation(animation.AnimIdle, 2, 1.0, true, nil)
-
-	animManager := animation.NewAnimationManager(wolfAnimSystem, rabbitAnimSystem)
+	// Добавляем анимационную систему для корректной работы атак
+	animationAdapter := common.NewAnimationSystemAdapter()
 
 	// Создаём тестовую сцену: волк атакует зайца (очень близко для гарантированной атаки)
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
@@ -47,8 +40,10 @@ func TestEnhancedDamageFlash(t *testing.T) {
 
 	// Фаза 1: Ждём атаки и фиксируем параметры DamageFlash
 	for i := 0; i < 180; i++ { // 3 секунды максимум
+		// КРИТИЧЕСКИ ВАЖНО: Обновляем анимации ПЕРЕД combat system
+		world.Update(deltaTime)
+		animationAdapter.Update(world, deltaTime)
 		combatSystem.Update(world, deltaTime)
-		animManager.UpdateAllAnimations(world, deltaTime)
 
 		if world.HasComponent(rabbit, core.MaskDamageFlash) {
 			flash, _ := world.GetDamageFlash(rabbit)
@@ -94,8 +89,10 @@ func TestEnhancedDamageFlash(t *testing.T) {
 
 	ticksToDisappear := 0
 	for i := 0; i < 20; i++ { // 20 тиков максимум (треть секунды)
+		// Обновляем анимации и combat system
+		world.Update(deltaTime)
+		animationAdapter.Update(world, deltaTime)
 		combatSystem.Update(world, deltaTime)
-		animManager.UpdateAllAnimations(world, deltaTime)
 
 		if !world.HasComponent(rabbit, core.MaskDamageFlash) {
 			ticksToDisappear = i

@@ -217,9 +217,14 @@ func (as *AttackSystem) updateAttackState(world *core.World, predator core.Entit
 	// Получаем анимацию для синхронизации (если есть)
 	anim, hasAnim := world.GetAnimation(predator)
 
-	if hasAnim {
-		as.updateAttackStateWithAnimation(world, predator, &attackState, anim)
-	} else if as.updateAttackStateWithTimer(world, predator, &attackState) {
+	// ИСПРАВЛЕНИЕ: Используем АНИМАЦИЮ как основной механизм нанесения урона
+	// Урон наносится на кадре 1 анимации, а не по таймеру
+	if hasAnim && as.updateAttackStateWithAnimation(world, predator, &attackState, anim) {
+		return // Состояние удалено
+	}
+
+	// Резервный механизм по таймерам (если нет анимации)
+	if !hasAnim && as.updateAttackStateWithTimer(world, predator, &attackState) {
 		return // Состояние удалено
 	}
 
@@ -229,34 +234,82 @@ func (as *AttackSystem) updateAttackState(world *core.World, predator core.Entit
 	}
 }
 
-// updateAttackStateWithAnimation обновляет атаку по анимации (снижает сложность)
+// updateAttackStateWithAnimation обновляет атаку на основе анимации (возвращает true если удалено)
 func (as *AttackSystem) updateAttackStateWithAnimation(
 	world *core.World, predator core.EntityID, attackState *core.AttackState, anim core.Animation,
+) bool {
+	// ИСПРАВЛЕНИЕ: Проверяем анимацию атаки ИЛИ любую анимацию которая завершилась (Playing=false)
+	// Это позволяет работать с тестами которые меняют анимацию на другую после завершения атаки
+	isAttackAnim := anim.CurrentAnim == int(constants.AnimAttack)
+	animFinished := !anim.Playing
+
+	// ГЛАВНАЯ ЛОГИКА: Урон наносится на кадре 1 анимации (только для анимации атаки)
+	if isAttackAnim && anim.Frame == AttackFrameStrike && !attackState.HasStruck {
+		// Кадр 1 (Strike) - наносим урон
+		as.executeStrike(world, predator, attackState.Target)
+		attackState.HasStruck = true
+		attackState.Phase = core.AttackPhaseStrike
+	} else if isAttackAnim && anim.Frame == AttackFrameWindup {
+		// Кадр 0 (Windup) - подготовка к удару
+		attackState.Phase = core.AttackPhaseWindup
+		attackState.HasStruck = false
+	}
+
+	// ИСПРАВЛЕНИЕ: Завершаем атаку когда анимация завершилась (Playing = false) ИЛИ анимация сменилась
+	if animFinished || (!isAttackAnim && attackState.HasStruck) {
+		// Анимация атаки завершена или сменилась после нанесения урона - устанавливаем кулдаун и удаляем состояние
+		as.setAttackCooldown(predator)
+		world.RemoveAttackState(predator)
+		return true // Состояние удалено
+	}
+
+	// ИСПРАВЛЕНИЕ: Дополнительная проверка по кадрам - анимация атаки имеет только 2 кадра (0,1)
+	// Если мы уже нанесли урон на кадре 1 и анимация проиграла достаточно времени, завершаем атаку
+	if attackState.HasStruck && attackState.Phase == core.AttackPhaseStrike {
+		// Получаем данные анимации для расчета времени
+		const AttackFrameCount = 2 // Анимация атаки имеет 2 кадра (из loader.go)
+		const AttackFPS = 6.0      // Скорость анимации атаки (из loader.go)
+
+		// Время полной анимации = количество кадров / FPS
+		fullAnimationDuration := float32(AttackFrameCount) / AttackFPS
+
+		// Если прошло достаточно времени для завершения полной анимации, завершаем атаку
+		if attackState.TotalTimer >= fullAnimationDuration {
+			as.setAttackCooldown(predator)
+			world.RemoveAttackState(predator)
+			return true // Состояние удалено
+		}
+	}
+
+	// Резервный механизм завершения по таймеру (если анимация зависла)
+	if attackState.TotalTimer >= (AttackWindupDuration + AttackStrikeDuration) {
+		// Атака завершена - устанавливаем кулдаун и удаляем состояние
+		as.setAttackCooldown(predator)
+		world.RemoveAttackState(predator)
+		return true // Состояние удалено
+	}
+
+	return false
+}
+
+// syncAttackWithAnimation синхронизирует атаку с анимацией (не управляет основной логикой)
+func (as *AttackSystem) syncAttackWithAnimation(
+	world *core.World, predator core.EntityID, attackState *core.AttackState, anim core.Animation,
 ) {
+	// Синхронизируем кадр анимации с фазой атаки
 	switch attackState.Phase {
 	case core.AttackPhaseWindup:
-		// КАДР WINDUP: Замах - проверяем готовность к удару
-		if anim.CurrentAnim == int(constants.AnimAttack) && anim.Frame == AttackFrameStrike {
-			// Переходим в фазу удара
-			attackState.Phase = core.AttackPhaseStrike
-			attackState.PhaseTimer = 0.0
-			// НЕ сохраняем состояние здесь - будет сохранено в конце updateAttackState
+		// Убеждаемся что анимация на правильном кадре
+		if anim.CurrentAnim == int(constants.AnimAttack) && anim.Frame != AttackFrameWindup {
+			anim.Frame = AttackFrameWindup
+			world.SetAnimation(predator, anim)
 		}
 
 	case core.AttackPhaseStrike:
-		// КАДР STRIKE: Удар - наносим урон ОДИН РАЗ
-		if !attackState.HasStruck {
-			as.executeStrike(world, predator, attackState.Target)
-			attackState.HasStruck = true
-			// НЕ сохраняем состояние здесь - будет сохранено в конце updateAttackState
-		}
-
-		// Проверяем завершение атаки
-		if !anim.Playing || anim.CurrentAnim != int(constants.AnimAttack) {
-			// Анимация завершена - устанавливаем кулдаун и удаляем состояние атаки
-			as.setAttackCooldown(predator)
-			world.RemoveAttackState(predator)
-			return // ВАЖНО: выходим чтобы не перезаписать удалённое состояние
+		// Убеждаемся что анимация на правильном кадре
+		if anim.CurrentAnim == int(constants.AnimAttack) && anim.Frame != AttackFrameStrike {
+			anim.Frame = AttackFrameStrike
+			world.SetAnimation(predator, anim)
 		}
 	}
 }
