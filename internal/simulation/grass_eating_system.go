@@ -62,7 +62,8 @@ func (ges *GrassEatingSystem) Update(world *core.World, deltaTime float32) {
 		}
 
 		// Проверяем завершился ли кадр анимации поедания
-		if ges.isEatingAnimationFrameComplete(world, entity) {
+		frameComplete := ges.isEatingAnimationFrameComplete(world, entity)
+		if frameComplete {
 			// Кадр завершён - даём питательность и съедаем траву
 			ges.processGrassEatingTick(world, entity, eatingState, pos)
 		}

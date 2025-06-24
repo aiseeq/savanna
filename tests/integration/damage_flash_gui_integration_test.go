@@ -1,11 +1,11 @@
-package e2e
+package integration
 
 import (
 	"testing"
 
-	"github.com/aiseeq/savanna/internal/animation"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/simulation"
+	"github.com/aiseeq/savanna/tests/common"
 )
 
 // TestDamageFlashGUI - E2E тест для проверки DamageFlash в GUI режиме
@@ -22,17 +22,8 @@ func TestDamageFlashGUI(t *testing.T) {
 	world := core.NewWorld(640, 640, 42)
 	combatSystem := simulation.NewCombatSystem()
 
-	// Добавляем анимационную систему для работы боевой системы
-	wolfAnimSystem := animation.NewAnimationSystem()
-	rabbitAnimSystem := animation.NewAnimationSystem()
-
-	// Регистрируем анимации атаки и поедания
-	wolfAnimSystem.RegisterAnimation(animation.AnimAttack, 2, 1.0, false, nil)
-	wolfAnimSystem.RegisterAnimation(animation.AnimEat, 2, 2.0, true, nil)
-	wolfAnimSystem.RegisterAnimation(animation.AnimIdle, 2, 1.0, true, nil)
-	rabbitAnimSystem.RegisterAnimation(animation.AnimIdle, 2, 1.0, true, nil)
-
-	animManager := animation.NewAnimationManager(wolfAnimSystem, rabbitAnimSystem)
+	// Добавляем анимационную систему для корректной работы атак
+	animationAdapter := common.NewAnimationSystemAdapter()
 
 	// Создаём зайца и волка для реального боя (очень близко)
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
@@ -49,8 +40,10 @@ func TestDamageFlashGUI(t *testing.T) {
 	// Фаза 1: Ждём атаки волка (до 3 секунд)
 	var attackDetected bool
 	for i := 0; i < 180 && !attackDetected; i++ {
+		// КРИТИЧЕСКИ ВАЖНО: Обновляем анимации ПЕРЕД combat system
+		world.Update(deltaTime)
+		animationAdapter.Update(world, deltaTime)
 		combatSystem.Update(world, deltaTime)
-		animManager.UpdateAllAnimations(world, deltaTime)
 
 		// Проверяем появился ли DamageFlash на зайце
 		if world.HasComponent(rabbit, core.MaskDamageFlash) {
@@ -67,10 +60,8 @@ func TestDamageFlashGUI(t *testing.T) {
 
 		// Логируем прогресс каждую секунду
 		if i%60 == 0 {
-			if world.HasComponent(wolf, core.MaskAnimation) {
-				anim, _ := world.GetAnimation(wolf)
-				t.Logf("Секунда %d: Анимация волка: anim=%d, frame=%d", i/60, anim.CurrentAnim, anim.Frame)
-			}
+			hunger, _ := world.GetHunger(wolf)
+			t.Logf("Секунда %d: Голод волка %.1f%%", i/60, hunger.Value)
 		}
 	}
 
@@ -90,8 +81,10 @@ func TestDamageFlashGUI(t *testing.T) {
 
 	// Симулируем 2 секунды для полного угасания
 	for i := 0; i < 120; i++ {
+		// Обновляем анимации и combat system
+		world.Update(deltaTime)
+		animationAdapter.Update(world, deltaTime)
 		combatSystem.Update(world, deltaTime)
-		animManager.UpdateAllAnimations(world, deltaTime)
 
 		// Проверяем состояние DamageFlash каждые 10 тиков
 		if i%10 == 0 {

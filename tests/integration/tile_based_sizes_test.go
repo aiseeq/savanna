@@ -48,9 +48,9 @@ func TestTileBasedSizes(t *testing.T) {
 	}
 
 	// Проверяем радиус атаки волка (конвертируем из пикселей)
-	expectedWolfAttackRange := expectedWolfRadius * 2.0 // WolfAttackRangeMultiplier = 2.0 теперь
+	expectedWolfAttackRange := expectedWolfRadius * 1.2 // WolfAttackRangeMultiplier = 1.2
 	actualWolfAttackRangeInTiles := constants.PixelsToTiles(wolfSize.AttackRange)
-	if abs(actualWolfAttackRangeInTiles-expectedWolfAttackRange) > 0.01 {
+	if absFloat(actualWolfAttackRangeInTiles-expectedWolfAttackRange) > 0.01 {
 		t.Errorf("Радиус атаки волка: ожидался %.2f тайла, получен %.2f",
 			expectedWolfAttackRange, actualWolfAttackRangeInTiles)
 	}
@@ -61,7 +61,7 @@ func TestTileBasedSizes(t *testing.T) {
 		t.Fatal("Заяц должен иметь компонент Speed")
 	}
 
-	expectedRabbitSpeed := float32(3.0) // RabbitBaseSpeed увеличена для компенсации множителей
+	expectedRabbitSpeed := float32(0.6) // RabbitBaseSpeed согласно плану стабилизации
 	if rabbitSpeed.Base != expectedRabbitSpeed {
 		t.Errorf("Скорость зайца: ожидалась %.2f тайла/сек, получена %.2f",
 			expectedRabbitSpeed, rabbitSpeed.Base)
@@ -72,7 +72,7 @@ func TestTileBasedSizes(t *testing.T) {
 		t.Fatal("Волк должен иметь компонент Speed")
 	}
 
-	expectedWolfSpeed := float32(4.0) // WolfBaseSpeed увеличена для компенсации множителей
+	expectedWolfSpeed := float32(1.0) // WolfBaseSpeed согласно плану стабилизации
 	if wolfSpeed.Base != expectedWolfSpeed {
 		t.Errorf("Скорость волка: ожидалась %.2f тайла/сек, получена %.2f",
 			expectedWolfSpeed, wolfSpeed.Base)
@@ -99,7 +99,7 @@ func TestTileBasedSizes(t *testing.T) {
 	// Радиус видения волка = 0.75 * 6.7 ≈ 5.0 тайлов
 	expectedWolfVision := expectedWolfRadius * 6.7 // WolfVisionMultiplier
 	// Допускаем небольшую погрешность округления
-	if abs(wolfBehavior.VisionRange-expectedWolfVision) > 0.01 {
+	if absFloat(wolfBehavior.VisionRange-expectedWolfVision) > 0.01 {
 		t.Errorf("Радиус видения волка: ожидался %.2f тайла, получен %.2f",
 			expectedWolfVision, wolfBehavior.VisionRange)
 	}
@@ -110,4 +110,12 @@ func TestTileBasedSizes(t *testing.T) {
 	t.Logf("   Волк: радиус %.2f тайла, видение %.2f тайла, скорость %.2f тайла/сек",
 		constants.PixelsToTiles(wolfSize.Radius), wolfBehavior.VisionRange, wolfSpeed.Base)
 	t.Logf("   Атака волка: %.2f тайла", constants.PixelsToTiles(wolfSize.AttackRange))
+}
+
+// absFloat возвращает абсолютное значение float32
+func absFloat(x float32) float32 {
+	if x < 0 {
+		return -x
+	}
+	return x
 }

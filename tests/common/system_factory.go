@@ -9,18 +9,31 @@ import (
 	"github.com/aiseeq/savanna/internal/simulation"
 )
 
+// TestSystemBundle содержит системы и анимации для правильного порядка обновления
+type TestSystemBundle struct {
+	SystemManager    *core.SystemManager
+	AnimationAdapter *AnimationSystemAdapter
+}
+
 // CreateTestSystemManager создает стандартный набор систем для интеграционных тестов
 // ИСПРАВЛЕНО: Порядок систем согласно CLAUDE.md для правильной работы AttackState
 func CreateTestSystemManager(worldSize float32) *core.SystemManager {
+	bundle := CreateTestSystemBundle(worldSize)
+	return bundle.SystemManager
+}
+
+// CreateTestSystemBundle создает системы и анимации отдельно для правильного порядка обновления
+// ИСПРАВЛЕНИЕ: Анимации должны обновляться ПЕРЕД системами, как в GUI режиме
+func CreateTestSystemBundle(worldSize float32) *TestSystemBundle {
 	systemManager := core.NewSystemManager()
 
 	// 1. Vegetation система (рост травы)
 	vegetationSystem := CreateTestVegetationSystem(worldSize)
 	systemManager.AddSystem(vegetationSystem)
 
-	// 2. Hunger система (управление голодом) - ПЕРЕД GrassSearchSystem
+	// 2. Hunger система (управление голодом) - ПОСЛЕ GrassEatingSystem согласно CLAUDE.md
 	hungerSystem := simulation.NewHungerSystem()
-	systemManager.AddSystem(&adapters.HungerSystemAdapter{System: hungerSystem})
+	hungerSystemAdapter := &adapters.HungerSystemAdapter{System: hungerSystem}
 
 	// 3. GrassSearch система (поиск травы и создание EatingState)
 	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem)
@@ -30,7 +43,10 @@ func CreateTestSystemManager(worldSize float32) *core.SystemManager {
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
 	systemManager.AddSystem(&adapters.GrassEatingSystemAdapter{System: grassEatingSystem})
 
-	// 5. Behavior система (поведение - проверяет EatingState)
+	// 2. ТЕПЕРЬ добавляем HungerSystem - ПОСЛЕ GrassEatingSystem
+	systemManager.AddSystem(hungerSystemAdapter)
+
+	// 5. Behavior система (поведение - проверяет EatingState) - ПЕРЕД движением!
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
 
@@ -51,9 +67,9 @@ func CreateTestSystemManager(worldSize float32) *core.SystemManager {
 	systemManager.AddSystem(&adapters.StarvationDamageSystemAdapter{System: starvationDamage})
 
 	// ДОПОЛНИТЕЛЬНЫЕ системы (порядок не критичен)
-	// Анимационная система (для корректной работы атак)
+	// ИСПРАВЛЕНИЕ: Анимационная система НЕ добавляется в systemManager
+	// Она должна обновляться ПЕРЕД системами, как в GUI режиме
 	animationAdapter := NewAnimationSystemAdapter()
-	systemManager.AddSystem(animationAdapter)
 
 	// Системы урона и трупов
 	damageSystem := simulation.NewDamageSystem()
@@ -65,7 +81,82 @@ func CreateTestSystemManager(worldSize float32) *core.SystemManager {
 	eatingSystem := simulation.NewEatingSystem()
 	systemManager.AddSystem(eatingSystem)
 
-	return systemManager
+	return &TestSystemBundle{
+		SystemManager:    systemManager,
+		AnimationAdapter: animationAdapter,
+	}
+}
+
+// CreateTestSystemManagerWithTerrain создает системный менеджер с кастомным terrain
+// Используется в тестах где нужен специфический terrain (например, eating_frame_validation_test.go)
+func CreateTestSystemManagerWithTerrain(worldSize float32, terrain generator.TerrainInterface) *core.SystemManager {
+	bundle := CreateTestSystemBundleWithTerrain(worldSize, terrain)
+	return bundle.SystemManager
+}
+
+// CreateTestSystemBundleWithTerrain создает системы и анимации отдельно с кастомным terrain
+// ИСПРАВЛЕНИЕ: Анимации должны обновляться ПЕРЕД системами, как в GUI режиме
+func CreateTestSystemBundleWithTerrain(worldSize float32, terrain generator.TerrainInterface) *TestSystemBundle {
+	systemManager := core.NewSystemManager()
+
+	// 1. Vegetation система с кастомным terrain
+	vegetationSystem := simulation.NewVegetationSystem(terrain)
+	systemManager.AddSystem(vegetationSystem)
+
+	// 2. Hunger система (управление голодом) - ПОСЛЕ GrassEatingSystem согласно CLAUDE.md
+	hungerSystem := simulation.NewHungerSystem()
+	hungerSystemAdapter := &adapters.HungerSystemAdapter{System: hungerSystem}
+
+	// 3. GrassSearch система (поиск травы и создание EatingState)
+	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem)
+	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{System: grassSearchSystem})
+
+	// 4. GrassEating система (дискретное поедание травы) - КЛЮЧЕВАЯ ДЛЯ ТЕСТОВ!
+	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
+	systemManager.AddSystem(&adapters.GrassEatingSystemAdapter{System: grassEatingSystem})
+
+	// 2. ТЕПЕРЬ добавляем HungerSystem - ПОСЛЕ GrassEatingSystem
+	systemManager.AddSystem(hungerSystemAdapter)
+
+	// 5. Behavior система (поведение - проверяет EatingState) - ПЕРЕД движением!
+	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
+	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
+
+	// 6. HungerSpeed система (влияние голода на скорость)
+	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem()
+	systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{System: hungerSpeedModifier})
+
+	// 7. Movement система (движение - сбрасывает скорость едящих)
+	movementSystem := simulation.NewMovementSystem(worldSize, worldSize)
+	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
+
+	// 8. Combat система (бой и урон) - ПОСЛЕ движения согласно CLAUDE.md!
+	combatSystem := simulation.NewCombatSystem()
+	systemManager.AddSystem(combatSystem)
+
+	// 9. Starvation система (урон от голода)
+	starvationDamage := simulation.NewStarvationDamageSystem()
+	systemManager.AddSystem(&adapters.StarvationDamageSystemAdapter{System: starvationDamage})
+
+	// ДОПОЛНИТЕЛЬНЫЕ системы (порядок не критичен)
+	// ИСПРАВЛЕНИЕ: Анимационная система НЕ добавляется в systemManager
+	// Она должна обновляться ПЕРЕД системами, как в GUI режиме
+	animationAdapter := NewAnimationSystemAdapter()
+
+	// Системы урона и трупов
+	damageSystem := simulation.NewDamageSystem()
+	systemManager.AddSystem(damageSystem)
+
+	corpseSystem := simulation.NewCorpseSystem()
+	systemManager.AddSystem(corpseSystem)
+
+	eatingSystem := simulation.NewEatingSystem()
+	systemManager.AddSystem(eatingSystem)
+
+	return &TestSystemBundle{
+		SystemManager:    systemManager,
+		AnimationAdapter: animationAdapter,
+	}
 }
 
 // CreateMinimalSystemManager создает минимальный набор систем (для простых тестов)

@@ -139,9 +139,9 @@ func TestAnimationVelocitySync(t *testing.T) {
 
 		t.Logf("Тик %d (спокоен): скорость=%.2f анимация=%s", i, speed, animType.String())
 
-		// ИСПРАВЛЕНИЕ: Обновленные пороги анимаций (RabbitWalkSpeedThreshold = 2.25)
-		// Если заяц медленно движется - анимация НЕ должна быть Run
-		if speed < 2.25 && animType == animation.AnimRun {
+		// ИСПРАВЛЕНИЕ: Обновленные пороги анимаций (RabbitWalkSpeedThreshold = 0.11)
+		// Если заяц движется медленнее чем Walk порог - анимация НЕ должна быть Run
+		if speed < 0.11 && animType == animation.AnimRun {
 			t.Errorf("❌ ОШИБКА на тике %d: Заяц спокоен (скорость %.2f) но показывает анимацию бега",
 				i, speed)
 		}

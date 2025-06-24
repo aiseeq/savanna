@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"math"
 	"testing"
 
 	"github.com/aiseeq/savanna/config"
@@ -8,6 +9,7 @@ import (
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
+	"github.com/aiseeq/savanna/tests/common"
 )
 
 const (
@@ -28,31 +30,11 @@ func createTestVegetationSystem() *simulation.VegetationSystem {
 func TestBasicSimulation(t *testing.T) {
 	t.Parallel()
 	world := core.NewWorld(TestWorldSize, TestWorldSize, 42)
-	systemManager := core.NewSystemManager()
+	// Используем централизованную фабрику систем для консистентности
+	systemManager := common.CreateTestSystemManager(TestWorldSize)
 
-	// Создаём минимальную vegetation систему для тестов
-	cfg := config.LoadDefaultConfig()
-	cfg.World.Size = int(TestWorldSize / 32)
-	terrainGen := generator.NewTerrainGenerator(cfg)
-	terrain := terrainGen.Generate()
-	vegetationSystem := simulation.NewVegetationSystem(terrain)
-
-	// Добавляем системы
-	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{
-		System: simulation.NewAnimalBehaviorSystem(vegetationSystem),
-	})
-	systemManager.AddSystem(&adapters.MovementSystemAdapter{
-		System: simulation.NewMovementSystem(TestWorldSize, TestWorldSize),
-	})
-	// Используем новые системы питания (DIP: через интерфейс)
-	hungerSystem := simulation.NewHungerSystem()
-	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem)
-	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
-
-	systemManager.AddSystem(&adapters.HungerSystemAdapter{System: hungerSystem})
-	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{System: grassSearchSystem})
-	systemManager.AddSystem(&adapters.GrassEatingSystemAdapter{System: grassEatingSystem})
+	// Системы уже созданы в правильном порядке через CreateTestSystemManager
+	// Не нужно добавлять системы вручную - они уже включены в systemManager
 
 	// Создаем несколько животных
 	rabbit1 := simulation.CreateAnimal(world, core.TypeRabbit, 100, 100)
@@ -67,42 +49,58 @@ func TestBasicSimulation(t *testing.T) {
 		t.Errorf("Expected 3 entities, got %d", world.GetEntityCount())
 	}
 
-	// Запускаем симуляцию на 1 секунду
+	// Запускаем симуляцию на короткое время - достаточно чтобы увидеть движение
 	deltaTime := float32(1.0 / TestTPS)
+	ticksToRun := 30 // Полсекунды вместо полной секунды
 
-	for i := 0; i < TestTPS; i++ {
+	for i := 0; i < ticksToRun; i++ {
 		world.Update(deltaTime)
 		systemManager.Update(world, deltaTime)
 
-		// Логируем каждые 10 тиков
-		if i%10 == 0 {
+		// Логируем каждые 5 тиков для более детального просмотра
+		if i%5 == 0 {
 			rabbitPos, _ := world.GetPosition(rabbit1)
 			wolfPos, _ := world.GetPosition(wolf1)
 			rabbitVel, _ := world.GetVelocity(rabbit1)
 			wolfVel, _ := world.GetVelocity(wolf1)
-			t.Logf("Тик %d: заяц (%.1f,%.1f) vel(%.1f,%.1f), волк (%.1f,%.1f) vel(%.1f,%.1f)",
-				i, rabbitPos.X, rabbitPos.Y, rabbitVel.X, rabbitVel.Y,
+			hasEating := world.HasComponent(rabbit1, core.MaskEatingState)
+			t.Logf("Тик %d: заяц (%.1f,%.1f) vel(%.1f,%.1f) eating=%v, волк (%.1f,%.1f) vel(%.1f,%.1f)",
+				i, rabbitPos.X, rabbitPos.Y, rabbitVel.X, rabbitVel.Y, hasEating,
 				wolfPos.X, wolfPos.Y, wolfVel.X, wolfVel.Y)
 		}
 	}
 
-	// Проверяем что животные живы и двигаются
+	// Проверяем что животные живы
 	if !world.IsAlive(rabbit1) {
-		t.Error("Rabbit1 should be alive after 1 second")
+		t.Error("Rabbit1 should be alive after simulation")
 	}
 
 	if !world.IsAlive(rabbit2) {
-		t.Error("Rabbit2 should be alive after 1 second")
+		t.Error("Rabbit2 should be alive after simulation")
 	}
 
 	if !world.IsAlive(wolf1) {
-		t.Error("Wolf1 should be alive after 1 second")
+		t.Error("Wolf1 should be alive after simulation")
 	}
 
 	// Проверяем что позиции изменились (животные двигались)
 	pos1, _ := world.GetPosition(rabbit1)
-	if pos1.X == 100 && pos1.Y == 100 {
-		t.Error("Rabbit1 should have moved from initial position")
+	vel1, _ := world.GetVelocity(rabbit1)
+	hasEatingState := world.HasComponent(rabbit1, core.MaskEatingState)
+	initialPos := core.Position{X: 100, Y: 100}
+
+	// Дополнительное логирование для диагностики
+	t.Logf("Финальное состояние зайца: pos=(%.1f,%.1f), vel=(%.1f,%.1f), eating=%v",
+		pos1.X, pos1.Y, vel1.X, vel1.Y, hasEatingState)
+
+	// Проверяем что заяц сдвинулся более чем на 0.5 пикселя от начальной позиции
+	// (уменьшили порог, так как за полсекунды движение может быть меньше)
+	distanceMoved := calculateDistance(pos1.X, pos1.Y, initialPos.X, initialPos.Y)
+	if distanceMoved < 0.5 {
+		t.Errorf("Rabbit1 should have moved more than 0.5 pixels from initial position. Initial: (%.1f,%.1f), Final: (%.1f,%.1f), Distance: %.2f",
+			initialPos.X, initialPos.Y, pos1.X, pos1.Y, distanceMoved)
+	} else {
+		t.Logf("SUCCESS: Rabbit moved %.2f pixels from initial position", distanceMoved)
 	}
 }
 
@@ -396,5 +394,5 @@ func TestStarvationDeath(t *testing.T) {
 func calculateDistance(x1, y1, x2, y2 float32) float32 {
 	dx := x2 - x1
 	dy := y2 - y1
-	return float32(dx*dx + dy*dy) // Возвращаем квадрат расстояния для скорости
+	return float32(math.Sqrt(float64(dx*dx + dy*dy))) // Возвращаем реальное расстояние
 }

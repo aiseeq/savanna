@@ -162,6 +162,39 @@ func (b *TestWorldBuilder) Build() (*core.World, *core.SystemManager, TestEntiti
 	return world, systemManager, entities
 }
 
+// BuildWithAnimations создает мир с системами и анимациями (новый метод для тестов боя)
+func (b *TestWorldBuilder) BuildWithAnimations() (*core.World, *TestSystemBundle, TestEntities) {
+	// Создаем мир
+	world := core.NewWorld(b.worldSize, b.worldSize, b.seed)
+
+	// Создаем системы с анимациями если нужно
+	var systemBundle *TestSystemBundle
+	if b.withSystems {
+		systemBundle = CreateTestSystemBundle(b.worldSize)
+	}
+
+	// Создаем сущности
+	entities := TestEntities{}
+
+	// Создаем зайцев
+	for _, spec := range b.rabbits {
+		rabbit := simulation.CreateAnimal(world, core.TypeRabbit, spec.X, spec.Y)
+		world.SetHunger(rabbit, core.Hunger{Value: spec.Hunger})
+		world.SetHealth(rabbit, core.Health{Current: spec.Health, Max: RabbitMaxHealth})
+		entities.Rabbits = append(entities.Rabbits, rabbit)
+	}
+
+	// Создаем волков
+	for _, spec := range b.wolves {
+		wolf := simulation.CreateAnimal(world, core.TypeWolf, spec.X, spec.Y)
+		world.SetHunger(wolf, core.Hunger{Value: spec.Hunger})
+		world.SetHealth(wolf, core.Health{Current: spec.Health, Max: WolfMaxHealth})
+		entities.Wolves = append(entities.Wolves, wolf)
+	}
+
+	return world, systemBundle, entities
+}
+
 // BuildWorldOnly создает только мир без систем и сущностей (для unit тестов)
 func (b *TestWorldBuilder) BuildWorldOnly() *core.World {
 	return core.NewWorld(b.worldSize, b.worldSize, b.seed)

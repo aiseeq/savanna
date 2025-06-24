@@ -6,6 +6,7 @@ import (
 	"github.com/aiseeq/savanna/internal/animation"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/simulation"
+	"github.com/aiseeq/savanna/tests/common"
 )
 
 // TestWolfSwitchingTargetsBug - TDD тест для бага переключения волка между зайцами
@@ -18,10 +19,13 @@ func TestWolfSwitchingTargetsBug(t *testing.T) {
 	t.Parallel()
 
 	// Создаём маленький мир 3x3 тайла как в описании бага
-	world := core.NewWorld(3*32, 3*32, 42) // 96x96 пикселей
-	combatSystem := simulation.NewCombatSystem()
+	worldSize := float32(3 * 32) // 96x96 пикселей
+	world := core.NewWorld(worldSize, worldSize, 42)
 
-	// Создаём анимационные системы
+	// ИСПРАВЛЕНИЕ: Используем централизованный системный менеджер для правильного порядка систем
+	systemManager := common.CreateTestSystemManager(worldSize)
+
+	// Создаём анимационные системы для полноты симуляции
 	wolfAnimSystem := animation.NewAnimationSystem()
 	rabbitAnimSystem := animation.NewAnimationSystem()
 
@@ -55,7 +59,7 @@ func TestWolfSwitchingTargetsBug(t *testing.T) {
 	// Симулируем до 10 секунд (600 тиков)
 	for i := 0; i < 600; i++ {
 		world.Update(deltaTime)
-		combatSystem.Update(world, deltaTime)
+		systemManager.Update(world, deltaTime) // Используем централизованный менеджер
 		animManager.UpdateAllAnimations(world, deltaTime)
 
 		// Проверяем кто умер первым

@@ -12,19 +12,23 @@ import (
 // Соответствует задаче 1.4 из плана рефакторинга
 func TestMovementSpeedConversion(t *testing.T) {
 	// Создаем мир и движение системы
-	worldWidth := float32(50)
-	worldHeight := float32(38)
+	worldWidth := float32(50)  // 50 тайлов
+	worldHeight := float32(38) // 38 тайлов
 	world := core.NewWorld(worldWidth, worldHeight, 12345)
 	movementSystem := simulation.NewMovementSystem(worldWidth, worldHeight)
 
-	// Создаем животное с базовой скоростью 1.0 тайл/сек
-	entity := simulation.CreateAnimal(world, core.TypeRabbit, 25.0, 19.0)
+	// Создаем простую сущность в центре мира (позиция в пикселях)
+	centerX := constants.TilesToPixels(worldWidth / 2)  // 25 тайлов * 32 = 800 пикселей
+	centerY := constants.TilesToPixels(worldHeight / 2) // 19 тайлов * 32 = 608 пикселей
+	entity := world.CreateEntity()
+	world.AddPosition(entity, core.Position{X: centerX, Y: centerY})
+	world.AddVelocity(entity, core.Velocity{X: 1.0, Y: 0.0}) // 1.0 тайл/сек по X
+
+	// Добавляем Size компонент с разумным радиусом (1 пиксель)
+	world.AddSize(entity, core.Size{Radius: 1.0, AttackRange: 0.0})
 
 	// Получаем начальную позицию
 	initialPos, _ := world.GetPosition(entity)
-
-	// Устанавливаем скорость 1.0 тайл/сек в направлении X
-	world.SetVelocity(entity, core.Velocity{X: 1.0, Y: 0.0})
 
 	// Симулируем движение на 1 секунду (60 тиков по 1/60 сек)
 	deltaTime := float32(1.0 / 60.0)
@@ -45,7 +49,7 @@ func TestMovementSpeedConversion(t *testing.T) {
 	tolerance := float32(0.1)
 	if abs(distanceTraveled-expectedDistance) > tolerance {
 		t.Errorf(
-			"Неверная конвертация скорости: животное со скоростью 1.0 тайл/сек прошло %.2f пикселей за секунду, ожидалось %.2f",
+			"Неверная конвертация скорости: сущность со скоростью 1.0 тайл/сек прошла %.2f пикселей за секунду, ожидалось %.2f",
 			distanceTraveled,
 			expectedDistance,
 		)
@@ -55,7 +59,7 @@ func TestMovementSpeedConversion(t *testing.T) {
 	yDistanceTraveled := abs(finalPos.Y - initialPos.Y)
 	if yDistanceTraveled > tolerance {
 		t.Errorf(
-			"Y координата изменилась на %.2f пикселей, ожидалось 0 (животное двигалось только по X)",
+			"Y координата изменилась на %.2f пикселей, ожидалось 0 (сущность двигалась только по X)",
 			yDistanceTraveled,
 		)
 	}
@@ -134,12 +138,16 @@ func TestBoundaryConstraints(t *testing.T) {
 	size, _ := world.GetSize(entity)
 	radiusInTiles := constants.SizeRadiusToTiles(size.Radius)
 
-	// Проверяем что животное не вышло за границы с учетом радиуса
-	margin := float32(0.1) // Минимальный отступ из MovementSystem
-	minX := margin + radiusInTiles
-	minY := margin + radiusInTiles
-	maxX := worldWidth - margin - radiusInTiles
-	maxY := worldHeight - margin - radiusInTiles
+	// ИСПРАВЛЕНИЕ: Конвертируем размеры мира в пиксели для корректной проверки
+	worldWidthPixels := constants.TilesToPixels(worldWidth)
+	worldHeightPixels := constants.TilesToPixels(worldHeight)
+	radiusPixels := constants.TilesToPixels(radiusInTiles)
+	marginPixels := float32(3.2) // 0.1 тайла * 32 пикселя
+
+	minX := marginPixels + radiusPixels
+	minY := marginPixels + radiusPixels
+	maxX := worldWidthPixels - marginPixels - radiusPixels
+	maxY := worldHeightPixels - marginPixels - radiusPixels
 
 	if finalPos.X < minX || finalPos.X > maxX || finalPos.Y < minY || finalPos.Y > maxY {
 		t.Errorf(

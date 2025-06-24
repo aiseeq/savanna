@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"github.com/aiseeq/savanna/config"
-	"github.com/aiseeq/savanna/internal/adapters"
 	"github.com/aiseeq/savanna/internal/animation"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
+	"github.com/aiseeq/savanna/tests/common"
 )
 
 // TestEatingFrameValidation проверяет что зайцы получают сытость ТОЛЬКО на кадре 1
@@ -30,14 +30,11 @@ func TestEatingFrameValidation(t *testing.T) {
 	terrainGen := generator.NewTerrainGenerator(cfg)
 	terrain := terrainGen.Generate()
 
-	// Все системы как в реальной игре
-	systemManager := core.NewSystemManager()
-	vegetationSystem := simulation.NewVegetationSystem(terrain)
-	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
-
-	systemManager.AddSystem(vegetationSystem)
-	systemManager.AddSystem(adapters.NewFeedingSystemAdapter(vegetationSystem))
-	systemManager.AddSystem(grassEatingSystem)
+	// ИСПРАВЛЕНИЕ: Используем централизованный системный менеджер с кастомным terrain
+	// И получаем анимационный адаптер отдельно для правильного порядка обновления
+	bundle := common.CreateTestSystemBundleWithTerrain(worldWidth, terrain)
+	systemManager := bundle.SystemManager
+	animationAdapter := bundle.AnimationAdapter
 
 	// Создаём анимационную систему
 	_ = animation.NewAnimationSystem()   // Для полноты игровой среды
@@ -84,8 +81,10 @@ func TestEatingFrameValidation(t *testing.T) {
 	hunger1, _ := world.GetHunger(rabbit)
 	t.Logf("Голод ДО обновления (кадр 0): %.3f%%", hunger1.Value)
 
-	// Обновляем системы
+	// Обновляем системы В ПРАВИЛЬНОМ ПОРЯДКЕ (как в GUI режиме)
 	world.Update(deltaTime)
+	// КРИТИЧЕСКИ ВАЖНО: Анимации ПЕРЕД системами!
+	animationAdapter.Update(world, deltaTime)
 	systemManager.Update(world, deltaTime)
 
 	hunger2, _ := world.GetHunger(rabbit)
@@ -114,8 +113,10 @@ func TestEatingFrameValidation(t *testing.T) {
 	hunger3, _ := world.GetHunger(rabbit)
 	t.Logf("Голод ДО обновления (кадр 1): %.3f%%", hunger3.Value)
 
-	// Обновляем системы
+	// Обновляем системы В ПРАВИЛЬНОМ ПОРЯДКЕ (как в GUI режиме)
 	world.Update(deltaTime)
+	// КРИТИЧЕСКИ ВАЖНО: Анимации ПЕРЕД системами!
+	animationAdapter.Update(world, deltaTime)
 	systemManager.Update(world, deltaTime)
 
 	hunger4, _ := world.GetHunger(rabbit)
@@ -146,8 +147,10 @@ func TestEatingFrameValidation(t *testing.T) {
 	hunger5, _ := world.GetHunger(rabbit)
 	t.Logf("Голод ДО обновления (кадр 0 снова): %.3f%%", hunger5.Value)
 
-	// Обновляем системы
+	// Обновляем системы В ПРАВИЛЬНОМ ПОРЯДКЕ (как в GUI режиме)
 	world.Update(deltaTime)
+	// КРИТИЧЕСКИ ВАЖНО: Анимации ПЕРЕД системами!
+	animationAdapter.Update(world, deltaTime)
 	systemManager.Update(world, deltaTime)
 
 	hunger6, _ := world.GetHunger(rabbit)

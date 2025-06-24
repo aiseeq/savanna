@@ -42,8 +42,8 @@ func createEntityFromConfig(world *core.World, config core.AnimalConfig, x, y fl
 
 	// Размеры из конфигурации (конвертируем тайлы в пиксели для рендеринга)
 	world.AddSize(entity, core.Size{
-		Radius:      config.CollisionRadius * constants.TileSizePixels,
-		AttackRange: config.AttackRange * constants.TileSizePixels,
+		Radius:      constants.TilesToPixels(config.CollisionRadius),
+		AttackRange: constants.TilesToPixels(config.AttackRange),
 	})
 
 	// Скорость из конфигурации
