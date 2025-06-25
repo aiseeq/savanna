@@ -49,7 +49,7 @@ func (abs *AnimalBehaviorSystem) Update(world core.BehaviorSystemAccess, deltaTi
 	abs.updateBehaviorTimers(world, deltaTime)
 
 	// Обрабатываем поведение всех животных через универсальную логику
-	behaviorMask := core.MaskBehavior | core.MaskPosition | core.MaskVelocity | core.MaskSpeed | core.MaskHunger | core.MaskAnimalConfig
+	behaviorMask := core.MaskBehavior | core.MaskPosition | core.MaskVelocity | core.MaskSpeed | core.MaskSatiation | core.MaskAnimalConfig
 	world.ForEachWith(behaviorMask, func(entity core.EntityID) {
 		abs.updateAnimalBehavior(world, entity, deltaTime)
 	})
@@ -97,7 +97,7 @@ func (abs *AnimalBehaviorSystem) updateAnimalBehavior(
 
 	pos, _ := world.GetPosition(entity)
 	speed, _ := world.GetSpeed(entity)
-	hunger, _ := world.GetHunger(entity)
+	satiation, _ := world.GetSatiation(entity)
 	animalConfig, _ := world.GetAnimalConfig(entity)
 
 	// Используем стратегию поведения (Strategy pattern)
@@ -108,7 +108,7 @@ func (abs *AnimalBehaviorSystem) updateAnimalBehavior(
 			AnimalConfig: animalConfig,
 			Position:     pos,
 			Speed:        speed,
-			Hunger:       hunger,
+			Satiation:    satiation,
 		}
 		targetVel := strategy.UpdateBehavior(world, entity, components)
 		world.SetVelocity(entity, targetVel)

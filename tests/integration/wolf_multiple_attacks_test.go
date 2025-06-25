@@ -27,7 +27,7 @@ func TestWolfMultipleAttacks(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 300, 300)
 
 	// Делаем волка очень голодным
-	world.SetHunger(wolf, core.Hunger{Value: 30.0}) // 30% < 60% = голодный
+	world.SetSatiation(wolf, core.Satiation{Value: 30.0}) // 30% < 60% = голодный
 
 	// Проверяем начальное здоровье зайца
 	initialHealth, _ := world.GetHealth(rabbit)
@@ -55,7 +55,7 @@ func TestWolfMultipleAttacks(t *testing.T) {
 		// Логируем почему нет AttackState
 		if i > 2 && i < 120 && i%20 == 0 && !world.HasComponent(wolf, core.MaskAttackState) {
 			health, _ := world.GetHealth(rabbit)
-			hunger, _ := world.GetHunger(wolf)
+			hunger, _ := world.GetSatiation(wolf)
 			t.Logf("Тик %d: НЕТ AttackState, здоровье зайца %d, голод волка %.1f%%", i, health.Current, hunger.Value)
 		}
 
@@ -91,7 +91,7 @@ func TestWolfMultipleAttacks(t *testing.T) {
 			finalDamage := int(initialHealth.Current - 0) // заяц умер = 0 хитов
 			attackCount := (finalDamage + 24) / 25        // округляем вверх (25 урона за атаку в новой системе)
 
-			wolfHunger, _ := world.GetHunger(wolf)
+			wolfHunger, _ := world.GetSatiation(wolf)
 			t.Logf("Заяц умер на тике %d после %d атак, голод волка %.1f", i, attackCount, wolfHunger.Value)
 
 			if attackCount < 2 {

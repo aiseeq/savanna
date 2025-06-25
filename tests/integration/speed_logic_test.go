@@ -30,9 +30,9 @@ func TestNewSpeedLogic(t *testing.T) {
 	// Создаём системы
 	terrainGen := generator.NewTerrainGenerator(cfg)
 	terrain := terrainGen.Generate()
-	_ = simulation.NewVegetationSystem(terrain)                    // используется в системах
-	hungerSpeedSystem := simulation.NewHungerSpeedModifierSystem() // Система изменения скорости
-	deltaTime := float32(1.0 / 60.0)                               // Стандартный deltaTime
+	_ = simulation.NewVegetationSystem(terrain)                          // используется в системах
+	satiationSpeedSystem := simulation.NewSatiationSpeedModifierSystem() // Система изменения скорости
+	deltaTime := float32(1.0 / 60.0)                                     // Стандартный deltaTime
 
 	// Создаём зайца
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 100, 100)
@@ -46,10 +46,10 @@ func TestNewSpeedLogic(t *testing.T) {
 
 	// ТЕСТ 1: Голодное животное (50%) должно бегать с полной скоростью
 	t.Logf("\n=== ТЕСТ 1: Голодное животное (50%%) ===")
-	world.SetHunger(rabbit, core.Hunger{Value: 50.0})
+	world.SetSatiation(rabbit, core.Satiation{Value: 50.0})
 	world.SetHealth(rabbit, core.Health{Current: 50, Max: 50}) // Полное здоровье
 
-	hungerSpeedSystem.Update(world, deltaTime)
+	satiationSpeedSystem.Update(world, deltaTime)
 
 	speed, _ = world.GetSpeed(rabbit)
 	expectedSpeed := baseSpeed * 1.0 // Полная скорость
@@ -64,10 +64,10 @@ func TestNewSpeedLogic(t *testing.T) {
 
 	// ТЕСТ 2: Сытое животное (90%) должно замедляться
 	t.Logf("\n=== ТЕСТ 2: Сытое животное (90%%) ===")
-	world.SetHunger(rabbit, core.Hunger{Value: 90.0})
+	world.SetSatiation(rabbit, core.Satiation{Value: 90.0})
 	world.SetHealth(rabbit, core.Health{Current: 50, Max: 50}) // Полное здоровье
 
-	hungerSpeedSystem.Update(world, deltaTime)
+	satiationSpeedSystem.Update(world, deltaTime)
 
 	speed, _ = world.GetSpeed(rabbit)
 
@@ -83,10 +83,10 @@ func TestNewSpeedLogic(t *testing.T) {
 
 	// ТЕСТ 3: Очень сытое животное (95%) ещё медленнее
 	t.Logf("\n=== ТЕСТ 3: Очень сытое животное (95%%) ===")
-	world.SetHunger(rabbit, core.Hunger{Value: 95.0})
+	world.SetSatiation(rabbit, core.Satiation{Value: 95.0})
 	world.SetHealth(rabbit, core.Health{Current: 50, Max: 50}) // Полное здоровье
 
-	hungerSpeedSystem.Update(world, deltaTime)
+	satiationSpeedSystem.Update(world, deltaTime)
 
 	speed, _ = world.GetSpeed(rabbit)
 	// скорость *= (1 + 0.8 - 95/100) = (1 + 0.8 - 0.95) = 0.85
@@ -101,10 +101,10 @@ func TestNewSpeedLogic(t *testing.T) {
 
 	// ТЕСТ 4: Раненое голодное животное (50% голод, 25% здоровье)
 	t.Logf("\n=== ТЕСТ 4: Раненое голодное животное (50%% голод, 25%% здоровье) ===")
-	world.SetHunger(rabbit, core.Hunger{Value: 50.0})
+	world.SetSatiation(rabbit, core.Satiation{Value: 50.0})
 	world.SetHealth(rabbit, core.Health{Current: 25, Max: 100}) // 25% здоровья
 
-	hungerSpeedSystem.Update(world, deltaTime)
+	satiationSpeedSystem.Update(world, deltaTime)
 
 	speed, _ = world.GetSpeed(rabbit)
 	// Голод 50% < 80% => множитель сытости = 1.0 (полная скорость)
@@ -121,10 +121,10 @@ func TestNewSpeedLogic(t *testing.T) {
 
 	// ТЕСТ 5: Раненое сытое животное (90% голод, 50% здоровье)
 	t.Logf("\n=== ТЕСТ 5: Раненое сытое животное (90%% голод, 50%% здоровье) ===")
-	world.SetHunger(rabbit, core.Hunger{Value: 90.0})
+	world.SetSatiation(rabbit, core.Satiation{Value: 90.0})
 	world.SetHealth(rabbit, core.Health{Current: 50, Max: 100}) // 50% здоровья
 
-	hungerSpeedSystem.Update(world, deltaTime)
+	satiationSpeedSystem.Update(world, deltaTime)
 
 	speed, _ = world.GetSpeed(rabbit)
 	// Голод 90% > 80% => множитель сытости = (1 + 0.8 - 0.9) = 0.9
@@ -141,10 +141,10 @@ func TestNewSpeedLogic(t *testing.T) {
 
 	// ТЕСТ 6: Пограничный случай - ровно 80% голода
 	t.Logf("\n=== ТЕСТ 6: Пограничный случай (80%% голод) ===")
-	world.SetHunger(rabbit, core.Hunger{Value: 80.0})
+	world.SetSatiation(rabbit, core.Satiation{Value: 80.0})
 	world.SetHealth(rabbit, core.Health{Current: 100, Max: 100}) // Полное здоровье
 
-	hungerSpeedSystem.Update(world, deltaTime)
+	satiationSpeedSystem.Update(world, deltaTime)
 
 	speed, _ = world.GetSpeed(rabbit)
 	expectedSpeed = baseSpeed * 1.0 // При 80% должна быть полная скорость

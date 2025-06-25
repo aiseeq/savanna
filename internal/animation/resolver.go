@@ -86,8 +86,8 @@ func (ar *AnimationResolver) resolveRabbitAnimationType(world *core.World, entit
 
 // isWolfAttacking проверяет атакует ли волк
 func (ar *AnimationResolver) isWolfAttacking(world *core.World, wolf core.EntityID) bool {
-	hunger, hasHunger := world.GetHunger(wolf)
-	if !hasHunger || hunger.Value > AttackThresholds.WolfHunger {
+	satiation, hasSatiation := world.GetSatiation(wolf)
+	if !hasSatiation || satiation.Value > AttackThresholds.WolfSatiation {
 		return false
 	}
 
@@ -124,9 +124,9 @@ const (
 	RabbitWalkSpeedThreshold = 0.11  // Порог ходьбы зайца (было 2.25, теперь 0.11)
 
 	// Пороги для логики атак
-	WolfHungerAttackThreshold = 60.0 // Волк атакует если голод < 60%
-	WolfSearchRadius          = 15.0 // Радиус поиска добычи для атаки
-	WolfAttackDistance        = 12.0 // Дистанция атаки волка
+	WolfSatiationAttackThreshold = 60.0 // Волк атакует если сытость < 60%
+	WolfSearchRadius             = 15.0 // Радиус поиска добычи для атаки
+	WolfAttackDistance           = 12.0 // Дистанция атаки волка
 )
 
 // SpeedThresholds константы порогов скорости для анимаций
@@ -142,11 +142,11 @@ var SpeedThresholds = struct {
 
 // AttackThresholds константы для логики атак
 var AttackThresholds = struct {
-	WolfHunger         float32
+	WolfSatiation      float32
 	WolfSearchRadius   float32
 	WolfAttackDistance float32
 }{
-	WolfHunger:         WolfHungerAttackThreshold,
+	WolfSatiation:      WolfSatiationAttackThreshold,
 	WolfSearchRadius:   WolfSearchRadius,
 	WolfAttackDistance: WolfAttackDistance,
 }

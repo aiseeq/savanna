@@ -33,7 +33,7 @@ func TestDamageFlashBug(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 305, 300) // Очень близко
 
 	// Делаем волка ОЧЕНЬ голодным чтобы он точно атаковал
-	world.SetHunger(wolf, core.Hunger{Value: 10.0}) // 10% < 60% = очень голодный
+	world.SetSatiation(wolf, core.Satiation{Value: 10.0}) // 10% < 60% = очень голодный
 
 	initialHealth, _ := world.GetHealth(rabbit)
 	t.Logf("=== ТЕСТ ВСПЫШКИ УРОНА ===")
@@ -60,7 +60,7 @@ func TestDamageFlashBug(t *testing.T) {
 		}
 
 		if i%30 == 0 {
-			hunger, _ := world.GetHunger(wolf)
+			hunger, _ := world.GetSatiation(wolf)
 			t.Logf("Тик %d: голод волка %.1f%%, AttackState пока нет", i, hunger.Value)
 		}
 	}

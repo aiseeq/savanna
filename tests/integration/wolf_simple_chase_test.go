@@ -37,10 +37,10 @@ func TestWolfSimpleChase(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 140, 160)     // Слева от зайца
 
 	// Волка делаем голодным
-	world.SetHunger(wolf, core.Hunger{Value: 20.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 20.0})
 
 	// Зайца делаем сытым чтобы он не убегал сильно
-	world.SetHunger(rabbit, core.Hunger{Value: 90.0})
+	world.SetSatiation(rabbit, core.Satiation{Value: 90.0})
 
 	t.Logf("=== Простой тест преследования ===")
 	t.Logf("Начальные позиции: волк (140, 160), заяц (160, 160)")

@@ -9,7 +9,7 @@ type ComponentManager struct {
 	positions     [MaxEntities]Position
 	velocities    [MaxEntities]Velocity
 	healths       [MaxEntities]Health
-	hungers       [MaxEntities]Hunger
+	satiations    [MaxEntities]Satiation
 	types         [MaxEntities]AnimalType
 	sizes         [MaxEntities]Size
 	speeds        [MaxEntities]Speed
@@ -26,7 +26,7 @@ type ComponentManager struct {
 	hasPosition     [MaxEntities/64 + 1]uint64
 	hasVelocity     [MaxEntities/64 + 1]uint64
 	hasHealth       [MaxEntities/64 + 1]uint64
-	hasHunger       [MaxEntities/64 + 1]uint64
+	hasSatiation    [MaxEntities/64 + 1]uint64
 	hasType         [MaxEntities/64 + 1]uint64
 	hasSize         [MaxEntities/64 + 1]uint64
 	hasSpeed        [MaxEntities/64 + 1]uint64
@@ -59,8 +59,8 @@ func (cm *ComponentManager) HasComponent(entity EntityID, component ComponentMas
 		return cm.hasVelocity[index]&(1<<bit) != 0
 	case MaskHealth:
 		return cm.hasHealth[index]&(1<<bit) != 0
-	case MaskHunger:
-		return cm.hasHunger[index]&(1<<bit) != 0
+	case MaskSatiation:
+		return cm.hasSatiation[index]&(1<<bit) != 0
 	case MaskAnimalType:
 		return cm.hasType[index]&(1<<bit) != 0
 	case MaskSize:
@@ -101,7 +101,7 @@ func (cm *ComponentManager) HasComponents(entity EntityID, mask ComponentMask) b
 		{MaskPosition, &cm.hasPosition},
 		{MaskVelocity, &cm.hasVelocity},
 		{MaskHealth, &cm.hasHealth},
-		{MaskHunger, &cm.hasHunger},
+		{MaskSatiation, &cm.hasSatiation},
 		{MaskAnimalType, &cm.hasType},
 		{MaskSize, &cm.hasSize},
 		{MaskSpeed, &cm.hasSpeed},
@@ -136,7 +136,7 @@ func (cm *ComponentManager) ClearAllComponents(entity EntityID) {
 	cm.hasPosition[index] &= clearMask
 	cm.hasVelocity[index] &= clearMask
 	cm.hasHealth[index] &= clearMask
-	cm.hasHunger[index] &= clearMask
+	cm.hasSatiation[index] &= clearMask
 	cm.hasType[index] &= clearMask
 	cm.hasSize[index] &= clearMask
 	cm.hasSpeed[index] &= clearMask
@@ -153,7 +153,7 @@ func (cm *ComponentManager) ClearAllComponents(entity EntityID) {
 	cm.positions[entity] = Position{}
 	cm.velocities[entity] = Velocity{}
 	cm.healths[entity] = Health{}
-	cm.hungers[entity] = Hunger{}
+	cm.satiations[entity] = Satiation{}
 	cm.types[entity] = AnimalType(0)
 	cm.sizes[entity] = Size{}
 	cm.speeds[entity] = Speed{}

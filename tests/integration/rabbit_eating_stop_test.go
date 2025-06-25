@@ -49,7 +49,7 @@ func TestRabbitStopsWhenEating(t *testing.T) {
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, grassX, grassY)
 
 	// Делаем зайца очень голодным (80%) чтобы он обязательно искал еду
-	world.SetHunger(rabbit, core.Hunger{Value: 80.0})
+	world.SetSatiation(rabbit, core.Satiation{Value: 80.0})
 
 	// Принудительно устанавливаем скорость 0 (заяц стоит на месте)
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0})
@@ -71,7 +71,7 @@ func TestRabbitStopsWhenEating(t *testing.T) {
 		// Получаем состояние зайца
 		pos, _ := world.GetPosition(rabbit)
 		vel, _ := world.GetVelocity(rabbit)
-		hunger, _ := world.GetHunger(rabbit)
+		hunger, _ := world.GetSatiation(rabbit)
 		isEating := world.HasComponent(rabbit, core.MaskEatingState)
 		grassAmount := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
@@ -108,7 +108,7 @@ func TestRabbitStopsWhenEating(t *testing.T) {
 	}
 
 	// Если дошли сюда - заяц не наелся за 2 секунды
-	hunger, _ := world.GetHunger(rabbit)
+	hunger, _ := world.GetSatiation(rabbit)
 	isEating := world.HasComponent(rabbit, core.MaskEatingState)
 
 	if !isEating {

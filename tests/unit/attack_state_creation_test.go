@@ -25,7 +25,7 @@ func TestAttackStateAutoCreation(t *testing.T) {
 	t.Logf("Волк: entity %d (позиция 305,300)", wolf)
 
 	// Делаем волка очень голодным для гарантированной атаки
-	world.SetHunger(wolf, core.Hunger{Value: 20.0}) // 20% < 60% = очень голодный
+	world.SetSatiation(wolf, core.Satiation{Value: 20.0}) // 20% < 60% = очень голодный
 
 	// Проверяем начальное состояние
 	if world.HasComponent(wolf, core.MaskAttackState) {
@@ -44,17 +44,17 @@ func TestAttackStateAutoCreation(t *testing.T) {
 	if !hasWolfBehavior {
 		t.Fatal("У волка нет Behavior")
 	}
-	t.Logf("Поведение волка: тип=%v, порог голода=%.1f%%", wolfBehavior.Type, wolfBehavior.HungerThreshold)
+	t.Logf("Поведение волка: тип=%v, порог голода=%.1f%%", wolfBehavior.Type, wolfBehavior.SatiationThreshold)
 
 	if wolfBehavior.Type != core.BehaviorPredator {
 		t.Fatalf("Неправильный тип поведения волка: %v (ожидался Predator)", wolfBehavior.Type)
 	}
 
-	wolfHunger, _ := world.GetHunger(wolf)
-	t.Logf("Голод волка: %.1f%% (порог атаки: %.1f%%)", wolfHunger.Value, wolfBehavior.HungerThreshold)
+	wolfHunger, _ := world.GetSatiation(wolf)
+	t.Logf("Голод волка: %.1f%% (порог атаки: %.1f%%)", wolfHunger.Value, wolfBehavior.SatiationThreshold)
 
-	if wolfHunger.Value >= wolfBehavior.HungerThreshold {
-		t.Fatalf("Волк недостаточно голодный: %.1f%% >= %.1f%%", wolfHunger.Value, wolfBehavior.HungerThreshold)
+	if wolfHunger.Value >= wolfBehavior.SatiationThreshold {
+		t.Fatalf("Волк недостаточно голодный: %.1f%% >= %.1f%%", wolfHunger.Value, wolfBehavior.SatiationThreshold)
 	}
 
 	deltaTime := float32(1.0 / 60.0)
@@ -121,7 +121,7 @@ func TestAttackStateCreationConditions(t *testing.T) {
 	t.Logf("\n--- Тест 1: Сытый волк ---")
 	_ = simulation.CreateAnimal(world, core.TypeRabbit, 300, 300) // rabbit1
 	wolf1 := simulation.CreateAnimal(world, core.TypeWolf, 305, 300)
-	world.SetHunger(wolf1, core.Hunger{Value: 80.0}) // 80% > 60% = сытый
+	world.SetSatiation(wolf1, core.Satiation{Value: 80.0}) // 80% > 60% = сытый
 
 	deltaTime := float32(1.0 / 60.0)
 	for i := 0; i < 30; i++ { // Полсекунды
@@ -138,7 +138,7 @@ func TestAttackStateCreationConditions(t *testing.T) {
 	t.Logf("\n--- Тест 2: Голодный волк ---")
 	_ = simulation.CreateAnimal(world, core.TypeRabbit, 400, 300) // rabbit2
 	wolf2 := simulation.CreateAnimal(world, core.TypeWolf, 405, 300)
-	world.SetHunger(wolf2, core.Hunger{Value: 30.0}) // 30% < 60% = голодный
+	world.SetSatiation(wolf2, core.Satiation{Value: 30.0}) // 30% < 60% = голодный
 
 	attackStateCreated := false
 	for i := 0; i < 60; i++ { // 1 секунда
@@ -159,7 +159,7 @@ func TestAttackStateCreationConditions(t *testing.T) {
 	t.Logf("\n--- Тест 3: Волк слишком далеко ---")
 	_ = simulation.CreateAnimal(world, core.TypeRabbit, 500, 300)    // rabbit3
 	wolf3 := simulation.CreateAnimal(world, core.TypeWolf, 600, 300) // 100 пикселей - далеко
-	world.SetHunger(wolf3, core.Hunger{Value: 30.0})                 // Голодный
+	world.SetSatiation(wolf3, core.Satiation{Value: 30.0})           // Голодный
 
 	for i := 0; i < 30; i++ { // Полсекунды
 		attackSystem.Update(world, deltaTime)
@@ -175,7 +175,7 @@ func TestAttackStateCreationConditions(t *testing.T) {
 	t.Logf("\n--- Тест 4: Заяц (травоядное) ---")
 	rabbit4 := simulation.CreateAnimal(world, core.TypeRabbit, 700, 300)
 	_ = simulation.CreateAnimal(world, core.TypeRabbit, 705, 300) // rabbit5
-	world.SetHunger(rabbit4, core.Hunger{Value: 10.0})            // Очень голодный
+	world.SetSatiation(rabbit4, core.Satiation{Value: 10.0})      // Очень голодный
 
 	for i := 0; i < 30; i++ { // Полсекунды
 		attackSystem.Update(world, deltaTime)

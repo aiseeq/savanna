@@ -23,12 +23,12 @@ func TestFullSystemSpeedBehavior(t *testing.T) {
 	// Получаем конфигурацию зайца
 	config, _ := world.GetAnimalConfig(rabbitID)
 	speed, _ := world.GetSpeed(rabbitID)
-	hunger, _ := world.GetHunger(rabbitID)
+	hunger, _ := world.GetSatiation(rabbitID)
 
 	fmt.Printf("=== НАСТРОЙКИ ЗАЙЦА ===\n")
 	fmt.Printf("Base speed: %.3f тайлов/сек\n", config.BaseSpeed)
 	fmt.Printf("Current speed: %.3f тайлов/сек\n", speed.Current)
-	fmt.Printf("Hunger: %.1f%% (threshold: %.1f%%)\n", hunger.Value, config.HungerThreshold)
+	fmt.Printf("Hunger: %.1f%% (threshold: %.1f%%)\n", hunger.Value, config.SatiationThreshold)
 	fmt.Printf("Search speed multiplier: %.1f\n", config.SearchSpeed)
 	fmt.Printf("Expected search speed: %.3f тайлов/сек\n", config.BaseSpeed*config.SearchSpeed)
 	fmt.Printf("Expected search speed in pixels: %.1f пикс/сек\n", config.BaseSpeed*config.SearchSpeed*32)
@@ -53,7 +53,7 @@ func TestFullSystemSpeedBehavior(t *testing.T) {
 			pos, _ := world.GetPosition(rabbitID)
 			vel, _ := world.GetVelocity(rabbitID)
 			speed, _ := world.GetSpeed(rabbitID)
-			hunger, _ := world.GetHunger(rabbitID)
+			hunger, _ := world.GetSatiation(rabbitID)
 
 			// Считаем пройденную дистанцию от начальной точки
 			dx := pos.X - initialPos.X
@@ -121,12 +121,12 @@ func TestWolfSpeedComparison(t *testing.T) {
 	// Получаем конфигурацию волка
 	config, _ := world.GetAnimalConfig(wolfID)
 	speed, _ := world.GetSpeed(wolfID)
-	hunger, _ := world.GetHunger(wolfID)
+	hunger, _ := world.GetSatiation(wolfID)
 
 	fmt.Printf("=== НАСТРОЙКИ ВОЛКА ===\n")
 	fmt.Printf("Base speed: %.3f тайлов/сек\n", config.BaseSpeed)
 	fmt.Printf("Current speed: %.3f тайлов/сек\n", speed.Current)
-	fmt.Printf("Hunger: %.1f%% (threshold: %.1f%%)\n", hunger.Value, config.HungerThreshold)
+	fmt.Printf("Hunger: %.1f%% (threshold: %.1f%%)\n", hunger.Value, config.SatiationThreshold)
 	fmt.Printf("Wandering speed multiplier: %.1f\n", config.WanderingSpeed)
 	fmt.Printf("Expected wandering speed: %.3f тайлов/сек\n", config.BaseSpeed*config.WanderingSpeed)
 	fmt.Printf("Expected wandering speed in pixels: %.1f пикс/сек\n", config.BaseSpeed*config.WanderingSpeed*32)

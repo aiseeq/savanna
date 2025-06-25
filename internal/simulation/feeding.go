@@ -6,15 +6,15 @@ import (
 )
 
 // DEPRECATED: константы перенесены в game_balance.go
-// Используйте LargeAnimalSizeThreshold и LargeAnimalHungerRate
+// Используйте LargeAnimalSizeThreshold и LargeAnimalSaitationRate
 
-// FeedingSystem управляет голодом и его влиянием на животных
+// FeedingSystem управляет сытостью и её влиянием на животных
 // DEPRECATED: Эта система заменена на специализированные системы:
-// - HungerSystem: только уменьшение голода
+// - SatiationSystem: только управление сытостью
 // - GrassSearchSystem: только поиск травы и создание EatingState
 // - GrassEatingSystem: только обработка поедания травы
-// - StarvationDamageSystem: только урон от голода
-// - HungerSpeedModifierSystem: только влияние голода на скорость
+// - StarvationDamageSystem: только урон от истощения
+// - SatiationSpeedModifierSystem: только влияние сытости на скорость
 //
 // Сохранена для совместимости с тестами. В новом коде используйте специализированные системы.
 type FeedingSystem struct {
@@ -35,9 +35,9 @@ func NewFeedingSystem(vegetation core.VegetationProvider) *FeedingSystem {
 func (fs *FeedingSystem) Update(world core.SimulationAccess, deltaTime float32) {
 	fs.healthDamageTimer += deltaTime
 
-	// Обновляем голод для всех животных
-	world.ForEachWith(core.MaskHunger, func(entity core.EntityID) {
-		fs.updateHunger(world, entity, deltaTime)
+	// Обновляем сытость для всех животных
+	world.ForEachWith(core.MaskSatiation, func(entity core.EntityID) {
+		fs.updateSatiation(world, entity, deltaTime)
 	})
 
 	// Питание зайцев травой
@@ -52,23 +52,23 @@ func (fs *FeedingSystem) Update(world core.SimulationAccess, deltaTime float32) 
 	}
 }
 
-// updateHunger обновляет голод животного
-func (fs *FeedingSystem) updateHunger(world core.SimulationAccess, entity core.EntityID, deltaTime float32) {
-	hunger, ok := world.GetHunger(entity)
+// updateSatiation обновляет сытость животного
+func (fs *FeedingSystem) updateSatiation(world core.SimulationAccess, entity core.EntityID, deltaTime float32) {
+	hunger, ok := world.GetSatiation(entity)
 	if !ok {
 		return
 	}
 
-	// Определяем скорость голода в зависимости от размера животного
-	hungerRate := float32(BaseHungerDecreaseRate)
+	// Определяем скорость снижения сытости в зависимости от размера животного
+	hungerRate := float32(BaseSatiationDecreaseRate)
 	if size, hasSize := world.GetSize(entity); hasSize {
-		// Большие животные (хищники) голодают медленнее
+		// Большие животные (хищники) теряют сытость медленнее
 		if size.Radius > LargeAnimalSizeThreshold {
-			hungerRate *= LargeAnimalHungerRate
+			hungerRate *= LargeAnimalSaitationRate
 		}
 	}
 
-	// Уменьшаем голод
+	// Уменьшаем сытость
 	hunger.Value -= hungerRate * deltaTime
 
 	// Ограничиваем снизу
@@ -76,7 +76,7 @@ func (fs *FeedingSystem) updateHunger(world core.SimulationAccess, entity core.E
 		hunger.Value = 0
 	}
 
-	world.SetHunger(entity, hunger)
+	world.SetSatiation(entity, hunger)
 }
 
 // УДАЛЕНО: updateSpeedBasedOnHunger перенесено в HungerSpeedModifierSystem
@@ -86,8 +86,8 @@ func (fs *FeedingSystem) updateHunger(world core.SimulationAccess, entity core.E
 
 // damageStarvingAnimals наносит урон здоровью животным с голодом = 0
 func (fs *FeedingSystem) damageStarvingAnimals(world core.SimulationAccess) {
-	world.ForEachWith(core.MaskHunger|core.MaskHealth, func(entity core.EntityID) {
-		hunger, ok1 := world.GetHunger(entity)
+	world.ForEachWith(core.MaskSatiation|core.MaskHealth, func(entity core.EntityID) {
+		hunger, ok1 := world.GetSatiation(entity)
 		health, ok2 := world.GetHealth(entity)
 
 		if !ok1 || !ok2 {
@@ -110,7 +110,7 @@ func (fs *FeedingSystem) damageStarvingAnimals(world core.SimulationAccess) {
 
 // FeedAnimal восстанавливает голод животного (для будущего - поедание травы/добычи)
 func FeedAnimal(world core.ECSAccess, entity core.EntityID, foodValue float32) bool {
-	hunger, ok := world.GetHunger(entity)
+	hunger, ok := world.GetSatiation(entity)
 	if !ok {
 		return false
 	}
@@ -118,17 +118,17 @@ func FeedAnimal(world core.ECSAccess, entity core.EntityID, foodValue float32) b
 	hunger.Value += foodValue
 
 	// Ограничиваем сверху
-	if hunger.Value > MaxHungerLimit {
-		hunger.Value = MaxHungerLimit
+	if hunger.Value > MaxSatiationLimit {
+		hunger.Value = MaxSatiationLimit
 	}
 
-	world.SetHunger(entity, hunger)
+	world.SetSatiation(entity, hunger)
 	return true
 }
 
-// GetHungerPercentage возвращает процент голода (0-100)
-func GetHungerPercentage(world core.ECSAccess, entity core.EntityID) float32 {
-	hunger, ok := world.GetHunger(entity)
+// GetSatiationPercentage возвращает процент голода (0-100)
+func GetSatiationPercentage(world core.ECSAccess, entity core.EntityID) float32 {
+	hunger, ok := world.GetSatiation(entity)
 	if !ok {
 		return 0
 	}
@@ -137,21 +137,21 @@ func GetHungerPercentage(world core.ECSAccess, entity core.EntityID) float32 {
 
 // IsStarving проверяет голодает ли животное
 func IsStarving(world core.ECSAccess, entity core.EntityID) bool {
-	return GetHungerPercentage(world, entity) <= 0
+	return GetSatiationPercentage(world, entity) <= 0
 }
 
 // IsHungry проверяет голодно ли животное (универсальная функция)
 // Устраняет нарушение OCP - теперь использует AnimalConfig вместо захардкоженных типов
 func IsHungry(world core.ECSAccess, entity core.EntityID) bool {
-	hunger := GetHungerPercentage(world, entity)
+	hunger := GetSatiationPercentage(world, entity)
 
 	// Получаем конфигурацию животного для порога голода (устраняет захардкоженные типы)
 	if config, hasConfig := world.GetAnimalConfig(entity); hasConfig {
-		return hunger < config.HungerThreshold
+		return hunger < config.SatiationThreshold
 	}
 
 	// Fallback: используем умеренный порог
-	return hunger < FallbackHungerThreshold
+	return hunger < FallbackSatiationThreshold
 }
 
 // handleRabbitFeeding обрабатывает питание зайцев травой
@@ -161,7 +161,7 @@ func (fs *FeedingSystem) handleRabbitFeeding(world core.SimulationAccess, _ floa
 	}
 
 	// Обрабатываем ВСЕХ травоядных животных (устраняет захардкоженность TypeRabbit)
-	herbivoreMask := core.MaskBehavior | core.MaskAnimalConfig | core.MaskPosition | core.MaskHunger
+	herbivoreMask := core.MaskBehavior | core.MaskAnimalConfig | core.MaskPosition | core.MaskSatiation
 	world.ForEachWith(herbivoreMask, func(entity core.EntityID) {
 		fs.processHerbivoreFeeding(world, entity)
 	})
@@ -181,7 +181,7 @@ func (fs *FeedingSystem) processHerbivoreFeeding(world core.SimulationAccess, en
 	}
 
 	// Проверяем голод животного
-	hunger, hasHunger := world.GetHunger(entity)
+	hunger, hasHunger := world.GetSatiation(entity)
 	if !hasHunger {
 		return
 	}
@@ -203,14 +203,14 @@ func (fs *FeedingSystem) processHerbivoreFeeding(world core.SimulationAccess, en
 
 // shouldContinueOrStartEating проверяет должно ли животное продолжать или начать есть
 func (fs *FeedingSystem) shouldContinueOrStartEating(
-	world core.SimulationAccess, entity core.EntityID, hunger core.Hunger, config core.AnimalConfig,
+	world core.SimulationAccess, entity core.EntityID, hunger core.Satiation, config core.AnimalConfig,
 ) bool {
 	// ИСПРАВЛЕНИЕ: Правильная логика гистерезиса для поедания
 	isCurrentlyEating := world.HasComponent(entity, core.MaskEatingState)
 
 	if isCurrentlyEating {
 		// Если уже ест - прекращаем только при полном насыщении (99.9% с допуском для float32)
-		const satietyThreshold = MaxHungerLimit - constants.SatietyTolerance // Используем константы из game_balance.go
+		const satietyThreshold = MaxSatiationLimit - constants.SatietyTolerance // Используем константы из game_balance.go
 		if hunger.Value >= satietyThreshold {
 			world.RemoveEatingState(entity)
 			return false
@@ -218,8 +218,8 @@ func (fs *FeedingSystem) shouldContinueOrStartEating(
 		return true
 	}
 
-	// Если не ест - начинаем есть только если голод < HungerThreshold
-	return hunger.Value < config.HungerThreshold
+	// Если не ест - начинаем есть только если голод < SatiationThreshold
+	return hunger.Value < config.SatiationThreshold
 }
 
 // manageGrassEating управляет состоянием поедания травы

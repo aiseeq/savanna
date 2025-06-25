@@ -29,7 +29,7 @@ func TestWolfEatsRabbit(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 302, 300)
 
 	// Делаем волка очень голодным
-	world.SetHunger(wolf, core.Hunger{Value: 30.0}) // 30% < 60% = голодный
+	world.SetSatiation(wolf, core.Satiation{Value: 30.0}) // 30% < 60% = голодный
 
 	// Проверяем начальное здоровье зайца
 	initialHealth, _ := world.GetHealth(rabbit)

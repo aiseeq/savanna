@@ -85,22 +85,22 @@ func (w *World) RemoveHealth(entity EntityID) bool {
 	return w.componentManager.RemoveHealth(entity)
 }
 
-// Hunger component delegation
-func (w *World) AddHunger(entity EntityID, hunger Hunger) bool {
-	w.componentManager.AddHunger(entity, hunger)
+// Satiation component delegation
+func (w *World) AddSatiation(entity EntityID, satiation Satiation) bool {
+	w.componentManager.AddSatiation(entity, satiation)
 	return true
 }
 
-func (w *World) GetHunger(entity EntityID) (Hunger, bool) {
-	return w.componentManager.GetHunger(entity)
+func (w *World) GetSatiation(entity EntityID) (Satiation, bool) {
+	return w.componentManager.GetSatiation(entity)
 }
 
-func (w *World) SetHunger(entity EntityID, hunger Hunger) bool {
-	return w.componentManager.SetHunger(entity, hunger)
+func (w *World) SetSatiation(entity EntityID, satiation Satiation) bool {
+	return w.componentManager.SetSatiation(entity, satiation)
 }
 
-func (w *World) RemoveHunger(entity EntityID) bool {
-	return w.componentManager.RemoveHunger(entity)
+func (w *World) RemoveSatiation(entity EntityID) bool {
+	return w.componentManager.RemoveSatiation(entity)
 }
 
 // AnimalType component delegation

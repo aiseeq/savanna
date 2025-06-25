@@ -29,7 +29,7 @@ func TestAnimationProgression(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 45, 48)
 
 	// Волк голоден
-	world.SetHunger(wolf, core.Hunger{Value: 5.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 5.0})
 
 	t.Logf("=== ТЕСТ ПРОГРЕССИИ АНИМАЦИИ ATTACK ===")
 
@@ -188,7 +188,7 @@ func TestAnimationProgression(t *testing.T) {
 
 // isWolfAttackingSimple простая проверка атаки
 func isWolfAttackingSimple(world *core.World, wolf core.EntityID) bool {
-	hunger, hasHunger := world.GetHunger(wolf)
+	hunger, hasHunger := world.GetSatiation(wolf)
 	if !hasHunger || hunger.Value > 60.0 {
 		return false
 	}

@@ -30,7 +30,7 @@ func TestDamageFlashGUI(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 300.5, 300) // Дистанция 0.5 < атака волка 0.9
 
 	// Делаем волка голодным чтобы он атаковал
-	world.SetHunger(wolf, core.Hunger{Value: 30.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 30.0})
 
 	t.Logf("=== ТЕСТ DAMAGEFLASH В GUI РЕЖИМЕ ===")
 	t.Logf("Заяц: entity %d, Волк: entity %d", rabbit, wolf)
@@ -60,7 +60,7 @@ func TestDamageFlashGUI(t *testing.T) {
 
 		// Логируем прогресс каждую секунду
 		if i%60 == 0 {
-			hunger, _ := world.GetHunger(wolf)
+			hunger, _ := world.GetSatiation(wolf)
 			t.Logf("Секунда %d: Голод волка %.1f%%", i/60, hunger.Value)
 		}
 	}

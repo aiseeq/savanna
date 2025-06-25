@@ -44,15 +44,15 @@ func TestCreateAnimal_Rabbit(t *testing.T) {
 	}
 
 	// Проверяем голод
-	if !world.HasComponent(entity, core.MaskHunger) {
+	if !world.HasComponent(entity, core.MaskSatiation) {
 		t.Fatal("Rabbit should have Hunger component")
 	}
-	hunger, ok := world.GetHunger(entity)
+	hunger, ok := world.GetSatiation(entity)
 	if !ok {
 		t.Fatal("Failed to get hunger component")
 	}
-	if hunger.Value != RabbitInitialHunger {
-		t.Errorf("Expected initial hunger %f, got %f", RabbitInitialHunger, hunger.Value)
+	if hunger.Value != RabbitInitialSatiation {
+		t.Errorf("Expected initial hunger %f, got %f", RabbitInitialSatiation, hunger.Value)
 	}
 
 	// Проверяем размеры (должны быть в пикселях после конвертации)
@@ -98,8 +98,8 @@ func TestCreateAnimal_Rabbit(t *testing.T) {
 	if config.VisionRange != RabbitBaseRadius*RabbitVisionMultiplier {
 		t.Errorf("Expected vision range %f, got %f", RabbitBaseRadius*RabbitVisionMultiplier, config.VisionRange)
 	}
-	if config.HungerThreshold != RabbitHungerThreshold {
-		t.Errorf("Expected hunger threshold %f, got %f", RabbitHungerThreshold, config.HungerThreshold)
+	if config.SatiationThreshold != RabbitSatiationThreshold {
+		t.Errorf("Expected hunger threshold %f, got %f", RabbitSatiationThreshold, config.SatiationThreshold)
 	}
 
 	// Проверяем поведение
@@ -161,15 +161,15 @@ func TestCreateAnimal_Wolf(t *testing.T) {
 	}
 
 	// Проверяем голод
-	if !world.HasComponent(entity, core.MaskHunger) {
+	if !world.HasComponent(entity, core.MaskSatiation) {
 		t.Fatal("Wolf should have Hunger component")
 	}
-	hunger, ok := world.GetHunger(entity)
+	hunger, ok := world.GetSatiation(entity)
 	if !ok {
 		t.Fatal("Failed to get hunger component")
 	}
-	if hunger.Value != WolfInitialHunger {
-		t.Errorf("Expected initial hunger %f, got %f", WolfInitialHunger, hunger.Value)
+	if hunger.Value != WolfInitialSatiation {
+		t.Errorf("Expected initial hunger %f, got %f", WolfInitialSatiation, hunger.Value)
 	}
 
 	// Проверяем размеры (должны быть в пикселях после конвертации)
@@ -215,8 +215,8 @@ func TestCreateAnimal_Wolf(t *testing.T) {
 	if config.VisionRange != WolfBaseRadius*WolfVisionMultiplier {
 		t.Errorf("Expected vision range %f, got %f", WolfBaseRadius*WolfVisionMultiplier, config.VisionRange)
 	}
-	if config.HungerThreshold != WolfHungerThreshold {
-		t.Errorf("Expected hunger threshold %f, got %f", WolfHungerThreshold, config.HungerThreshold)
+	if config.SatiationThreshold != WolfSatiationThreshold {
+		t.Errorf("Expected hunger threshold %f, got %f", WolfSatiationThreshold, config.SatiationThreshold)
 	}
 	if config.AttackDamage != WolfAttackDamageDefault {
 		t.Errorf("Expected attack damage %d, got %d", WolfAttackDamageDefault, config.AttackDamage)

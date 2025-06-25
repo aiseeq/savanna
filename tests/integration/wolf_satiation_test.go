@@ -51,7 +51,7 @@ func TestWolfFullSatiation(t *testing.T) {
 
 	// Делаем волка очень голодным
 	initialWolfHunger := float32(30.0) // 30% - очень голоден, должен охотиться
-	world.SetHunger(wolf, core.Hunger{Value: initialWolfHunger})
+	world.SetSatiation(wolf, core.Satiation{Value: initialWolfHunger})
 
 	// Убиваем зайца и создаём из него труп (имитируем результат боя)
 	world.RemoveHealth(rabbit)
@@ -113,7 +113,7 @@ func TestWolfFullSatiation(t *testing.T) {
 
 		// Проверяем состояние каждые 30 тиков (0.5 сек)
 		if tick%30 == 0 {
-			currentHunger, _ := world.GetHunger(wolf)
+			currentHunger, _ := world.GetSatiation(wolf)
 			isEating := world.HasComponent(wolf, core.MaskEatingState)
 			currentAnimType := animation.AnimationType(anim.CurrentAnim)
 
@@ -164,7 +164,7 @@ func TestWolfFullSatiation(t *testing.T) {
 	}
 
 	// Анализируем результат
-	finalHunger, _ := world.GetHunger(wolf)
+	finalHunger, _ := world.GetSatiation(wolf)
 	isStillEating := world.HasComponent(wolf, core.MaskEatingState)
 
 	t.Errorf("❌ ТЕСТ НЕ ЗАВЕРШИЛСЯ за %d тиков", maxTicks)

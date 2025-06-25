@@ -20,7 +20,7 @@ type TestScenario struct {
 	vegetationSystem  *simulation.VegetationSystem
 	feedingSystem     *simulation.FeedingSystem
 	grassEatingSystem *simulation.GrassEatingSystem
-	hungerSystem      *simulation.HungerSystem
+	satiationSystem   *simulation.SatiationSystem
 	animationSystem   *animation.AnimationSystem
 	rabbit            core.EntityID
 	t                 *testing.T
@@ -38,7 +38,7 @@ func newTestScenario(t *testing.T) *TestScenario {
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
 	feedingSystem := simulation.NewFeedingSystem(vegetationSystem)
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
-	hungerSystem := simulation.NewHungerSystem()
+	satiationSystem := simulation.NewSatiationSystem()
 
 	// Создаём анимационную систему (КРИТИЧЕСКИ ВАЖНО для GrassEatingSystem!)
 	animationSystem := animation.NewAnimationSystem()
@@ -50,7 +50,7 @@ func newTestScenario(t *testing.T) *TestScenario {
 		vegetationSystem:  vegetationSystem,
 		feedingSystem:     feedingSystem,
 		grassEatingSystem: grassEatingSystem,
-		hungerSystem:      hungerSystem,
+		satiationSystem:   satiationSystem,
 		animationSystem:   animationSystem,
 		t:                 t,
 	}
@@ -58,9 +58,9 @@ func newTestScenario(t *testing.T) *TestScenario {
 
 // Given методы настраивают начальное состояние
 
-func (s *TestScenario) GivenHungryRabbitAt(x, y float32, hungerLevel float32) *TestScenario {
+func (s *TestScenario) GivenHungryRabbitAt(x, y float32, satiationLevel float32) *TestScenario {
 	s.rabbit = simulation.CreateAnimal(s.world, core.TypeRabbit, x, y)
-	s.world.SetHunger(s.rabbit, core.Hunger{Value: hungerLevel})
+	s.world.SetSatiation(s.rabbit, core.Satiation{Value: satiationLevel})
 	s.world.SetVelocity(s.rabbit, core.Velocity{X: 0, Y: 0}) // Стоит на месте
 	return s
 }
@@ -84,7 +84,7 @@ func (s *TestScenario) WhenTimePassesFor(seconds float32) *TestScenario {
 	ticks := int(seconds / deltaTime)
 
 	for i := 0; i < ticks; i++ {
-		s.hungerSystem.Update(s.world, deltaTime)
+		s.satiationSystem.Update(s.world, deltaTime)
 		s.feedingSystem.Update(s.world, deltaTime)
 
 		// ИСПРАВЛЕНИЕ: Переключаем анимацию СРАЗУ после создания EatingState
@@ -102,7 +102,7 @@ func (s *TestScenario) WhenTimePassesFor(seconds float32) *TestScenario {
 func (s *TestScenario) WhenOneTick() *TestScenario {
 	deltaTime := float32(1.0 / 60.0)
 
-	s.hungerSystem.Update(s.world, deltaTime)
+	s.satiationSystem.Update(s.world, deltaTime)
 	s.feedingSystem.Update(s.world, deltaTime)
 
 	// ИСПРАВЛЕНИЕ: Переключаем анимацию СРАЗУ после создания EatingState
@@ -187,10 +187,10 @@ func (s *TestScenario) ThenRabbitShouldNotBeEating() *TestScenario {
 	isEating := s.world.HasComponent(s.rabbit, core.MaskEatingState)
 	if isEating {
 		// Отладочная информация для понимания почему заяц ест
-		hunger, _ := s.world.GetHunger(s.rabbit)
+		satiation, _ := s.world.GetSatiation(s.rabbit)
 		behavior, _ := s.world.GetBehavior(s.rabbit)
-		s.t.Errorf("Expected rabbit not to be eating, but it is. Hunger: %.1f, Threshold: %.1f",
-			hunger.Value, behavior.HungerThreshold)
+		s.t.Errorf("Expected rabbit not to be eating, but it is. Satiation: %.1f, Threshold: %.1f",
+			satiation.Value, behavior.SatiationThreshold)
 	}
 	return s
 }
@@ -200,9 +200,9 @@ func (s *TestScenario) ThenGrassAmountAt(tileX, tileY int) GrassAssertion {
 	return GrassAssertion{amount: amount, t: s.t, tileX: tileX, tileY: tileY}
 }
 
-func (s *TestScenario) ThenRabbitHungerLevel() HungerAssertion {
-	hunger, _ := s.world.GetHunger(s.rabbit)
-	return HungerAssertion{level: hunger.Value, t: s.t}
+func (s *TestScenario) ThenRabbitSatiationLevel() SatiationAssertion {
+	satiation, _ := s.world.GetSatiation(s.rabbit)
+	return SatiationAssertion{level: satiation.Value, t: s.t}
 }
 
 // Вспомогательные типы для assertions
@@ -235,26 +235,26 @@ func (ga GrassAssertion) ShouldBeGreaterThan(threshold float32) {
 	}
 }
 
-type HungerAssertion struct {
+type SatiationAssertion struct {
 	level float32
 	t     *testing.T
 }
 
-func (ha HungerAssertion) ShouldBe(expected float32) {
-	if ha.level != expected {
-		ha.t.Errorf("Expected rabbit hunger to be %.1f, but was %.1f", expected, ha.level)
+func (sa SatiationAssertion) ShouldBe(expected float32) {
+	if sa.level != expected {
+		sa.t.Errorf("Expected rabbit satiation to be %.1f, but was %.1f", expected, sa.level)
 	}
 }
 
-func (ha HungerAssertion) ShouldBeGreaterThan(threshold float32) {
-	if ha.level <= threshold {
-		ha.t.Errorf("Expected rabbit hunger to be greater than %.1f, but was %.1f", threshold, ha.level)
+func (sa SatiationAssertion) ShouldBeGreaterThan(threshold float32) {
+	if sa.level <= threshold {
+		sa.t.Errorf("Expected rabbit satiation to be greater than %.1f, but was %.1f", threshold, sa.level)
 	}
 }
 
-func (ha HungerAssertion) ShouldBeLessThan(threshold float32) {
-	if ha.level >= threshold {
-		ha.t.Errorf("Expected rabbit hunger to be less than %.1f, but was %.1f", threshold, ha.level)
+func (sa SatiationAssertion) ShouldBeLessThan(threshold float32) {
+	if sa.level >= threshold {
+		sa.t.Errorf("Expected rabbit satiation to be less than %.1f, but was %.1f", threshold, sa.level)
 	}
 }
 
@@ -264,7 +264,7 @@ func TestRabbitFindsFoodWhenHungry(t *testing.T) {
 	t.Parallel()
 
 	newTestScenario(t).
-		GivenHungryRabbitAt(48, 48, 50.0). // 50% голода (меньше 90% порога)
+		GivenHungryRabbitAt(48, 48, 50.0). // 50% сытости (меньше 60% порога)
 		GivenGrassAt(1, 1, 75.0).          // Много травы в том же тайле
 		WhenOneTick().                     // Проходит один тик
 		ThenRabbitShouldBeEating()         // Заяц должен начать есть
@@ -274,7 +274,7 @@ func TestRabbitIgnoresFoodWhenSatiated(t *testing.T) {
 	t.Parallel()
 
 	newTestScenario(t).
-		GivenHungryRabbitAt(48, 48, 95.0). // 95% голода (больше 90% порога)
+		GivenHungryRabbitAt(48, 48, 95.0). // 95% сытости (больше 60% порога)
 		GivenGrassAt(1, 1, 75.0).          // Много травы доступно
 		WhenOneTick().                     // Проходит один тик
 		ThenRabbitShouldNotBeEating()      // Заяц не должен есть (сытый)
@@ -319,31 +319,31 @@ func TestGrassConsumptionOverTime(t *testing.T) {
 	scenario.ThenGrassAmountAt(1, 1).ShouldBeLessThan(50.0)
 }
 
-func TestHungerRecoveryDuringEating(t *testing.T) {
+func TestSatiationRecoveryDuringEating(t *testing.T) {
 	t.Parallel()
 
 	scenario := newTestScenario(t).
 		GivenHungryRabbitAt(48, 48, 30.0). // Очень голодный заяц (30%)
 		GivenGrassAt(1, 1, 100.0)          // Много травы
 
-	// Начальный уровень голода
-	scenario.ThenRabbitHungerLevel().ShouldBe(30.0)
+	// Начальный уровень сытости
+	scenario.ThenRabbitSatiationLevel().ShouldBe(30.0)
 
 	// Заяц начинает есть
 	scenario.WhenOneTick().
 		ThenRabbitShouldBeEating()
 
-	// После поедания голод должен уменьшиться (больше сытости)
+	// После поедания сытость должна увеличиться
 	scenario.WhenTimePassesFor(2.0) // 2 секунды поедания
-	scenario.ThenRabbitHungerLevel().ShouldBeGreaterThan(30.0)
+	scenario.ThenRabbitSatiationLevel().ShouldBeGreaterThan(30.0)
 }
 
 func TestRabbitStopsEatingWhenSatiated(t *testing.T) {
 	t.Parallel()
 
-	// Тест с голодом значительно выше порога - НЕ должен есть
+	// Тест с сытостью значительно выше порога - НЕ должен есть
 	scenario := newTestScenario(t).
-		GivenHungryRabbitAt(48, 48, 95.0). // Значительно выше порога 90%
+		GivenHungryRabbitAt(48, 48, 95.0). // Значительно выше порога 60%
 		GivenGrassAt(1, 1, 100.0)          // Много травы
 
 	// Заяц не должен начинать есть (не голодный)
@@ -354,17 +354,17 @@ func TestRabbitStopsEatingWhenSatiated(t *testing.T) {
 func TestRabbitThresholdBoundary(t *testing.T) {
 	t.Parallel()
 
-	// Тест границы порога - с голодом значительно выше порога
+	// Тест границы порога - с сытостью значительно выше порога
 	scenario1 := newTestScenario(t).
-		GivenHungryRabbitAt(48, 48, 92.0). // Выше порога с запасом - НЕ должен есть
+		GivenHungryRabbitAt(48, 48, 92.0). // 92% сытости > 60% порога - НЕ должен есть
 		GivenGrassAt(1, 1, 100.0)
 
 	scenario1.WhenOneTick().
 		ThenRabbitShouldNotBeEating()
 
-	// С голодом ниже порога - должен есть
+	// С сытостью ниже порога - должен есть
 	scenario2 := newTestScenario(t).
-		GivenHungryRabbitAt(48, 48, 89.0). // Четко ниже порога - должен есть
+		GivenHungryRabbitAt(48, 48, 45.0). // 45% сытости < 60% порога - должен есть
 		GivenGrassAt(1, 1, 100.0)
 
 	scenario2.WhenOneTick().
@@ -386,21 +386,21 @@ func TestFullFeedingCycle(t *testing.T) {
 
 	// 2. Процесс поедания
 	scenario.WhenTimePassesFor(3.0)
-	scenario.ThenRabbitShouldBeEating()                        // Всё ещё ест
-	scenario.ThenGrassAmountAt(1, 1).ShouldBeLessThan(100.0)   // Трава потребляется
-	scenario.ThenRabbitHungerLevel().ShouldBeGreaterThan(20.0) // Голод уменьшается
+	scenario.ThenRabbitShouldBeEating()                           // Всё ещё ест
+	scenario.ThenGrassAmountAt(1, 1).ShouldBeLessThan(100.0)      // Трава потребляется
+	scenario.ThenRabbitSatiationLevel().ShouldBeGreaterThan(20.0) // Голод уменьшается
 
 	// 3. Длительное поедание до насыщения
 	scenario.WhenTimePassesFor(20.0)
 
 	// Проверяем что заяц все еще ест или уже наелся
 	isEating := scenario.world.HasComponent(scenario.rabbit, core.MaskEatingState)
-	hunger, _ := scenario.world.GetHunger(scenario.rabbit)
+	hunger, _ := scenario.world.GetSatiation(scenario.rabbit)
 	scenario.t.Logf("After 23 seconds: Hunger: %.1f%%, IsEating: %v", hunger.Value, isEating)
 
 	// Ослабляем требования - заяц должен значительно восстановить голод
-	scenario.ThenRabbitHungerLevel().ShouldBeGreaterThan(50.0) // Хотя бы половина
-	scenario.ThenGrassAmountAt(1, 1).ShouldBeLessThan(90.0)    // Хотя бы немного потреблена
+	scenario.ThenRabbitSatiationLevel().ShouldBeGreaterThan(50.0) // Хотя бы половина
+	scenario.ThenGrassAmountAt(1, 1).ShouldBeLessThan(90.0)       // Хотя бы немного потреблена
 
 	// Результат: заяц должен перестать есть когда достигнет порога сытости
 }

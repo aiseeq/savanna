@@ -27,7 +27,7 @@ func (gss *GrassSearchSystem) Update(world core.GrassSearchSystemAccess, _ float
 // handleRabbitFeeding обрабатывает питание травоядных (в основном зайцев)
 func (gss *GrassSearchSystem) handleRabbitFeeding(world core.GrassSearchSystemAccess) {
 	// Обрабатываем всех животных с голодом и позицией
-	world.ForEachWith(core.MaskHunger|core.MaskPosition, func(entity core.EntityID) {
+	world.ForEachWith(core.MaskSatiation|core.MaskPosition, func(entity core.EntityID) {
 		// Пропускаем животных которые уже едят
 		if world.HasComponent(entity, core.MaskEatingState) {
 			return
@@ -40,8 +40,8 @@ func (gss *GrassSearchSystem) handleRabbitFeeding(world core.GrassSearchSystemAc
 
 // processHerbivoreFeeding обрабатывает питание конкретного травоядного
 func (gss *GrassSearchSystem) processHerbivoreFeeding(world core.GrassSearchSystemAccess, entity core.EntityID) {
-	hunger, hasHunger := world.GetHunger(entity)
-	if !hasHunger {
+	satiation, hasSatiation := world.GetSatiation(entity)
+	if !hasSatiation {
 		return
 	}
 
@@ -57,7 +57,7 @@ func (gss *GrassSearchSystem) processHerbivoreFeeding(world core.GrassSearchSyst
 	}
 
 	isHerbivore := behavior.Type == core.BehaviorHerbivore
-	isHungry := hunger.Value < config.HungerThreshold
+	isHungry := satiation.Value < config.SatiationThreshold
 
 	if !isHerbivore || !isHungry {
 		return

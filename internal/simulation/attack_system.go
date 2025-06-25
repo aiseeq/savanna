@@ -176,8 +176,10 @@ func (as *AttackSystem) canStartAttack(world *core.World, predator core.EntityID
 	}
 
 	// Проверяем голод
-	hunger, hasHunger := world.GetHunger(predator)
-	return hasHunger && hunger.Value < behavior.HungerThreshold
+	hunger, hasHunger := world.GetSatiation(predator)
+	isHungry := hasHunger && hunger.Value < behavior.SatiationThreshold
+
+	return isHungry
 }
 
 // startAttackState создаёт состояние атаки и анимацию (снижает сложность)
@@ -258,7 +260,7 @@ func (as *AttackSystem) updateAttackStateWithAnimation(
 	// ИСПРАВЛЕНИЕ: Завершаем атаку когда анимация завершилась (Playing = false) ИЛИ анимация сменилась
 	if animFinished || (!isAttackAnim && attackState.HasStruck) {
 		// Анимация атаки завершена или сменилась после нанесения урона - устанавливаем кулдаун и удаляем состояние
-		as.setAttackCooldown(predator)
+		as.setAttackCooldown(world, predator)
 		world.RemoveAttackState(predator)
 		return true // Состояние удалено
 	}
@@ -275,7 +277,7 @@ func (as *AttackSystem) updateAttackStateWithAnimation(
 
 		// Если прошло достаточно времени для завершения полной анимации, завершаем атаку
 		if attackState.TotalTimer >= fullAnimationDuration {
-			as.setAttackCooldown(predator)
+			as.setAttackCooldown(world, predator)
 			world.RemoveAttackState(predator)
 			return true // Состояние удалено
 		}
@@ -284,7 +286,7 @@ func (as *AttackSystem) updateAttackStateWithAnimation(
 	// Резервный механизм завершения по таймеру (если анимация зависла)
 	if attackState.TotalTimer >= (AttackWindupDuration + AttackStrikeDuration) {
 		// Атака завершена - устанавливаем кулдаун и удаляем состояние
-		as.setAttackCooldown(predator)
+		as.setAttackCooldown(world, predator)
 		world.RemoveAttackState(predator)
 		return true // Состояние удалено
 	}
@@ -336,7 +338,7 @@ func (as *AttackSystem) updateAttackStateWithTimer(
 		// Завершаем атаку по таймеру
 		if attackState.PhaseTimer >= AttackStrikeDuration {
 			// Атака завершена - устанавливаем кулдаун и удаляем состояние
-			as.setAttackCooldown(predator)
+			as.setAttackCooldown(world, predator)
 			world.RemoveAttackState(predator)
 			return true // Состояние удалено
 		}
@@ -452,9 +454,15 @@ func (as *AttackSystem) canAttack(entity core.EntityID) bool {
 	return !hasCooldown
 }
 
-// setAttackCooldown устанавливает кулдаун атаки
-func (as *AttackSystem) setAttackCooldown(entity core.EntityID) {
-	as.attackCooldowns[entity] = AttackCooldownSeconds
+// setAttackCooldown устанавливает кулдаун атаки из конфигурации животного
+func (as *AttackSystem) setAttackCooldown(world *core.World, entity core.EntityID) {
+	// Используем кулдаун из конфигурации животного вместо захардкоженной константы
+	if config, hasConfig := world.GetAnimalConfig(entity); hasConfig {
+		as.attackCooldowns[entity] = config.AttackCooldown
+	} else {
+		// Fallback на константу из combat.go если нет конфигурации
+		as.attackCooldowns[entity] = AttackCooldownSeconds
+	}
 }
 
 // cleanupCooldowns очищает кулдауны для мертвых животных

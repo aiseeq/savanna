@@ -54,7 +54,7 @@ func TestCornerClusteringBehavior_RabbitEscapesFromCorner(t *testing.T) {
 	rabbit := CreateAnimal(world, core.TypeRabbit, rabbitXPixels, rabbitYPixels)
 
 	// ИСПРАВЛЕНИЕ: Делаем зайца сытым чтобы он не искал еду, а убегал от волка
-	world.SetHunger(rabbit, core.Hunger{Value: 95.0}) // Сытый заяц (выше порога 90%)
+	world.SetSatiation(rabbit, core.Satiation{Value: 95.0}) // Сытый заяц (выше порога 90%)
 
 	t.Logf("Initial positions: Wolf(%.1f, %.1f), Rabbit(%.1f, %.1f)",
 		centerXPixels, centerYPixels, rabbitXPixels, rabbitYPixels)

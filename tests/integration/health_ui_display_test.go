@@ -27,10 +27,10 @@ func TestHealthBarsAndHungerDisplayArePresent(t *testing.T) {
 
 	// Устанавливаем разные уровни здоровья и голода для тестирования
 	world.SetHealth(rabbit, core.Health{Current: 30, Max: 50}) // 60% здоровья
-	world.SetHunger(rabbit, core.Hunger{Value: 75.0})          // 75% сытости
+	world.SetSatiation(rabbit, core.Satiation{Value: 75.0})    // 75% сытости
 
 	world.SetHealth(wolf, core.Health{Current: 80, Max: 100}) // 80% здоровья
-	world.SetHunger(wolf, core.Hunger{Value: 40.0})           // 40% сытости
+	world.SetSatiation(wolf, core.Satiation{Value: 40.0})     // 40% сытости
 
 	// Генерируем инструкции рендеринга
 	instructions := gameState.GenerateRenderInstructions()
@@ -82,7 +82,7 @@ func TestHealthBarsAndHungerDisplayArePresent(t *testing.T) {
 
 	// Дополнительно проверяем что у животных есть нужные компоненты
 	rabbitHealth, hasRabbitHealth := world.GetHealth(rabbit)
-	rabbitHunger, hasRabbitHunger := world.GetHunger(rabbit)
+	rabbitHunger, hasRabbitHunger := world.GetSatiation(rabbit)
 
 	if !hasRabbitHealth {
 		t.Errorf("❌ У зайца нет компонента здоровья")

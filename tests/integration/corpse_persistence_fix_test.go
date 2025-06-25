@@ -109,7 +109,7 @@ func TestCorpsePersistenceFix(t *testing.T) {
 		{"Velocity", core.MaskVelocity},
 		{"Behavior", core.MaskBehavior},
 		{"Size", core.MaskSize},
-		{"Hunger", core.MaskHunger},
+		{"Satiation", core.MaskSatiation},
 	}
 
 	for _, comp := range removedComponents {
@@ -212,7 +212,7 @@ func TestCorpseToCarrionTransition(t *testing.T) {
 
 	// Создаём волка который будет есть частично
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 300, 300) // На той же позиции что и труп
-	world.SetHunger(wolf, core.Hunger{Value: 30.0})                 // Очень голодный
+	world.SetSatiation(wolf, core.Satiation{Value: 30.0})           // Очень голодный
 
 	deltaTime := float32(1.0 / 60.0)
 
@@ -229,7 +229,7 @@ func TestCorpseToCarrionTransition(t *testing.T) {
 	}
 
 	// Фаза 2: Делаем волка сытым для прекращения поедания
-	world.SetHunger(wolf, core.Hunger{Value: 95.0}) // Почти сытый
+	world.SetSatiation(wolf, core.Satiation{Value: 95.0}) // Почти сытый
 
 	// Ждём прекращения поедания
 	for i := 0; i < 60; i++ {

@@ -42,7 +42,7 @@ func TestBasicSimulation(t *testing.T) {
 	wolf1 := simulation.CreateAnimal(world, core.TypeWolf, 101, 100) // Близко к rabbit1
 
 	// Делаем волка голодным чтобы он охотился
-	world.SetHunger(wolf1, core.Hunger{Value: 30.0}) // 30% < 60% порога
+	world.SetSatiation(wolf1, core.Satiation{Value: 30.0}) // 30% < 60% порога
 
 	// Проверяем что животные созданы
 	if world.GetEntityCount() != 3 {
@@ -122,11 +122,11 @@ func TestDeterministicSimulation(t *testing.T) {
 			System: simulation.NewMovementSystem(TestWorldSize, TestWorldSize),
 		})
 		// Используем новые системы питания (DIP: через интерфейс)
-		hungerSystem := simulation.NewHungerSystem()
+		satiationSystem := simulation.NewSatiationSystem()
 		grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem)
 		grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
 
-		systemManager.AddSystem(&adapters.HungerSystemAdapter{System: hungerSystem})
+		systemManager.AddSystem(&adapters.HungerSystemAdapter{System: satiationSystem})
 		systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{System: grassSearchSystem})
 		systemManager.AddSystem(&adapters.GrassEatingSystemAdapter{System: grassEatingSystem})
 
@@ -189,7 +189,7 @@ func TestHungerSystem(t *testing.T) {
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 100, 100)
 
 	// Устанавливаем очень низкий голод
-	world.SetHunger(rabbit, core.Hunger{Value: 1.0})
+	world.SetSatiation(rabbit, core.Satiation{Value: 1.0})
 
 	initialHealth, _ := world.GetHealth(rabbit)
 
@@ -203,7 +203,7 @@ func TestHungerSystem(t *testing.T) {
 	}
 
 	// Проверяем что голод уменьшился
-	currentHunger, _ := world.GetHunger(rabbit)
+	currentHunger, _ := world.GetSatiation(rabbit)
 	if currentHunger.Value >= 1.0 {
 		t.Error("Hunger should have decreased")
 	}
@@ -233,11 +233,11 @@ func TestAnimalInteraction(t *testing.T) {
 		System: simulation.NewMovementSystem(TestWorldSize, TestWorldSize),
 	})
 	// Используем новые системы питания (DIP: через интерфейс)
-	hungerSystem := simulation.NewHungerSystem()
+	satiationSystem := simulation.NewSatiationSystem()
 	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem)
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
 
-	systemManager.AddSystem(&adapters.HungerSystemAdapter{System: hungerSystem})
+	systemManager.AddSystem(&adapters.HungerSystemAdapter{System: satiationSystem})
 	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{System: grassSearchSystem})
 	systemManager.AddSystem(&adapters.GrassEatingSystemAdapter{System: grassEatingSystem})
 
@@ -246,7 +246,7 @@ func TestAnimalInteraction(t *testing.T) {
 	wolf1 := simulation.CreateAnimal(world, core.TypeWolf, 101, 100) // Дистанция 1 пиксель
 
 	// Делаем волка голодным чтобы он охотился
-	world.SetHunger(wolf1, core.Hunger{Value: 30.0}) // 30% < 60% порога
+	world.SetSatiation(wolf1, core.Satiation{Value: 30.0}) // 30% < 60% порога
 
 	initialRabbitPos, _ := world.GetPosition(rabbit1)
 	initialWolfPos, _ := world.GetPosition(wolf1)
@@ -361,7 +361,7 @@ func TestStarvationDeath(t *testing.T) {
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 100, 100)
 	world.SetHealth(rabbit, core.Health{Current: 2, Max: 50}) // Минимальное здоровье
 	//nolint:gocritic // commentedOutCode: Это описательный комментарий
-	world.SetHunger(rabbit, core.Hunger{Value: 0}) // Голод = 0
+	world.SetSatiation(rabbit, core.Satiation{Value: 0}) // Голод = 0
 
 	if !world.IsAlive(rabbit) {
 		t.Fatal("Rabbit should be alive initially")

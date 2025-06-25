@@ -23,7 +23,7 @@ func TestAttackAnimationFix(t *testing.T) {
 
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 800, 800)
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 801, 800) // Дистанция 1 пиксель для атаки
-	world.SetHunger(wolf, core.Hunger{Value: 10.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 10.0})
 
 	initialHealth, _ := world.GetHealth(rabbit)
 	t.Logf("=== ТЕСТ ИСПРАВЛЕНИЯ АНИМАЦИИ АТАКИ ===")

@@ -25,9 +25,9 @@ func TestMinimalCombat(t *testing.T) {
 	world.AddPosition(rabbit, core.Position{X: 305, Y: 300})
 
 	world.AddBehavior(wolf, core.Behavior{
-		Type:            core.BehaviorPredator,
-		VisionRange:     160.0,
-		HungerThreshold: 60.0,
+		Type:               core.BehaviorPredator,
+		VisionRange:        160.0,
+		SatiationThreshold: 60.0,
 	})
 
 	world.AddSize(wolf, core.Size{
@@ -40,7 +40,7 @@ func TestMinimalCombat(t *testing.T) {
 		HitChance:    1.0,
 	})
 
-	world.AddHunger(wolf, core.Hunger{Value: 20.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 20.0})
 
 	world.AddBehavior(rabbit, core.Behavior{Type: core.BehaviorHerbivore})
 	world.AddSize(rabbit, core.Size{Radius: 16.0})

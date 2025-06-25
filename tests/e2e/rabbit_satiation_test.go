@@ -85,11 +85,11 @@ found:
 
 	// ТЕСТ СЦЕНАРИЯ ПОЛЬЗОВАТЕЛЯ: заяц с голодом 90% должен есть до 100%
 	initialHunger := float32(90.0) // Слегка голодный (как жаловался пользователь)
-	world.SetHunger(rabbit, core.Hunger{Value: initialHunger})
+	world.SetSatiation(rabbit, core.Satiation{Value: initialHunger})
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0}) // Стоит на месте
 
 	pos, _ := world.GetPosition(rabbit)
-	hunger, _ := world.GetHunger(rabbit)
+	hunger, _ := world.GetSatiation(rabbit)
 	grassAmount := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
 	t.Logf("Начальное состояние:")
@@ -132,7 +132,7 @@ found:
 
 		// Проверяем состояние каждые 10 тиков для детального отслеживания
 		if tick%10 == 0 {
-			currentHunger, _ := world.GetHunger(rabbit)
+			currentHunger, _ := world.GetSatiation(rabbit)
 			currentGrass := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 			anim, _ := world.GetAnimation(rabbit)
 			eatingState, _ := world.GetEatingState(rabbit)
@@ -170,7 +170,7 @@ found:
 	}
 
 	// Если мы дошли сюда, заяц не насытился за отведённое время
-	finalHunger, _ := world.GetHunger(rabbit)
+	finalHunger, _ := world.GetSatiation(rabbit)
 	finalGrass := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
 	t.Errorf("❌ Заяц не насытился за %d тиков", maxTicks)

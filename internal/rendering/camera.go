@@ -24,13 +24,24 @@ type Camera struct {
 
 // NewCamera создаёт новую камеру
 func NewCamera(worldWidth, worldHeight float32) *Camera {
-	// Центрируем камеру на середине мира в изометрической проекции
-	centerX := (worldWidth - worldHeight) * TileWidth / 4
-	centerY := (worldWidth + worldHeight) * TileHeight / 4
+	// ИСПРАВЛЕНИЕ: Правильное центрирование камеры
+	// Мир в тайлах, нужно центрировать на середине карты
+	// Центр мира в тайлах
+	worldCenterX := worldWidth / 2.0
+	worldCenterY := worldHeight / 2.0
+
+	// Преобразуем центр мира в экранные координаты
+	centerScreenX := (worldCenterX - worldCenterY) * TileWidth / 2
+	centerScreenY := (worldCenterX + worldCenterY) * TileHeight / 2
+
+	// Смещение камеры для центрирования (камера смотрит на центр мира)
+	// При разрешении 1024x768 центр экрана будет в (512, 384)
+	cameraX := centerScreenX - 512 // Половина ширины экрана
+	cameraY := centerScreenY - 384 // Половина высоты экрана
 
 	return &Camera{
-		X:           -centerX, // Отрицательное смещение для центрирования
-		Y:           -centerY,
+		X:           cameraX,
+		Y:           cameraY,
 		Zoom:        1.0,
 		worldWidth:  worldWidth,
 		worldHeight: worldHeight,
@@ -212,6 +223,7 @@ func (c *Camera) ScreenToWorld(screenX, screenY float32) (worldX, worldY float32
 
 // WorldToScreen преобразует мировые координаты в экранные с учётом камеры
 func (c *Camera) WorldToScreen(worldX, worldY float32) (screenX, screenY float32) {
+	// ВАЖНО: worldX и worldY здесь в ТАЙЛАХ, не в пикселях!
 	// Изометрическая проекция
 	screenX = (worldX - worldY) * TileWidth / 2
 	screenY = (worldX + worldY) * TileHeight / 2
@@ -220,7 +232,7 @@ func (c *Camera) WorldToScreen(worldX, worldY float32) (screenX, screenY float32
 	screenX *= c.Zoom
 	screenY *= c.Zoom
 
-	// Применяем смещение камеры
+	// Применяем смещение камеры (вычитаем позицию камеры)
 	screenX -= c.X
 	screenY -= c.Y
 

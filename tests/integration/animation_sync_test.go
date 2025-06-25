@@ -109,7 +109,7 @@ func TestAnimationVelocitySync(t *testing.T) {
 	t.Logf("\n--- Сценарий 3: Заяц убегает от волка, потом волк уходит ---")
 	rabbit3 := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 301, 300) // Дистанция 1 пиксель
-	world.SetHunger(wolf, core.Hunger{Value: 50.0})                 // Голодный волк
+	world.SetSatiation(wolf, core.Satiation{Value: 50.0})           // Голодный волк
 
 	// Симулируем поведение
 	for i := 0; i < 5; i++ {

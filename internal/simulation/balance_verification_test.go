@@ -60,7 +60,7 @@ func TestBalanceVerification_FinalStabilityCheck(t *testing.T) {
 
 	// Инициализируем все системы как в production
 	vegetationSystem := NewVegetationSystem(terrain)
-	_ = NewHungerSystem() // hungerSystem - not used in this test
+	_ = NewSatiationSystem() // satiationSystem - not used in this test
 	grassSearchSystem := NewGrassSearchSystem(vegetationSystem)
 	grassEatingSystem := NewGrassEatingSystem(vegetationSystem)
 	behaviorSystem := NewAnimalBehaviorSystem(vegetationSystem)
@@ -163,7 +163,7 @@ func TestBalanceVerification_FinalStabilityCheck(t *testing.T) {
 			finalStats.aliveRabbits++
 
 			// Проверяем голод
-			if hunger, hasHunger := world.GetHunger(rabbit); hasHunger {
+			if hunger, hasHunger := world.GetSatiation(rabbit); hasHunger {
 				if hunger.Value < 30 {
 					finalStats.hungryCounts["starving rabbits"]++
 				} else if hunger.Value < 60 {
@@ -180,7 +180,7 @@ func TestBalanceVerification_FinalStabilityCheck(t *testing.T) {
 			finalStats.aliveWolves++
 
 			// Проверяем голод
-			if hunger, hasHunger := world.GetHunger(wolf); hasHunger {
+			if hunger, hasHunger := world.GetSatiation(wolf); hasHunger {
 				if hunger.Value < 30 {
 					finalStats.hungryCounts["starving wolves"]++
 				} else if hunger.Value < 60 {

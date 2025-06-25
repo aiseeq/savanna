@@ -36,10 +36,10 @@ func TestWolfFullCycle(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 301, 300) // Дистанция 1 пиксель для атаки
 
 	// Делаем волка очень голодным
-	world.SetHunger(wolf, core.Hunger{Value: 30.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 30.0})
 
 	initialHealth, _ := world.GetHealth(rabbit)
-	initialHunger, _ := world.GetHunger(wolf)
+	initialHunger, _ := world.GetSatiation(wolf)
 	t.Logf("Начальное состояние: здоровье зайца %d, голод волка %.1f%%",
 		initialHealth.Current, initialHunger.Value)
 
@@ -111,7 +111,7 @@ func TestWolfFullCycle(t *testing.T) {
 			rabbitDied = true
 			_ = i // rabbitDeathTime используется только для логирования
 			phase = "смерть"
-			wolfHunger, _ := world.GetHunger(wolf)
+			wolfHunger, _ := world.GetSatiation(wolf)
 			t.Logf("🐰💀 Заяц умер на тике %d после %d атак, голод волка %.1f%%",
 				i, attackCount, wolfHunger.Value)
 		}
@@ -128,7 +128,7 @@ func TestWolfFullCycle(t *testing.T) {
 
 		// Отслеживаем завершение поедания (волк больше не ест)
 		if rabbitDied && eatingStarted && !world.HasComponent(wolf, core.MaskEatingState) {
-			finalHunger, _ := world.GetHunger(wolf)
+			finalHunger, _ := world.GetSatiation(wolf)
 			t.Logf("✅ Полный цикл завершён на тике %d (%.1f сек): атаки %d, поедание %d тиков, голод %.1f%% -> %.1f%%",
 				i, float32(i)/60.0, attackCount, i-eatingStartTime, initialHunger.Value, finalHunger.Value)
 
@@ -153,7 +153,7 @@ func TestWolfFullCycle(t *testing.T) {
 
 		// Логируем прогресс каждые 2 секунды
 		if i%120 == 0 {
-			hunger, _ := world.GetHunger(wolf)
+			hunger, _ := world.GetSatiation(wolf)
 			anim, _ := world.GetAnimation(wolf)
 
 			var status string

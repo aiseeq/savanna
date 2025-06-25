@@ -19,7 +19,7 @@ func TestAttackPhaseWindup(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 301, 300) // Дистанция 1 пиксель
 
 	// Делаем волка голодным
-	world.SetHunger(wolf, core.Hunger{Value: 30.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 30.0})
 
 	initialHealth, _ := world.GetHealth(rabbit)
 	deltaTime := float32(1.0 / 60.0)
@@ -68,7 +68,7 @@ func TestAttackPhaseStrike(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 301, 300) // Дистанция 1 пиксель
 
 	// Делаем волка голодным
-	world.SetHunger(wolf, core.Hunger{Value: 30.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 30.0})
 
 	initialHealth, _ := world.GetHealth(rabbit)
 	deltaTime := float32(1.0 / 60.0)
@@ -147,7 +147,7 @@ func TestMultipleAttacksUntilDeath(t *testing.T) {
 	world.RemoveAnimation(wolf)
 
 	// Делаем волка голодным
-	world.SetHunger(wolf, core.Hunger{Value: 30.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 30.0})
 
 	initialHealth, _ := world.GetHealth(rabbit)
 	deltaTime := float32(1.0 / 60.0)

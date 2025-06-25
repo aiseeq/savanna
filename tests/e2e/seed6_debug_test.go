@@ -89,10 +89,10 @@ func TestSeed6Debug(t *testing.T) {
 			}
 
 			// ИСПРАВЛЕНИЕ: Делаем волков голодными чтобы они атаковали (было 70% > порога 60%)
-			world.SetHunger(wolf, core.Hunger{Value: 40.0}) // 40% < порога 60%
+			world.SetSatiation(wolf, core.Satiation{Value: 40.0}) // 40% < порога 60%
 
 			// Проверяем начальный голод волка
-			hunger, _ := world.GetHunger(wolf)
+			hunger, _ := world.GetSatiation(wolf)
 			t.Logf("  Волк %d: позиция (%.1f, %.1f), голод %.1f%%, видение 25 тайлов", wolf, placement.X, placement.Y, hunger.Value)
 		}
 	}
@@ -227,7 +227,7 @@ func TestSeed6Debug(t *testing.T) {
 		lastPositions[rabbit] = pos
 	}
 	for _, wolf := range wolves {
-		hunger, _ := world.GetHunger(wolf)
+		hunger, _ := world.GetSatiation(wolf)
 		pos, _ := world.GetPosition(wolf)
 		lastHungers[wolf] = hunger.Value
 		lastPositions[wolf] = pos
@@ -330,7 +330,7 @@ func TestSeed6Debug(t *testing.T) {
 				continue
 			}
 
-			currentHunger, _ := world.GetHunger(wolf)
+			currentHunger, _ := world.GetSatiation(wolf)
 			if currentHunger.Value != lastHungers[wolf] {
 				t.Logf("[TICK %3d] 🍖 Волк %d: голод %.1f%% -> %.1f%%",
 					tick, wolf, lastHungers[wolf], currentHunger.Value)
@@ -368,7 +368,7 @@ func TestSeed6Debug(t *testing.T) {
 					continue
 				}
 				pos, _ := world.GetPosition(wolf)
-				hunger, _ := world.GetHunger(wolf)
+				hunger, _ := world.GetSatiation(wolf)
 				t.Logf("  Волк %d: (%.1f, %.1f), голод %.1f%%", wolf, pos.X, pos.Y, hunger.Value)
 			}
 			for _, rabbit := range rabbits {
@@ -491,7 +491,7 @@ func getRabbitAnimationTypeLikeGUI(world *core.World, entity core.EntityID) anim
 
 func isWolfAttackingLikeGUI(world *core.World, wolf core.EntityID) bool {
 	// ТОЧНО как в main.go
-	hunger, hasHunger := world.GetHunger(wolf)
+	hunger, hasHunger := world.GetSatiation(wolf)
 	if !hasHunger || hunger.Value > 60.0 {
 		return false
 	}

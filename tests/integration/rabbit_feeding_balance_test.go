@@ -58,7 +58,7 @@ func TestRabbitFeedingBalance(t *testing.T) {
 
 	// Делаем зайца голодным
 	initialHunger := float32(50.0) // 50% - голодный но не критично
-	world.SetHunger(rabbit, core.Hunger{Value: initialHunger})
+	world.SetSatiation(rabbit, core.Satiation{Value: initialHunger})
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0})
 
 	deltaTime := float32(1.0 / 60.0)
@@ -118,7 +118,7 @@ func TestRabbitFeedingBalance(t *testing.T) {
 
 		// Проверяем состояние каждые 30 тиков (0.5 сек)
 		if tick%30 == 0 {
-			currentHunger, _ := world.GetHunger(rabbit)
+			currentHunger, _ := world.GetSatiation(rabbit)
 			isEating := world.HasComponent(rabbit, core.MaskEatingState)
 			currentAnimType := animation.AnimationType(anim.CurrentAnim)
 
@@ -144,7 +144,7 @@ func TestRabbitFeedingBalance(t *testing.T) {
 	// АНАЛИЗ РЕЗУЛЬТАТОВ
 	t.Logf("\n=== АНАЛИЗ БАЛАНСА ===")
 
-	finalHunger, _ := world.GetHunger(rabbit)
+	finalHunger, _ := world.GetSatiation(rabbit)
 	t.Logf("Финальный голод: %.1f%%", finalHunger.Value)
 
 	if !eatingStarted {

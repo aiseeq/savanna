@@ -51,41 +51,41 @@ func TestCustomHerbivoreVision_LargeVisionRange(t *testing.T) {
 
 	// Создаем кастомную конфигурацию с большим радиусом зрения
 	customConfig := core.AnimalConfig{
-		BaseRadius:       RabbitBaseRadius,
-		MaxHealth:        RabbitMaxHealth,
-		BaseSpeed:        RabbitBaseSpeed,
-		CollisionRadius:  RabbitBaseRadius * CollisionRadiusMultiplier,
-		AttackRange:      0,                         // Травоядное не атакует
-		VisionRange:      standardVisionRange * 2.0, // УВЕЛИЧЕННЫЙ В 2 РАЗА радиус зрения!
-		HungerThreshold:  RabbitHungerThreshold,
-		FleeThreshold:    RabbitBaseRadius * RabbitFleeDistanceMultiplier,
-		SearchSpeed:      SearchSpeedMultiplier,
-		WanderingSpeed:   WanderingSpeedMultiplier,
-		ContentSpeed:     ContentSpeedMultiplier,
-		MinDirectionTime: 1.0,
-		MaxDirectionTime: 3.0,
-		AttackDamage:     0,
-		AttackCooldown:   0,
-		HitChance:        0,
+		BaseRadius:         RabbitBaseRadius,
+		MaxHealth:          RabbitMaxHealth,
+		BaseSpeed:          RabbitBaseSpeed,
+		CollisionRadius:    RabbitBaseRadius * CollisionRadiusMultiplier,
+		AttackRange:        0,                         // Травоядное не атакует
+		VisionRange:        standardVisionRange * 2.0, // УВЕЛИЧЕННЫЙ В 2 РАЗА радиус зрения!
+		SatiationThreshold: RabbitSatiationThreshold,
+		FleeThreshold:      RabbitBaseRadius * RabbitFleeDistanceMultiplier,
+		SearchSpeed:        SearchSpeedMultiplier,
+		WanderingSpeed:     WanderingSpeedMultiplier,
+		ContentSpeed:       ContentSpeedMultiplier,
+		MinDirectionTime:   1.0,
+		MaxDirectionTime:   3.0,
+		AttackDamage:       0,
+		AttackCooldown:     0,
+		HitChance:          0,
 	}
 	world.AddAnimalConfig(customHerbivore, customConfig)
 
 	// Добавляем поведение травоядного
 	world.AddBehavior(customHerbivore, core.Behavior{
-		Type:             core.BehaviorHerbivore,
-		DirectionTimer:   0,
-		HungerThreshold:  customConfig.HungerThreshold,
-		FleeThreshold:    customConfig.FleeThreshold,
-		SearchSpeed:      customConfig.SearchSpeed,
-		WanderingSpeed:   customConfig.WanderingSpeed,
-		ContentSpeed:     customConfig.ContentSpeed,
-		VisionRange:      customConfig.VisionRange, // Важно: увеличенный радиус
-		MinDirectionTime: customConfig.MinDirectionTime,
-		MaxDirectionTime: customConfig.MaxDirectionTime,
+		Type:               core.BehaviorHerbivore,
+		DirectionTimer:     0,
+		SatiationThreshold: customConfig.SatiationThreshold,
+		FleeThreshold:      customConfig.FleeThreshold,
+		SearchSpeed:        customConfig.SearchSpeed,
+		WanderingSpeed:     customConfig.WanderingSpeed,
+		ContentSpeed:       customConfig.ContentSpeed,
+		VisionRange:        customConfig.VisionRange, // Важно: увеличенный радиус
+		MinDirectionTime:   customConfig.MinDirectionTime,
+		MaxDirectionTime:   customConfig.MaxDirectionTime,
 	})
 
 	// Добавляем голод (очень голодное, чтобы искало траву)
-	world.AddHunger(customHerbivore, core.Hunger{Value: 50.0}) // Ниже порога 90%
+	world.AddSatiation(customHerbivore, core.Satiation{Value: 50.0}) // Ниже порога 90%
 
 	// Добавляем скорость
 	world.AddVelocity(customHerbivore, core.Velocity{X: 0, Y: 0})
@@ -110,9 +110,9 @@ func TestCustomHerbivoreVision_LargeVisionRange(t *testing.T) {
 
 		// Дополнительная диагностика
 		pos, _ := world.GetPosition(customHerbivore)
-		hunger, _ := world.GetHunger(customHerbivore)
+		hunger, _ := world.GetSatiation(customHerbivore)
 		t.Logf("Custom herbivore position: (%.2f, %.2f)", pos.X, pos.Y)
-		t.Logf("Custom herbivore hunger: %.1f%% (threshold: %.1f%%)", hunger.Value, customConfig.HungerThreshold)
+		t.Logf("Custom herbivore hunger: %.1f%% (threshold: %.1f%%)", hunger.Value, customConfig.SatiationThreshold)
 		t.Logf("Custom herbivore vision range: %.2f (standard: %.2f)",
 			customConfig.VisionRange, standardVisionRange)
 	}
@@ -188,41 +188,41 @@ func TestCustomHerbivoreVision_VisionRangeValidation(t *testing.T) {
 
 			// Кастомная конфигурация с тестовым радиусом зрения
 			customConfig := core.AnimalConfig{
-				BaseRadius:       RabbitBaseRadius,
-				MaxHealth:        RabbitMaxHealth,
-				BaseSpeed:        RabbitBaseSpeed,
-				CollisionRadius:  RabbitBaseRadius,
-				AttackRange:      0,
-				VisionRange:      tc.visionRange, // Тестируемый радиус зрения
-				HungerThreshold:  RabbitHungerThreshold,
-				FleeThreshold:    RabbitBaseRadius * RabbitFleeDistanceMultiplier,
-				SearchSpeed:      SearchSpeedMultiplier,
-				WanderingSpeed:   WanderingSpeedMultiplier,
-				ContentSpeed:     ContentSpeedMultiplier,
-				MinDirectionTime: 1.0,
-				MaxDirectionTime: 3.0,
-				AttackDamage:     0,
-				AttackCooldown:   0,
-				HitChance:        0,
+				BaseRadius:         RabbitBaseRadius,
+				MaxHealth:          RabbitMaxHealth,
+				BaseSpeed:          RabbitBaseSpeed,
+				CollisionRadius:    RabbitBaseRadius,
+				AttackRange:        0,
+				VisionRange:        tc.visionRange, // Тестируемый радиус зрения
+				SatiationThreshold: RabbitSatiationThreshold,
+				FleeThreshold:      RabbitBaseRadius * RabbitFleeDistanceMultiplier,
+				SearchSpeed:        SearchSpeedMultiplier,
+				WanderingSpeed:     WanderingSpeedMultiplier,
+				ContentSpeed:       ContentSpeedMultiplier,
+				MinDirectionTime:   1.0,
+				MaxDirectionTime:   3.0,
+				AttackDamage:       0,
+				AttackCooldown:     0,
+				HitChance:          0,
 			}
 			world.AddAnimalConfig(customHerbivore, customConfig)
 
 			// Добавляем поведение
 			world.AddBehavior(customHerbivore, core.Behavior{
-				Type:             core.BehaviorHerbivore,
-				DirectionTimer:   0,
-				HungerThreshold:  customConfig.HungerThreshold,
-				FleeThreshold:    customConfig.FleeThreshold,
-				SearchSpeed:      customConfig.SearchSpeed,
-				WanderingSpeed:   customConfig.WanderingSpeed,
-				ContentSpeed:     customConfig.ContentSpeed,
-				VisionRange:      customConfig.VisionRange,
-				MinDirectionTime: customConfig.MinDirectionTime,
-				MaxDirectionTime: customConfig.MaxDirectionTime,
+				Type:               core.BehaviorHerbivore,
+				DirectionTimer:     0,
+				SatiationThreshold: customConfig.SatiationThreshold,
+				FleeThreshold:      customConfig.FleeThreshold,
+				SearchSpeed:        customConfig.SearchSpeed,
+				WanderingSpeed:     customConfig.WanderingSpeed,
+				ContentSpeed:       customConfig.ContentSpeed,
+				VisionRange:        customConfig.VisionRange,
+				MinDirectionTime:   customConfig.MinDirectionTime,
+				MaxDirectionTime:   customConfig.MaxDirectionTime,
 			})
 
 			// Голодное животное
-			world.AddHunger(customHerbivore, core.Hunger{Value: 50.0})
+			world.AddSatiation(customHerbivore, core.Satiation{Value: 50.0})
 			world.AddVelocity(customHerbivore, core.Velocity{X: 0, Y: 0})
 
 			// Тестируем поиск травы

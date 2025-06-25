@@ -18,8 +18,8 @@ const (
 	AlternativeTestSeed = 12345
 
 	// Пороги голода для тестов (соответствуют игровой логике)
-	WolfAttackHungerThreshold    = 60.0
-	RabbitFeedingHungerThreshold = 90.0
+	WolfAttackSatiationThreshold    = 60.0
+	RabbitFeedingSatiationThreshold = 90.0
 
 	// Стандартные значения здоровья
 	RabbitMaxHealth = int16(50)

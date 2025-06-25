@@ -38,7 +38,7 @@ func TestDebugSpeedsAndMovement(t *testing.T) {
 	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
 
 	// Делаем зайца сытым чтобы он не искал еду (95% > 90% threshold)
-	world.SetHunger(rabbit, core.Hunger{Value: 95.0})
+	world.SetSatiation(rabbit, core.Satiation{Value: 95.0})
 
 	// Заставляем зайца двигаться
 	world.SetVelocity(rabbit, core.Velocity{X: 2.0, Y: 0.0}) // 2 тайла/сек вправо

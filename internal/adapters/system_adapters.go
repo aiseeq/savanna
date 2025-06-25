@@ -20,10 +20,10 @@ type DeprecatedFeedingSystemAdapter struct {
 func NewDeprecatedFeedingSystemAdapter(vegetation *simulation.VegetationSystem) *DeprecatedFeedingSystemAdapter {
 	// Создаем мини-менеджер только с системами питания
 	manager := core.NewSystemManager()
-	manager.AddSystem(&HungerSystemAdapter{System: simulation.NewHungerSystem()})
+	manager.AddSystem(&SatiationSystemAdapter{System: simulation.NewSatiationSystem()})
 	manager.AddSystem(&GrassSearchSystemAdapter{System: simulation.NewGrassSearchSystem(vegetation)})
 	manager.AddSystem(&GrassEatingSystemAdapter{System: simulation.NewGrassEatingSystem(vegetation)})
-	manager.AddSystem(&HungerSpeedModifierSystemAdapter{System: simulation.NewHungerSpeedModifierSystem()})
+	manager.AddSystem(&SatiationSpeedModifierSystemAdapter{System: simulation.NewSatiationSpeedModifierSystem()})
 	manager.AddSystem(&StarvationDamageSystemAdapter{System: simulation.NewStarvationDamageSystem()})
 
 	return &DeprecatedFeedingSystemAdapter{systemManager: manager}
@@ -41,17 +41,20 @@ func NewFeedingSystemAdapter(vegetation *simulation.VegetationSystem) *FeedingSy
 	return NewDeprecatedFeedingSystemAdapter(vegetation)
 }
 
-// HungerSystemAdapter адаптирует HungerSystem к старому интерфейсу System
-type HungerSystemAdapter struct {
-	System *simulation.HungerSystem
+// SatiationSystemAdapter адаптирует SatiationSystem к старому интерфейсу System
+type SatiationSystemAdapter struct {
+	System *simulation.SatiationSystem
 }
 
-func (a *HungerSystemAdapter) Update(world *core.World, deltaTime float32) {
+func (a *SatiationSystemAdapter) Update(world *core.World, deltaTime float32) {
 	if a.System == nil {
 		return
 	}
 	a.System.Update(world, deltaTime)
 }
+
+// HungerSystemAdapter DEPRECATED: алиас для совместимости
+type HungerSystemAdapter = SatiationSystemAdapter
 
 // GrassSearchSystemAdapter адаптирует GrassSearchSystem к старому интерфейсу System
 type GrassSearchSystemAdapter struct {
@@ -65,17 +68,20 @@ func (a *GrassSearchSystemAdapter) Update(world *core.World, deltaTime float32) 
 	a.System.Update(world, deltaTime)
 }
 
-// HungerSpeedModifierSystemAdapter адаптирует HungerSpeedModifierSystem к старому интерфейсу System
-type HungerSpeedModifierSystemAdapter struct {
-	System *simulation.HungerSpeedModifierSystem
+// SatiationSpeedModifierSystemAdapter адаптирует SatiationSpeedModifierSystem к старому интерфейсу System
+type SatiationSpeedModifierSystemAdapter struct {
+	System *simulation.SatiationSpeedModifierSystem
 }
 
-func (a *HungerSpeedModifierSystemAdapter) Update(world *core.World, deltaTime float32) {
+func (a *SatiationSpeedModifierSystemAdapter) Update(world *core.World, deltaTime float32) {
 	if a.System == nil {
 		return
 	}
 	a.System.Update(world, deltaTime)
 }
+
+// HungerSpeedModifierSystemAdapter DEPRECATED: алиас для совместимости
+type HungerSpeedModifierSystemAdapter = SatiationSpeedModifierSystemAdapter
 
 // StarvationDamageSystemAdapter адаптирует StarvationDamageSystem к старому интерфейсу System
 type StarvationDamageSystemAdapter struct {

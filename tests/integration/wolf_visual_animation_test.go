@@ -61,7 +61,7 @@ func TestWolfVisualAnimationProblem(t *testing.T) {
 	world.SetAnimation(wolf, animComp)
 
 	// Делаем волка голодным
-	world.SetHunger(wolf, core.Hunger{Value: 30.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 30.0})
 
 	deltaTime := float32(1.0 / 60.0)
 
@@ -126,7 +126,7 @@ func TestWolfVisualAnimationProblem(t *testing.T) {
 			}
 
 			rabbitHealth, _ := world.GetHealth(rabbit)
-			wolfHunger, _ := world.GetHunger(wolf)
+			wolfHunger, _ := world.GetSatiation(wolf)
 
 			t.Logf("  %.1fс: %s кадр %d/%d, здоровье зайца %d, голод волка %.0f%%",
 				float32(i)/60.0, animation.AnimationType(anim.CurrentAnim).String(),
@@ -191,7 +191,7 @@ func TestWolfVisualAnimationProblem(t *testing.T) {
 						maxFrames = animData.Frames
 					}
 
-					wolfHunger, _ := world.GetHunger(wolf)
+					wolfHunger, _ := world.GetSatiation(wolf)
 
 					t.Logf("  %.1fс: %s кадр %d/%d, голод волка %.0f%%",
 						float32(j)/60.0, animation.AnimationType(anim.CurrentAnim).String(),
@@ -211,7 +211,7 @@ func getWolfAnimationType(world *core.World, entity core.EntityID) animation.Ani
 	}
 
 	// Проверяем сытость
-	hunger, hasHunger := world.GetHunger(entity)
+	hunger, hasHunger := world.GetSatiation(entity)
 	if hasHunger && hunger.Value > 85.0 {
 		velocity, hasVel := world.GetVelocity(entity)
 		if hasVel {

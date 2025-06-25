@@ -248,7 +248,7 @@ func BenchmarkFullGameLoop(b *testing.B) {
 		})
 		world.AddVelocity(entity, core.Velocity{X: 0, Y: 0})
 		world.AddHealth(entity, core.Health{Current: 50, Max: 50})
-		world.AddHunger(entity, core.Hunger{Value: 80})
+		world.AddSatiation(entity, core.Satiation{Value: 80})
 		world.AddAnimalType(entity, core.TypeRabbit)
 		world.AddSize(entity, core.Size{Radius: 5, AttackRange: 0})
 		world.AddSpeed(entity, core.Speed{Base: 20, Current: 20})
@@ -262,7 +262,7 @@ func BenchmarkFullGameLoop(b *testing.B) {
 		})
 		world.AddVelocity(entity, core.Velocity{X: 0, Y: 0})
 		world.AddHealth(entity, core.Health{Current: 100, Max: 100})
-		world.AddHunger(entity, core.Hunger{Value: 60})
+		world.AddSatiation(entity, core.Satiation{Value: 60})
 		world.AddAnimalType(entity, core.TypeWolf)
 		world.AddSize(entity, core.Size{Radius: 10, AttackRange: 0})
 		world.AddSpeed(entity, core.Speed{Base: 30, Current: 30})
@@ -288,13 +288,13 @@ func BenchmarkFullGameLoop(b *testing.B) {
 		})
 
 		// Система голода
-		world.ForEachWith(core.MaskHunger, func(entity core.EntityID) {
-			hunger, _ := world.GetHunger(entity)
+		world.ForEachWith(core.MaskSatiation, func(entity core.EntityID) {
+			hunger, _ := world.GetSatiation(entity)
 			hunger.Value -= deltaTime * 0.2 // Теряем 0.2% голода в секунду
 			if hunger.Value < 0 {
 				hunger.Value = 0
 			}
-			world.SetHunger(entity, hunger)
+			world.SetSatiation(entity, hunger)
 		})
 
 		// Подсчет статистики
@@ -333,7 +333,7 @@ func BenchmarkComponentMaskHas(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = mask.HasComponent(core.MaskPosition)
 		_ = mask.HasComponent(core.MaskVelocity)
-		_ = mask.HasComponent(core.MaskHunger)
+		_ = mask.HasComponent(core.MaskSatiation)
 	}
 }
 

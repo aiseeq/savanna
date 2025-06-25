@@ -13,8 +13,8 @@ var (
 	_ CombatSystemAccess   = (*World)(nil)
 
 	// ISP УЛУЧШЕНИЯ: узкоспециализированные интерфейсы для конкретных систем
-	_ HungerSystemAccess              = (*World)(nil)
-	_ GrassSearchSystemAccess         = (*World)(nil)
-	_ StarvationDamageSystemAccess    = (*World)(nil)
-	_ HungerSpeedModifierSystemAccess = (*World)(nil)
+	_ SatiationSystemAccess              = (*World)(nil)
+	_ GrassSearchSystemAccess            = (*World)(nil)
+	_ StarvationDamageSystemAccess       = (*World)(nil)
+	_ SatiationSpeedModifierSystemAccess = (*World)(nil)
 )

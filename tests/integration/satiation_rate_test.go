@@ -10,8 +10,8 @@ import (
 	"github.com/aiseeq/savanna/internal/simulation"
 )
 
-// TestHungerRate проверяет скорость голода без еды
-func TestHungerRate(t *testing.T) {
+// TestSatiationRate проверяет скорость сытости без еды
+func TestSatiationRate(t *testing.T) {
 	t.Parallel()
 	cfg := config.LoadDefaultConfig()
 	cfg.World.Size = 20
@@ -24,17 +24,17 @@ func TestHungerRate(t *testing.T) {
 
 	_ = simulation.NewVegetationSystem(terrain) // используется в системах
 
-	// Создаём зайца без травы чтобы проверить скорость голода
+	// Создаём зайца без травы чтобы проверить скорость сытости
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
 
 	tileX, tileY := int(300/32), int(300/32)
 	terrain.SetTileType(tileX, tileY, generator.TileGrass)
-	terrain.SetGrassAmount(tileX, tileY, 0.0) // Нет травы - заяц будет голодать
+	terrain.SetGrassAmount(tileX, tileY, 0.0) // Нет травы - заяц будет терять сытость
 
-	// Устанавливаем начальный голод 100% (сытый)
-	world.SetHunger(rabbit, core.Hunger{Value: 100.0})
+	// Устанавливаем начальную сытость 100% (сытый)
+	world.SetSatiation(rabbit, core.Satiation{Value: 100.0})
 
-	t.Log("=== Тест скорости голода без еды ===")
+	t.Log("=== Тест скорости сытости без еды ===")
 
 	// Симулируем 5 секунд (300 тиков)
 	deltaTime := float32(1.0 / 60.0)
@@ -45,27 +45,27 @@ func TestHungerRate(t *testing.T) {
 
 		// Отладка каждую секунду
 		if i%60 == 59 {
-			currentHunger, _ := world.GetHunger(rabbit)
-			t.Logf("  Секунда %d: голод %.1f", (i+1)/60, currentHunger.Value)
+			currentSatiation, _ := world.GetSatiation(rabbit)
+			t.Logf("  Секунда %d: сытость %.1f", (i+1)/60, currentSatiation.Value)
 		}
 	}
 
-	finalHunger, _ := world.GetHunger(rabbit)
-	t.Logf("Итого за 5 сек: голод %.1f", finalHunger.Value)
+	finalSatiation, _ := world.GetSatiation(rabbit)
+	t.Logf("Итого за 5 сек: сытость %.1f", finalSatiation.Value)
 
-	// ИСПРАВЛЕНИЕ: Используем реальную скорость голода из game_balance.go
-	// BaseHungerDecreaseRate = 2.0% в секунду = 10% за 5 секунд
-	// Но заяц может иметь модификаторы скорости голода
+	// ИСПРАВЛЕНИЕ: Используем реальную скорость сытости из game_balance.go
+	// BaseSatiationDecreaseRate = 2.0% в секунду = 10% за 5 секунд
+	// Но заяц может иметь модификаторы скорости сытости
 	expectedDecrease := 5.0 * 2.0 // 5 сек * 2.0% в секунду = 10%
-	actualDecrease := 100.0 - finalHunger.Value
+	actualDecrease := 100.0 - finalSatiation.Value
 
 	t.Logf("Ожидалось уменьшение: %.1f%%, получили: %.1f%%", expectedDecrease, actualDecrease)
 
 	// ВРЕМЕННОЕ ИСПРАВЛЕНИЕ: принимаем текущую скорость как правильную
-	// Возможно, есть модификаторы скорости голода для зайцев
+	// Возможно, есть модификаторы скорости сытости для зайцев
 	if actualDecrease < 4.0 || actualDecrease > 6.0 {
-		t.Errorf("Голод уменьшился неправильно: ожидалось ~5%%, получили %.1f%%", actualDecrease)
+		t.Errorf("Сытость уменьшилась неправильно: ожидалось ~5%%, получили %.1f%%", actualDecrease)
 	} else {
-		t.Logf("✅ Скорость голода корректна: %.1f%% за 5 секунд", actualDecrease)
+		t.Logf("✅ Скорость сытости корректна: %.1f%% за 5 секунд", actualDecrease)
 	}
 }

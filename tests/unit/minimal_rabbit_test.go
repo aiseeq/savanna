@@ -21,7 +21,7 @@ func TestMinimalRabbitFunctionality(t *testing.T) {
 	// Test basic component adding/setting
 	world.AddPosition(rabbit, core.Position{X: 16, Y: 16})
 	world.AddVelocity(rabbit, core.Velocity{X: 0, Y: 0})
-	world.AddHunger(rabbit, core.Hunger{Value: 50.0})
+	world.AddSatiation(rabbit, core.Satiation{Value: 50.0})
 	world.AddAnimalType(rabbit, core.TypeRabbit)
 	world.AddHealth(rabbit, core.Health{Current: 100, Max: 100})
 
@@ -38,7 +38,7 @@ func TestMinimalRabbitFunctionality(t *testing.T) {
 	}
 
 	// Test 2: Hunger component
-	hunger, hasHunger := world.GetHunger(rabbit)
+	hunger, hasHunger := world.GetSatiation(rabbit)
 	if !hasHunger {
 		t.Errorf("❌ Hunger component not found")
 		return
@@ -75,7 +75,7 @@ func TestMinimalRabbitFunctionality(t *testing.T) {
 
 	// Test 5: Component masks and queries
 	positionExists := world.HasComponent(rabbit, core.MaskPosition)
-	hungerExists := world.HasComponent(rabbit, core.MaskHunger)
+	hungerExists := world.HasComponent(rabbit, core.MaskSatiation)
 	animalTypeExists := world.HasComponent(rabbit, core.MaskAnimalType)
 
 	if !positionExists || !hungerExists || !animalTypeExists {
@@ -86,8 +86,8 @@ func TestMinimalRabbitFunctionality(t *testing.T) {
 	}
 
 	// Test 6: Modify hunger (simulate hunger system effect)
-	world.SetHunger(rabbit, core.Hunger{Value: 40.0})
-	newHunger, _ := world.GetHunger(rabbit)
+	world.SetSatiation(rabbit, core.Satiation{Value: 40.0})
+	newHunger, _ := world.GetSatiation(rabbit)
 	if newHunger.Value != 40.0 {
 		t.Errorf("❌ Hunger modification failed: expected 40.0, got %.1f", newHunger.Value)
 	} else {

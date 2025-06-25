@@ -44,7 +44,7 @@ func TestRabbitFleeAnimation(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 220, 200) // Близко к зайцу
 
 	// Делаем волка голодным чтобы он охотился
-	world.SetHunger(wolf, core.Hunger{Value: 50.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 50.0})
 
 	deltaTime := float32(1.0 / 60.0)
 

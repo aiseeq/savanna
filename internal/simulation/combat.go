@@ -9,13 +9,13 @@ const (
 	// WOLF_ATTACK_RANGE импортируется из animal.go
 
 	// ПАРАМЕТРЫ АТАК
-	AttackCooldownSeconds = 0.2 // Кулдаун между атаками (секунды)
-	AttackHitChance       = 0.8 // Шанс попадания атаки (80%)
-	WolfAttackDamage      = 25  // Урон от атаки волка
+	AttackCooldownSeconds = 0.2 // DEPRECATED: Fallback константа, используется config.AttackCooldown
+	AttackHitChance       = 0.8 // Шанс попадания атаки (80%) - DEPRECATED, используется из game_balance.go
+	WolfAttackDamage      = 25  // Урон от атаки волка - DEPRECATED, используется из game_balance.go
 
 	// ПАРАМЕТРЫ ТРУПОВ
-	CorpseNutritionalValue = 200.0 // Питательность трупа зайца (увеличено для достижения порога 80%)
-	CorpseDecayTime        = 60.0  // Время разложения трупа (секунды)
+	CorpseNutritionalValue = 50.0 // Питательность трупа зайца - ИСПРАВЛЕНО: снижено с 200 до 50
+	CorpseDecayTime        = 60.0 // Время разложения трупа (секунды)
 
 	// ПАРАМЕТРЫ ПОЕДАНИЯ (перенесены в game_balance.go)
 	// EatingRange, CorpseNutritionPerTick, NutritionToHungerRatio теперь в game_balance.go

@@ -128,8 +128,8 @@ func CreateCorpseAndGetID(world *core.World, animal core.EntityID) core.EntityID
 	if world.HasComponent(animal, core.MaskSize) {
 		world.RemoveSize(animal)
 	}
-	if world.HasComponent(animal, core.MaskHunger) {
-		world.RemoveHunger(animal)
+	if world.HasComponent(animal, core.MaskSatiation) {
+		world.RemoveSatiation(animal)
 	}
 	// Оставляем Health=0 для индикации что это труп
 

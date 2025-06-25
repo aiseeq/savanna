@@ -49,7 +49,7 @@ func TestEatingFrameValidation(t *testing.T) {
 
 	// Делаем зайца голодным
 	initialHunger := float32(60.0)
-	world.SetHunger(rabbit, core.Hunger{Value: initialHunger})
+	world.SetSatiation(rabbit, core.Satiation{Value: initialHunger})
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0})
 
 	// Принудительно создаём EatingState
@@ -78,7 +78,7 @@ func TestEatingFrameValidation(t *testing.T) {
 		FacingRight: true,
 	})
 
-	hunger1, _ := world.GetHunger(rabbit)
+	hunger1, _ := world.GetSatiation(rabbit)
 	t.Logf("Голод ДО обновления (кадр 0): %.3f%%", hunger1.Value)
 
 	// Обновляем системы В ПРАВИЛЬНОМ ПОРЯДКЕ (как в GUI режиме)
@@ -87,7 +87,7 @@ func TestEatingFrameValidation(t *testing.T) {
 	animationAdapter.Update(world, deltaTime)
 	systemManager.Update(world, deltaTime)
 
-	hunger2, _ := world.GetHunger(rabbit)
+	hunger2, _ := world.GetSatiation(rabbit)
 	t.Logf("Голод ПОСЛЕ обновления (кадр 0): %.3f%%", hunger2.Value)
 
 	hungerChange1 := hunger2.Value - hunger1.Value
@@ -110,7 +110,7 @@ func TestEatingFrameValidation(t *testing.T) {
 		FacingRight: true,
 	})
 
-	hunger3, _ := world.GetHunger(rabbit)
+	hunger3, _ := world.GetSatiation(rabbit)
 	t.Logf("Голод ДО обновления (кадр 1): %.3f%%", hunger3.Value)
 
 	// Обновляем системы В ПРАВИЛЬНОМ ПОРЯДКЕ (как в GUI режиме)
@@ -119,7 +119,7 @@ func TestEatingFrameValidation(t *testing.T) {
 	animationAdapter.Update(world, deltaTime)
 	systemManager.Update(world, deltaTime)
 
-	hunger4, _ := world.GetHunger(rabbit)
+	hunger4, _ := world.GetSatiation(rabbit)
 	t.Logf("Голод ПОСЛЕ обновления (кадр 1): %.3f%%", hunger4.Value)
 
 	hungerChange2 := hunger4.Value - hunger3.Value
@@ -144,7 +144,7 @@ func TestEatingFrameValidation(t *testing.T) {
 		FacingRight: true,
 	})
 
-	hunger5, _ := world.GetHunger(rabbit)
+	hunger5, _ := world.GetSatiation(rabbit)
 	t.Logf("Голод ДО обновления (кадр 0 снова): %.3f%%", hunger5.Value)
 
 	// Обновляем системы В ПРАВИЛЬНОМ ПОРЯДКЕ (как в GUI режиме)
@@ -153,7 +153,7 @@ func TestEatingFrameValidation(t *testing.T) {
 	animationAdapter.Update(world, deltaTime)
 	systemManager.Update(world, deltaTime)
 
-	hunger6, _ := world.GetHunger(rabbit)
+	hunger6, _ := world.GetSatiation(rabbit)
 	t.Logf("Голод ПОСЛЕ обновления (кадр 0 снова): %.3f%%", hunger6.Value)
 
 	hungerChange3 := hunger6.Value - hunger5.Value

@@ -38,27 +38,27 @@ func TestBehaviorSystem_UsesAnimalConfig(t *testing.T) {
 	world.AddPosition(entity, core.Position{X: 50, Y: 50})
 	world.AddVelocity(entity, core.Velocity{X: 0, Y: 0})
 	world.AddHealth(entity, core.Health{Current: 100, Max: 100})
-	world.AddHunger(entity, core.Hunger{Value: 50.0}) // Голодное животное
+	world.AddSatiation(entity, core.Satiation{Value: 50.0}) // Голодное животное
 	world.AddAnimalType(entity, core.TypeRabbit)
 
 	// Создаем кастомную конфигурацию с большим радиусом зрения
 	customConfig := core.AnimalConfig{
-		BaseRadius:       0.5,
-		MaxHealth:        100,
-		BaseSpeed:        1.0,
-		CollisionRadius:  0.5,
-		AttackRange:      0.0,  // Травоядное
-		VisionRange:      10.0, // БОЛЬШОЙ радиус зрения - 10 тайлов
-		HungerThreshold:  80.0, // Ест при голоде < 80%
-		FleeThreshold:    2.0,
-		SearchSpeed:      0.8,
-		WanderingSpeed:   0.7,
-		ContentSpeed:     0.3,
-		MinDirectionTime: 1.0,
-		MaxDirectionTime: 4.0,
-		AttackDamage:     0,
-		AttackCooldown:   0.0,
-		HitChance:        0.0,
+		BaseRadius:         0.5,
+		MaxHealth:          100,
+		BaseSpeed:          1.0,
+		CollisionRadius:    0.5,
+		AttackRange:        0.0,  // Травоядное
+		VisionRange:        10.0, // БОЛЬШОЙ радиус зрения - 10 тайлов
+		SatiationThreshold: 80.0, // Ест при голоде < 80%
+		FleeThreshold:      2.0,
+		SearchSpeed:        0.8,
+		WanderingSpeed:     0.7,
+		ContentSpeed:       0.3,
+		MinDirectionTime:   1.0,
+		MaxDirectionTime:   4.0,
+		AttackDamage:       0,
+		AttackCooldown:     0.0,
+		HitChance:          0.0,
 	}
 	world.AddAnimalConfig(entity, customConfig)
 
@@ -76,16 +76,16 @@ func TestBehaviorSystem_UsesAnimalConfig(t *testing.T) {
 
 	// Добавляем поведение
 	world.AddBehavior(entity, core.Behavior{
-		Type:             core.BehaviorHerbivore,
-		DirectionTimer:   0,
-		HungerThreshold:  customConfig.HungerThreshold,
-		FleeThreshold:    customConfig.FleeThreshold,
-		SearchSpeed:      customConfig.SearchSpeed,
-		WanderingSpeed:   customConfig.WanderingSpeed,
-		ContentSpeed:     customConfig.ContentSpeed,
-		VisionRange:      customConfig.VisionRange,
-		MinDirectionTime: customConfig.MinDirectionTime,
-		MaxDirectionTime: customConfig.MaxDirectionTime,
+		Type:               core.BehaviorHerbivore,
+		DirectionTimer:     0,
+		SatiationThreshold: customConfig.SatiationThreshold,
+		FleeThreshold:      customConfig.FleeThreshold,
+		SearchSpeed:        customConfig.SearchSpeed,
+		WanderingSpeed:     customConfig.WanderingSpeed,
+		ContentSpeed:       customConfig.ContentSpeed,
+		VisionRange:        customConfig.VisionRange,
+		MinDirectionTime:   customConfig.MinDirectionTime,
+		MaxDirectionTime:   customConfig.MaxDirectionTime,
 	})
 
 	// Запоминаем исходную скорость
@@ -113,8 +113,8 @@ func TestBehaviorSystem_UsesAnimalConfig(t *testing.T) {
 		t.Errorf("Expected vision range 10.0, got %f", config.VisionRange)
 	}
 
-	if config.HungerThreshold != 80.0 {
-		t.Errorf("Expected hunger threshold 80.0, got %f", config.HungerThreshold)
+	if config.SatiationThreshold != 80.0 {
+		t.Errorf("Expected hunger threshold 80.0, got %f", config.SatiationThreshold)
 	}
 
 	t.Logf("SUCCESS: Custom animal with vision range %f is using AnimalConfig correctly",
@@ -220,42 +220,42 @@ func TestBehaviorSystem_NoHardcodedAnimalTypes(t *testing.T) {
 	world.AddPosition(unknownHerbivore, core.Position{X: 50, Y: 50})
 	world.AddVelocity(unknownHerbivore, core.Velocity{X: 0, Y: 0})
 	world.AddHealth(unknownHerbivore, core.Health{Current: 100, Max: 100})
-	world.AddHunger(unknownHerbivore, core.Hunger{Value: 50.0})
+	world.AddSatiation(unknownHerbivore, core.Satiation{Value: 50.0})
 	world.AddAnimalType(unknownHerbivore, core.TypeNone) // Неизвестный тип!
 
 	// Но с конфигурацией травоядного
 	herbivoreConfig := core.AnimalConfig{
-		BaseRadius:       0.3,
-		MaxHealth:        100,
-		BaseSpeed:        1.5,
-		CollisionRadius:  0.3,
-		AttackRange:      0.0, // НЕ атакует = травоядное
-		VisionRange:      2.4,
-		HungerThreshold:  85.0,
-		FleeThreshold:    1.2,
-		SearchSpeed:      0.8,
-		WanderingSpeed:   0.7,
-		ContentSpeed:     0.3,
-		MinDirectionTime: 1.0,
-		MaxDirectionTime: 4.0,
-		AttackDamage:     0,
-		AttackCooldown:   0.0,
-		HitChance:        0.0,
+		BaseRadius:         0.3,
+		MaxHealth:          100,
+		BaseSpeed:          1.5,
+		CollisionRadius:    0.3,
+		AttackRange:        0.0, // НЕ атакует = травоядное
+		VisionRange:        2.4,
+		SatiationThreshold: 85.0,
+		FleeThreshold:      1.2,
+		SearchSpeed:        0.8,
+		WanderingSpeed:     0.7,
+		ContentSpeed:       0.3,
+		MinDirectionTime:   1.0,
+		MaxDirectionTime:   4.0,
+		AttackDamage:       0,
+		AttackCooldown:     0.0,
+		HitChance:          0.0,
 	}
 	world.AddAnimalConfig(unknownHerbivore, herbivoreConfig)
 	world.AddSize(unknownHerbivore, core.Size{Radius: 9.6, AttackRange: 0})
 	world.AddSpeed(unknownHerbivore, core.Speed{Current: 1.5, Base: 1.5})
 	world.AddBehavior(unknownHerbivore, core.Behavior{
-		Type:             core.BehaviorHerbivore, // Поведение травоядного
-		DirectionTimer:   0,
-		HungerThreshold:  herbivoreConfig.HungerThreshold,
-		FleeThreshold:    herbivoreConfig.FleeThreshold,
-		SearchSpeed:      herbivoreConfig.SearchSpeed,
-		WanderingSpeed:   herbivoreConfig.WanderingSpeed,
-		ContentSpeed:     herbivoreConfig.ContentSpeed,
-		VisionRange:      herbivoreConfig.VisionRange,
-		MinDirectionTime: herbivoreConfig.MinDirectionTime,
-		MaxDirectionTime: herbivoreConfig.MaxDirectionTime,
+		Type:               core.BehaviorHerbivore, // Поведение травоядного
+		DirectionTimer:     0,
+		SatiationThreshold: herbivoreConfig.SatiationThreshold,
+		FleeThreshold:      herbivoreConfig.FleeThreshold,
+		SearchSpeed:        herbivoreConfig.SearchSpeed,
+		WanderingSpeed:     herbivoreConfig.WanderingSpeed,
+		ContentSpeed:       herbivoreConfig.ContentSpeed,
+		VisionRange:        herbivoreConfig.VisionRange,
+		MinDirectionTime:   herbivoreConfig.MinDirectionTime,
+		MaxDirectionTime:   herbivoreConfig.MaxDirectionTime,
 	})
 
 	// Система должна работать без ошибок

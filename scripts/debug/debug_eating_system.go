@@ -102,9 +102,9 @@ func setupDebugSystems(
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 
 	// НОВЫЕ СИСТЕМЫ (следуют принципу SRP):
-	hungerSystem := simulation.NewHungerSystem()                           // 1. Только управление голодом
+	satiationSystem := simulation.NewSatiationSystem()                     // 1. Только управление голодом
 	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem) // 2. Только поиск травы и создание EatingState
-	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem()       // 3. Только влияние голода на скорость
+	satiationSpeedModifier := simulation.NewSatiationSpeedModifierSystem() // 3. Только влияние голода на скорость
 	starvationDamage := simulation.NewStarvationDamageSystem()             // 4. Только урон от голода
 
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
@@ -114,7 +114,7 @@ func setupDebugSystems(
 	worldSizePixels := float32(cfg.World.Size * TileSizePixels)
 	systemManager.AddSystem(vegetationSystem)              // 1. Рост травы
 	systemManager.AddSystem(&adapters.HungerSystemAdapter{ // 2. Управление голодом
-		System: hungerSystem,
+		System: satiationSystem,
 	})
 	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{ // 3. Создание EatingState
 		System: grassSearchSystem,
@@ -123,7 +123,7 @@ func setupDebugSystems(
 	// 5. Поведение (проверяет EatingState)
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
 	systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{ // 6. Влияние голода на скорость
-		System: hungerSpeedModifier,
+		System: satiationSpeedModifier,
 	})
 	movementSystem := simulation.NewMovementSystem(worldSizePixels, worldSizePixels)
 	// 7. Движение (сбрасывает скорость едящих)
@@ -270,13 +270,13 @@ func countRabbitStates(world *core.World, entity core.EntityID, stats *AnimalSta
 func printWolfDetails(world *core.World) {
 	fmt.Printf("      Детали волков:\n")
 	wolfIndex := 0
-	world.ForEachWith(core.MaskAnimalType|core.MaskHunger, func(entity core.EntityID) {
+	world.ForEachWith(core.MaskAnimalType|core.MaskSatiation, func(entity core.EntityID) {
 		animalType, ok := world.GetAnimalType(entity)
 		if !ok || animalType != core.TypeWolf {
 			return
 		}
 
-		hunger, _ := world.GetHunger(entity)
+		hunger, _ := world.GetSatiation(entity)
 		health, _ := world.GetHealth(entity)
 
 		status := "Живой"

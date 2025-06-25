@@ -7,10 +7,10 @@ import (
 
 // AnimalSpec описывает параметры создаваемого животного
 type AnimalSpec struct {
-	X      float32 // Позиция X
-	Y      float32 // Позиция Y
-	Hunger float32 // Процент голода (0-100)
-	Health int16   // Текущее здоровье
+	X         float32 // Позиция X
+	Y         float32 // Позиция Y
+	Satiation float32 // Процент сытости (0-100)
+	Health    int16   // Текущее здоровье
 }
 
 // TestEntities содержит ссылки на созданных в тесте животных
@@ -69,12 +69,12 @@ func (b *TestWorldBuilder) WithoutSystems() *TestWorldBuilder {
 }
 
 // AddRabbit добавляет зайца с заданными параметрами
-func (b *TestWorldBuilder) AddRabbit(x, y, hunger float32, health int16) *TestWorldBuilder {
+func (b *TestWorldBuilder) AddRabbit(x, y, satiation float32, health int16) *TestWorldBuilder {
 	b.rabbits = append(b.rabbits, AnimalSpec{
-		X:      x,
-		Y:      y,
-		Hunger: hunger,
-		Health: health,
+		X:         x,
+		Y:         y,
+		Satiation: satiation,
+		Health:    health,
 	})
 	return b
 }
@@ -97,10 +97,10 @@ func (b *TestWorldBuilder) AddDamagedRabbit() *TestWorldBuilder {
 // AddWolf добавляет волка с заданными параметрами
 func (b *TestWorldBuilder) AddWolf(x, y, hunger float32) *TestWorldBuilder {
 	b.wolves = append(b.wolves, AnimalSpec{
-		X:      x,
-		Y:      y,
-		Hunger: hunger,
-		Health: WolfMaxHealth,
+		X:         x,
+		Y:         y,
+		Satiation: hunger,
+		Health:    WolfMaxHealth,
 	})
 	return b
 }
@@ -146,7 +146,7 @@ func (b *TestWorldBuilder) Build() (*core.World, *core.SystemManager, TestEntiti
 	// Создаем зайцев
 	for _, spec := range b.rabbits {
 		rabbit := simulation.CreateAnimal(world, core.TypeRabbit, spec.X, spec.Y)
-		world.SetHunger(rabbit, core.Hunger{Value: spec.Hunger})
+		world.SetSatiation(rabbit, core.Satiation{Value: spec.Satiation})
 		world.SetHealth(rabbit, core.Health{Current: spec.Health, Max: RabbitMaxHealth})
 		entities.Rabbits = append(entities.Rabbits, rabbit)
 	}
@@ -154,7 +154,7 @@ func (b *TestWorldBuilder) Build() (*core.World, *core.SystemManager, TestEntiti
 	// Создаем волков
 	for _, spec := range b.wolves {
 		wolf := simulation.CreateAnimal(world, core.TypeWolf, spec.X, spec.Y)
-		world.SetHunger(wolf, core.Hunger{Value: spec.Hunger})
+		world.SetSatiation(wolf, core.Satiation{Value: spec.Satiation})
 		world.SetHealth(wolf, core.Health{Current: spec.Health, Max: WolfMaxHealth})
 		entities.Wolves = append(entities.Wolves, wolf)
 	}
@@ -179,7 +179,7 @@ func (b *TestWorldBuilder) BuildWithAnimations() (*core.World, *TestSystemBundle
 	// Создаем зайцев
 	for _, spec := range b.rabbits {
 		rabbit := simulation.CreateAnimal(world, core.TypeRabbit, spec.X, spec.Y)
-		world.SetHunger(rabbit, core.Hunger{Value: spec.Hunger})
+		world.SetSatiation(rabbit, core.Satiation{Value: spec.Satiation})
 		world.SetHealth(rabbit, core.Health{Current: spec.Health, Max: RabbitMaxHealth})
 		entities.Rabbits = append(entities.Rabbits, rabbit)
 	}
@@ -187,7 +187,7 @@ func (b *TestWorldBuilder) BuildWithAnimations() (*core.World, *TestSystemBundle
 	// Создаем волков
 	for _, spec := range b.wolves {
 		wolf := simulation.CreateAnimal(world, core.TypeWolf, spec.X, spec.Y)
-		world.SetHunger(wolf, core.Hunger{Value: spec.Hunger})
+		world.SetSatiation(wolf, core.Satiation{Value: spec.Satiation})
 		world.SetHealth(wolf, core.Health{Current: spec.Health, Max: WolfMaxHealth})
 		entities.Wolves = append(entities.Wolves, wolf)
 	}

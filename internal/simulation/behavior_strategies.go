@@ -33,7 +33,7 @@ type AnimalComponents struct {
 	AnimalConfig core.AnimalConfig
 	Position     core.Position
 	Speed        core.Speed
-	Hunger       core.Hunger
+	Satiation    core.Satiation
 }
 
 // UpdateBehavior реализует поведение травоядных (KISS: упрощено разбиением на методы)
@@ -109,7 +109,7 @@ func (h *HerbivoreBehaviorStrategy) handleFeeding(
 	components AnimalComponents,
 ) *core.Velocity {
 	isCurrentlyEating := world.HasComponent(entity, core.MaskEatingState)
-	if !(components.Hunger.Value < components.AnimalConfig.HungerThreshold || isCurrentlyEating) || h.vegetation == nil {
+	if !(components.Satiation.Value < components.AnimalConfig.SatiationThreshold || isCurrentlyEating) || h.vegetation == nil {
 		return nil // Не голоден и не ест
 	}
 
@@ -219,7 +219,7 @@ func (p *PredatorBehaviorStrategy) UpdateBehavior(
 	}
 
 	// Хищники охотятся только когда голодны
-	if components.Hunger.Value < components.AnimalConfig.HungerThreshold {
+	if components.Satiation.Value < components.AnimalConfig.SatiationThreshold {
 		// Ищем ближайшую добычу (травоядных)
 		nearestPrey, foundPrey := world.FindNearestByTypeInTiles(
 			components.Position.X, components.Position.Y,

@@ -174,14 +174,14 @@ func TestDestroyEntityCleanup(t *testing.T) {
 	world.AddPosition(entity, core.Position{X: 10, Y: 10})
 	world.AddVelocity(entity, core.Velocity{X: 1, Y: 1})
 	world.AddHealth(entity, core.Health{Current: 100, Max: 100})
-	world.AddHunger(entity, core.Hunger{Value: 50})
+	world.AddSatiation(entity, core.Satiation{Value: 50})
 	world.AddAnimalType(entity, core.TypeRabbit)
 	world.AddSize(entity, core.Size{Radius: 5, AttackRange: 0})
 	world.AddSpeed(entity, core.Speed{Base: 20, Current: 15})
 
 	// Проверяем что все компоненты есть
 	if !world.HasComponents(entity,
-		core.MaskPosition|core.MaskVelocity|core.MaskHealth|core.MaskHunger|
+		core.MaskPosition|core.MaskVelocity|core.MaskHealth|core.MaskSatiation|
 			core.MaskAnimalType|core.MaskSize|core.MaskSpeed) {
 		t.Error("Entity should have all components before destruction")
 	}

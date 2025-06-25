@@ -81,11 +81,11 @@ func (gw *GameWorld) initializeSystems(worldWidth, worldHeight int) {
 	vegetationSystem := simulation.NewVegetationSystem(gw.terrain)
 
 	// НОВЫЕ СИСТЕМЫ (следуют принципу SRP):
-	hungerSystem := simulation.NewHungerSystem() // 1. Только управление голодом
+	satiationSystem := simulation.NewSatiationSystem() // 1. Только управление сытостью
 	// 2. Только поиск травы и создание EatingState (DIP: использует интерфейс)
 	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem)
-	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem() // 3. Только влияние голода на скорость
-	starvationDamage := simulation.NewStarvationDamageSystem()       // 4. Только урон от голода
+	satiationSpeedModifier := simulation.NewSatiationSpeedModifierSystem() // 3. Только влияние сытости на скорость
+	starvationDamage := simulation.NewStarvationDamageSystem()             // 4. Только урон от истощения
 
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem) // DIP: использует интерфейс VegetationProvider
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
@@ -95,9 +95,9 @@ func (gw *GameWorld) initializeSystems(worldWidth, worldHeight int) {
 	combatSystem := simulation.NewCombatSystem()
 
 	// Добавляем системы в правильном порядке (КРИТИЧЕСКИ ВАЖЕН ДЛЯ ПИТАНИЯ!)
-	gw.systemManager.AddSystem(vegetationSystem)              // 1. Рост травы
-	gw.systemManager.AddSystem(&adapters.HungerSystemAdapter{ // 2. Управление голодом
-		System: hungerSystem,
+	gw.systemManager.AddSystem(vegetationSystem)                 // 1. Рост травы
+	gw.systemManager.AddSystem(&adapters.SatiationSystemAdapter{ // 2. Управление сытостью
+		System: satiationSystem,
 	})
 	gw.systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{ // 3. Создание EatingState
 		System: grassSearchSystem,
@@ -106,14 +106,14 @@ func (gw *GameWorld) initializeSystems(worldWidth, worldHeight int) {
 	gw.systemManager.AddSystem(&adapters.BehaviorSystemAdapter{ // 5. Поведение (проверяет EatingState)
 		System: animalBehaviorSystem,
 	})
-	gw.systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{ // 6. Влияние голода на скорость
-		System: hungerSpeedModifier,
+	gw.systemManager.AddSystem(&adapters.SatiationSpeedModifierSystemAdapter{ // 6. Влияние сытости на скорость
+		System: satiationSpeedModifier,
 	})
 	gw.systemManager.AddSystem(&adapters.MovementSystemAdapter{ // 7. Движение (сбрасывает скорость едящих)
 		System: movementSystem,
 	})
 	gw.systemManager.AddSystem(combatSystem)                            // 8. Система боя
-	gw.systemManager.AddSystem(&adapters.StarvationDamageSystemAdapter{ // 9. Урон от голода
+	gw.systemManager.AddSystem(&adapters.StarvationDamageSystemAdapter{ // 9. Урон от истощения
 		System: starvationDamage,
 	})
 
@@ -134,16 +134,17 @@ func (gw *GameWorld) PopulateWorld(cfg *config.Config) {
 	worldWidth, worldHeight := gw.world.GetWorldDimensions()
 
 	for _, placement := range placements {
-		// Преобразуем координаты из пикселей в тайлы (делим на размер тайла)
-		tileX := placement.X / 32.0
-		tileY := placement.Y / 32.0
+		// PopulationGenerator уже возвращает координаты в пикселях
+		// CreateAnimal также ожидает координаты в пикселях
+		x := placement.X
+		y := placement.Y
 
-		// Проверяем границы размещения (без дебаг спама)
-		if tileX < 0 || tileX > worldWidth || tileY < 0 || tileY > worldHeight {
+		// Проверяем границы размещения (в пикселях)
+		if x < 0 || x > worldWidth*32 || y < 0 || y > worldHeight*32 {
 			fmt.Printf("WARNING: Animal placed outside world bounds!\n")
 		}
 
-		simulation.CreateAnimal(gw.world, placement.Type, tileX, tileY)
+		simulation.CreateAnimal(gw.world, placement.Type, x, y)
 	}
 
 	errors := popGen.ValidatePlacement(placements)

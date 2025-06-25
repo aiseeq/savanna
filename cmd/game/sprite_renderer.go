@@ -301,7 +301,7 @@ func (sr *SpriteRenderer) drawHealthBar(screen *ebiten.Image, world *core.World,
 
 // drawHungerText отрисовывает значение голода над животным
 func (sr *SpriteRenderer) drawHungerText(screen *ebiten.Image, world *core.World, entity core.EntityID, screenX, screenY float32) {
-	hunger, hasHunger := world.GetHunger(entity)
+	hunger, hasHunger := world.GetSatiation(entity)
 	if !hasHunger {
 		return
 	}

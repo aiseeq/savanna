@@ -54,7 +54,7 @@ func TestRunWhileStoppedBug(t *testing.T) {
 	// СЦЕНАРИЙ 1: Заяц убегает от волка, потом волк исчезает
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 200, 200)
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 220, 200) // Близко к зайцу
-	world.SetHunger(wolf, core.Hunger{Value: 50.0})                 // Голодный волк
+	world.SetSatiation(wolf, core.Satiation{Value: 50.0})           // Голодный волк
 
 	deltaTime := float32(1.0 / 60.0)
 

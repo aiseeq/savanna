@@ -31,9 +31,9 @@ func CreateTestSystemBundle(worldSize float32) *TestSystemBundle {
 	vegetationSystem := CreateTestVegetationSystem(worldSize)
 	systemManager.AddSystem(vegetationSystem)
 
-	// 2. Hunger система (управление голодом) - ПОСЛЕ GrassEatingSystem согласно CLAUDE.md
-	hungerSystem := simulation.NewHungerSystem()
-	hungerSystemAdapter := &adapters.HungerSystemAdapter{System: hungerSystem}
+	// 2. Satiation система (управление сытостью) - ПОСЛЕ GrassEatingSystem согласно CLAUDE.md
+	satiationSystem := simulation.NewSatiationSystem()
+	satiationSystemAdapter := &adapters.SatiationSystemAdapter{System: satiationSystem}
 
 	// 3. GrassSearch система (поиск травы и создание EatingState)
 	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem)
@@ -43,16 +43,16 @@ func CreateTestSystemBundle(worldSize float32) *TestSystemBundle {
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
 	systemManager.AddSystem(&adapters.GrassEatingSystemAdapter{System: grassEatingSystem})
 
-	// 2. ТЕПЕРЬ добавляем HungerSystem - ПОСЛЕ GrassEatingSystem
-	systemManager.AddSystem(hungerSystemAdapter)
+	// 2. ТЕПЕРЬ добавляем SatiationSystem - ПОСЛЕ GrassEatingSystem
+	systemManager.AddSystem(satiationSystemAdapter)
 
 	// 5. Behavior система (поведение - проверяет EatingState) - ПЕРЕД движением!
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
 
-	// 6. HungerSpeed система (влияние голода на скорость)
-	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem()
-	systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{System: hungerSpeedModifier})
+	// 6. SatiationSpeed система (влияние сытости на скорость)
+	satiationSpeedModifier := simulation.NewSatiationSpeedModifierSystem()
+	systemManager.AddSystem(&adapters.SatiationSpeedModifierSystemAdapter{System: satiationSpeedModifier})
 
 	// 7. Movement система (движение - сбрасывает скорость едящих)
 	movementSystem := simulation.NewMovementSystem(worldSize, worldSize)
@@ -103,9 +103,9 @@ func CreateTestSystemBundleWithTerrain(worldSize float32, terrain generator.Terr
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
 	systemManager.AddSystem(vegetationSystem)
 
-	// 2. Hunger система (управление голодом) - ПОСЛЕ GrassEatingSystem согласно CLAUDE.md
-	hungerSystem := simulation.NewHungerSystem()
-	hungerSystemAdapter := &adapters.HungerSystemAdapter{System: hungerSystem}
+	// 2. Satiation система (управление сытостью) - ПОСЛЕ GrassEatingSystem согласно CLAUDE.md
+	satiationSystem := simulation.NewSatiationSystem()
+	satiationSystemAdapter := &adapters.SatiationSystemAdapter{System: satiationSystem}
 
 	// 3. GrassSearch система (поиск травы и создание EatingState)
 	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem)
@@ -115,16 +115,16 @@ func CreateTestSystemBundleWithTerrain(worldSize float32, terrain generator.Terr
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
 	systemManager.AddSystem(&adapters.GrassEatingSystemAdapter{System: grassEatingSystem})
 
-	// 2. ТЕПЕРЬ добавляем HungerSystem - ПОСЛЕ GrassEatingSystem
-	systemManager.AddSystem(hungerSystemAdapter)
+	// 2. ТЕПЕРЬ добавляем SatiationSystem - ПОСЛЕ GrassEatingSystem
+	systemManager.AddSystem(satiationSystemAdapter)
 
 	// 5. Behavior система (поведение - проверяет EatingState) - ПЕРЕД движением!
 	animalBehaviorSystem := simulation.NewAnimalBehaviorSystem(vegetationSystem)
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
 
-	// 6. HungerSpeed система (влияние голода на скорость)
-	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem()
-	systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{System: hungerSpeedModifier})
+	// 6. SatiationSpeed система (влияние сытости на скорость)
+	satiationSpeedModifier := simulation.NewSatiationSpeedModifierSystem()
+	systemManager.AddSystem(&adapters.SatiationSpeedModifierSystemAdapter{System: satiationSpeedModifier})
 
 	// 7. Movement система (движение - сбрасывает скорость едящих)
 	movementSystem := simulation.NewMovementSystem(worldSize, worldSize)

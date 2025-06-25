@@ -19,7 +19,7 @@ type ChaosScenario struct {
 	vegetationSystem  *simulation.VegetationSystem
 	grassSearchSystem *simulation.GrassSearchSystem
 	grassEatingSystem *simulation.GrassEatingSystem
-	hungerSystem      *simulation.HungerSystem
+	satiationSystem   *simulation.SatiationSystem
 	animals           []core.EntityID
 	rand              *rand.Rand
 	t                 *testing.T
@@ -47,7 +47,7 @@ func newChaosScenario(t *testing.T, seed int64) *ChaosScenario {
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
 	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem)
 	grassEatingSystem := simulation.NewGrassEatingSystem(vegetationSystem)
-	hungerSystem := simulation.NewHungerSystem()
+	satiationSystem := simulation.NewSatiationSystem()
 
 	return &ChaosScenario{
 		world:             world,
@@ -55,7 +55,7 @@ func newChaosScenario(t *testing.T, seed int64) *ChaosScenario {
 		vegetationSystem:  vegetationSystem,
 		grassSearchSystem: grassSearchSystem,
 		grassEatingSystem: grassEatingSystem,
-		hungerSystem:      hungerSystem,
+		satiationSystem:   satiationSystem,
 		animals:           make([]core.EntityID, 0),
 		rand:              rng,
 		t:                 t,
@@ -74,7 +74,7 @@ func (cs *ChaosScenario) addRandomAnimals(count int) {
 		hunger := cs.rand.Float32() * 100 // Случайный голод
 
 		animal := simulation.CreateAnimal(cs.world, animalType, x, y)
-		cs.world.SetHunger(animal, core.Hunger{Value: hunger})
+		cs.world.SetSatiation(animal, core.Satiation{Value: hunger})
 		cs.animals = append(cs.animals, animal)
 	}
 }
@@ -130,7 +130,7 @@ func (cs *ChaosScenario) randomlyModifyHunger(probability float32) {
 		if cs.rand.Float32() < probability {
 			// Случайно изменяем голод
 			newHunger := cs.rand.Float32() * 100
-			cs.world.SetHunger(animal, core.Hunger{Value: newHunger})
+			cs.world.SetSatiation(animal, core.Satiation{Value: newHunger})
 		}
 	}
 }
@@ -140,7 +140,7 @@ func (cs *ChaosScenario) simulateWithChaos(ticks int, chaosLevel float32) {
 
 	for tick := 0; tick < ticks; tick++ {
 		// Нормальное обновление систем
-		cs.hungerSystem.Update(cs.world, deltaTime)
+		cs.satiationSystem.Update(cs.world, deltaTime)
 		cs.grassSearchSystem.Update(cs.world, deltaTime)
 		cs.grassEatingSystem.Update(cs.world, deltaTime)
 
@@ -185,7 +185,7 @@ func (cs *ChaosScenario) checkSystemStability() {
 	for _, animal := range cs.animals {
 		if cs.world.IsAlive(animal) {
 			// Проверяем что компоненты в валидном состоянии
-			if hunger, hasHunger := cs.world.GetHunger(animal); hasHunger {
+			if hunger, hasHunger := cs.world.GetSatiation(animal); hasHunger {
 				if hunger.Value < 0 || hunger.Value > 150 { // Разумные границы
 					cs.t.Errorf("Animal %d has invalid hunger: %.2f", animal, hunger.Value)
 				}
@@ -253,7 +253,7 @@ func TestFeedingSystemRobustness(t *testing.T) {
 
 	// Специфичные сбои для системы питания
 	for i := 0; i < 100; i++ {
-		scenario.hungerSystem.Update(scenario.world, 1.0/60.0)
+		scenario.satiationSystem.Update(scenario.world, 1.0/60.0)
 		scenario.grassSearchSystem.Update(scenario.world, 1.0/60.0)
 		scenario.grassEatingSystem.Update(scenario.world, 1.0/60.0)
 
@@ -293,7 +293,7 @@ func TestMemoryLeakResistance(t *testing.T) {
 
 		// Несколько тиков симуляции
 		for tick := 0; tick < 20; tick++ {
-			scenario.hungerSystem.Update(scenario.world, 1.0/60.0)
+			scenario.satiationSystem.Update(scenario.world, 1.0/60.0)
 			scenario.grassSearchSystem.Update(scenario.world, 1.0/60.0)
 			scenario.grassEatingSystem.Update(scenario.world, 1.0/60.0)
 		}
@@ -321,7 +321,7 @@ func TestConcurrentAccessSimulation(t *testing.T) {
 	// Симулируем concurrent доступ через быстрые изменения состояния
 	for i := 0; i < 200; i++ {
 		// Быстрые обновления систем
-		scenario.hungerSystem.Update(scenario.world, 1.0/120.0) // Двойная скорость
+		scenario.satiationSystem.Update(scenario.world, 1.0/120.0) // Двойная скорость
 		scenario.grassSearchSystem.Update(scenario.world, 1.0/120.0)
 		scenario.grassEatingSystem.Update(scenario.world, 1.0/120.0)
 

@@ -46,14 +46,14 @@ func TestCoreRabbitComponents(t *testing.T) {
 
 	// Try Add* methods for other components based on CreateAnimal pattern
 	world.AddVelocity(rabbit, core.Velocity{X: 0, Y: 0})
-	world.AddHunger(rabbit, core.Hunger{Value: 80.0}) // Make it hungry enough (< 90% threshold)
+	world.AddSatiation(rabbit, core.Satiation{Value: 80.0}) // Make it hungry enough (< 90% threshold)
 	world.AddAnimalType(rabbit, core.TypeRabbit)
 	world.AddHealth(rabbit, core.Health{Current: 100, Max: 100})
 	world.AddSize(rabbit, core.Size{Radius: 16.0})
 
 	t.Logf("Initial state:")
 	pos, _ := world.GetPosition(rabbit)
-	hunger, _ := world.GetHunger(rabbit)
+	hunger, _ := world.GetSatiation(rabbit)
 	grassAmount := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 	t.Logf("  Rabbit position: (%.1f, %.1f)", pos.X, pos.Y)
 	t.Logf("  Rabbit hunger: %.1f%%", hunger.Value)
@@ -68,14 +68,14 @@ func TestCoreRabbitComponents(t *testing.T) {
 
 	// Test 2: Hunger system basics - manually decrease hunger
 	deltaTime := float32(1.0 / 60.0)
-	hungerSystem := simulation.NewHungerSystem()
+	hungerSystem := simulation.NewSatiationSystem()
 
 	// Run hunger system for a few seconds
 	for i := 0; i < 180; i++ { // 3 seconds
 		hungerSystem.Update(world, deltaTime)
 	}
 
-	newHunger, _ := world.GetHunger(rabbit)
+	newHunger, _ := world.GetSatiation(rabbit)
 	if newHunger.Value >= hunger.Value {
 		t.Errorf("❌ Hunger system not working - hunger should decrease over time")
 		t.Errorf("   Initial: %.1f%%, After 3s: %.1f%%", hunger.Value, newHunger.Value)
@@ -87,24 +87,24 @@ func TestCoreRabbitComponents(t *testing.T) {
 	// Test 3: Grass search system (should create EatingState)
 	// Add AnimalConfig component (required by GrassSearchSystem)
 	world.AddAnimalConfig(rabbit, core.AnimalConfig{
-		HungerThreshold: 90.0, // RabbitHungerThreshold
-		MaxHealth:       100,
-		CollisionRadius: 16.0,
-		AttackRange:     0, // Herbivores don't attack
-		AttackDamage:    0,
-		AttackCooldown:  0,
-		HitChance:       0,
+		SatiationThreshold: 90.0, // RabbitSatiationThreshold
+		MaxHealth:          100,
+		CollisionRadius:    16.0,
+		AttackRange:        0, // Herbivores don't attack
+		AttackDamage:       0,
+		AttackCooldown:     0,
+		HitChance:          0,
 	})
 
 	// Add Behavior component required by GrassSearchSystem
 	world.AddBehavior(rabbit, core.Behavior{
-		Type:            core.BehaviorHerbivore, // CRITICAL: Must be herbivore
-		HungerThreshold: 90.0,                   // RabbitHungerThreshold
-		VisionRange:     100.0,
+		Type:               core.BehaviorHerbivore, // CRITICAL: Must be herbivore
+		SatiationThreshold: 90.0,                   // RabbitSatiationThreshold
+		VisionRange:        100.0,
 	})
 
 	// Check current hunger before running grass search
-	currentHunger, _ := world.GetHunger(rabbit)
+	currentHunger, _ := world.GetSatiation(rabbit)
 	t.Logf("Hunger before grass search: %.1f%% (threshold: 90.0%%)", currentHunger.Value)
 
 	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem)
@@ -142,9 +142,9 @@ func TestCoreRabbitComponents(t *testing.T) {
 	// Test 5: Component management
 	// Test adding/removing components
 	world.SetBehavior(rabbit, core.Behavior{
-		Type:            0,
-		HungerThreshold: 80.0,
-		VisionRange:     100.0,
+		Type:               0,
+		SatiationThreshold: 80.0,
+		VisionRange:        100.0,
 	})
 
 	hasBehavior := world.HasComponent(rabbit, core.MaskBehavior)

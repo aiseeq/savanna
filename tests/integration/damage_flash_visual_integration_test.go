@@ -37,7 +37,7 @@ func TestDamageFlashVisualIntegration(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 305, 300) // Очень близко
 
 	// Делаем волка очень голодным для атаки
-	world.SetHunger(wolf, core.Hunger{Value: 10.0}) // 10% - критический голод
+	world.SetSatiation(wolf, core.Satiation{Value: 10.0}) // 10% - критический голод
 
 	t.Logf("=== ИНТЕГРАЦИОННЫЙ ТЕСТ DAMAGEFLASH ===")
 	t.Logf("Волк (entity %d) атакует зайца (entity %d)", wolf, rabbit)
@@ -112,7 +112,7 @@ func TestDamageFlashVisualIntegration(t *testing.T) {
 		// Логируем ключевые события каждую секунду
 		if i%60 == 0 {
 			rabbitHealth, _ := world.GetHealth(rabbit)
-			wolfHunger, _ := world.GetHunger(wolf)
+			wolfHunger, _ := world.GetSatiation(wolf)
 			t.Logf("Секунда %d: Заяц HP=%d, волк голод=%.1f%%",
 				i/60, rabbitHealth.Current, wolfHunger.Value)
 		}

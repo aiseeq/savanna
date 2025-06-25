@@ -47,13 +47,13 @@ func TestAnimationE2E(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 164, 160)     // Рядом с зайцем (4 пикселя)
 
 	// Делаем волка очень голодным
-	world.SetHunger(wolf, core.Hunger{Value: 5.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 5.0})
 
 	t.Logf("Начальное состояние:")
 	rabbitHealth, _ := world.GetHealth(rabbit)
-	wolfHunger, _ := world.GetHunger(wolf)
+	wolfSatiation, _ := world.GetSatiation(wolf)
 	t.Logf("  Заяц: здоровье %d, позиция (160,160)", rabbitHealth.Current)
-	t.Logf("  Волк: голод %.1f%%, позиция (164,160)", wolfHunger.Value)
+	t.Logf("  Волк: сытость %.1f%%, позиция (164,160)", wolfSatiation.Value)
 
 	// Функция обновления анимаций КАК В РЕАЛЬНОЙ ИГРЕ (main.go)
 	updateAnimalAnimations := func() {
@@ -260,11 +260,11 @@ func TestAnimationE2E(t *testing.T) {
 
 	// Финальные проверки
 	finalRabbitHealth, _ := world.GetHealth(rabbit)
-	finalWolfHunger, _ := world.GetHunger(wolf)
+	finalWolfSatiation, _ := world.GetSatiation(wolf)
 
 	t.Logf("Финальное состояние:")
 	t.Logf("  Заяц: здоровье %d", finalRabbitHealth.Current)
-	t.Logf("  Волк: голод %.1f%%", finalWolfHunger.Value)
+	t.Logf("  Волк: сытость %.1f%%", finalWolfSatiation.Value)
 
 	// КРИТИЧЕСКИЕ E2E ПРОВЕРКИ
 	if !frame0Seen || !frame1Seen {
@@ -329,8 +329,8 @@ func getRabbitAnimationTypeForE2E(world *core.World, entity core.EntityID) anima
 }
 
 func isWolfAttackingForE2E(world *core.World, wolf core.EntityID) bool {
-	hunger, hasHunger := world.GetHunger(wolf)
-	if !hasHunger || hunger.Value > 60.0 {
+	satiation, hasSatiation := world.GetSatiation(wolf)
+	if !hasSatiation || satiation.Value > 60.0 {
 		return false
 	}
 

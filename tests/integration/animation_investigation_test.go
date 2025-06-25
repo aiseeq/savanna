@@ -97,19 +97,19 @@ func TestAnimationInvestigation(t *testing.T) {
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, rabbitX, rabbitY)
 
 	// Делаем зайца голодным чтобы он точно ел
-	world.SetHunger(rabbit, core.Hunger{Value: 70.0}) // 70% - точно будет есть (порог 90%)
+	world.SetSatiation(rabbit, core.Satiation{Value: 70.0}) // 70% - точно будет есть (порог 90%)
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0})
 
 	deltaTime := float32(1.0 / 60.0)
 
 	t.Logf("\n--- Начальное состояние ---")
 	pos, _ := world.GetPosition(rabbit)
-	hunger, _ := world.GetHunger(rabbit)
+	satiation, _ := world.GetSatiation(rabbit)
 	grassAmount := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 	behavior, _ := world.GetBehavior(rabbit)
 
 	t.Logf("Позиция зайца: (%.1f, %.1f)", pos.X, pos.Y)
-	t.Logf("Голод зайца: %.1f%% (порог: %.1f%%)", hunger.Value, behavior.HungerThreshold)
+	t.Logf("Сытость зайца: %.1f%% (порог: %.1f%%)", satiation.Value, behavior.SatiationThreshold)
 	t.Logf("Трава в позиции: %.1f единиц", grassAmount)
 
 	// КРИТИЧЕСКИ ВАЖНО: дебаг тайла
@@ -128,7 +128,7 @@ func TestAnimationInvestigation(t *testing.T) {
 
 		// === ЭТАП 1: Состояние ДО обновления ===
 		pos, _ = world.GetPosition(rabbit)
-		hunger, _ = world.GetHunger(rabbit)
+		satiation, _ = world.GetSatiation(rabbit)
 		anim, _ := world.GetAnimation(rabbit)
 		var vel core.Velocity
 		isEatingBefore := world.HasComponent(rabbit, core.MaskEatingState)
@@ -142,8 +142,8 @@ func TestAnimationInvestigation(t *testing.T) {
 
 		t.Logf("ДО обновления:")
 		t.Logf("  Позиция: (%.1f, %.1f), Тайл: (%d, %d)", pos.X, pos.Y, tileX, tileY)
-		t.Logf("  Голод: %.1f%% (порог %.1f%%), Трава через VegetationSystem: %.1f, Трава в terrain тайле: %.1f",
-			hunger.Value, simulation.RabbitHungerThreshold, grassBefore, grassInTile)
+		t.Logf("  Сытость: %.1f%% (порог %.1f%%), Трава через VegetationSystem: %.1f, Трава в terrain тайле: %.1f",
+			satiation.Value, simulation.RabbitSatiationThreshold, grassBefore, grassInTile)
 		t.Logf("  EatingState: %v, Анимация: %s (код %d, кадр %d)",
 			isEatingBefore, animTypeBefore.String(), anim.CurrentAnim, anim.Frame)
 
@@ -152,7 +152,7 @@ func TestAnimationInvestigation(t *testing.T) {
 		systemManager.Update(world, deltaTime)
 
 		// === ЭТАП 3: Состояние ПОСЛЕ систем ===
-		hunger, _ = world.GetHunger(rabbit)
+		satiation, _ = world.GetSatiation(rabbit)
 		vel, _ = world.GetVelocity(rabbit)
 		anim, _ = world.GetAnimation(rabbit)
 		isEatingAfter := world.HasComponent(rabbit, core.MaskEatingState)
@@ -161,7 +161,7 @@ func TestAnimationInvestigation(t *testing.T) {
 		animTypeAfterSystems := animation.AnimationType(anim.CurrentAnim)
 
 		t.Logf("ПОСЛЕ систем:")
-		t.Logf("  Голод: %.1f%%, Трава: %.1f, Скорость: %.2f", hunger.Value, grassAfter, speed)
+		t.Logf("  Сытость: %.1f%%, Трава: %.1f, Скорость: %.2f", satiation.Value, grassAfter, speed)
 		t.Logf("  EatingState: %v, Анимация: %s (код %d, кадр %d)",
 			isEatingAfter, animTypeAfterSystems.String(), anim.CurrentAnim, anim.Frame)
 
