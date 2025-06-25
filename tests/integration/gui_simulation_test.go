@@ -31,7 +31,7 @@ func TestGUILikeSimulation(t *testing.T) {
 		rabbit := simulation.CreateAnimal(world, core.TypeRabbit, x, y)
 
 		// Делаем зайцев умеренно голодными для движения но не поиска еды
-		world.SetHunger(rabbit, core.Hunger{Value: 95.0}) // 95% > 90% threshold - не будут искать еду
+		world.SetSatiation(rabbit, core.Satiation{Value: 95.0}) // 95% > 90% threshold - не будут искать еду
 
 		rabbits = append(rabbits, rabbit)
 	}
@@ -43,7 +43,7 @@ func TestGUILikeSimulation(t *testing.T) {
 		wolf := simulation.CreateAnimal(world, core.TypeWolf, x, y)
 
 		// Делаем волков голодными для активации охоты
-		world.SetHunger(wolf, core.Hunger{Value: 40.0}) // 40% < 60% threshold
+		world.SetSatiation(wolf, core.Satiation{Value: 40.0}) // 40% < 60% threshold
 
 		wolves = append(wolves, wolf)
 	}
@@ -70,7 +70,7 @@ func TestGUILikeSimulation(t *testing.T) {
 
 				pos, _ := world.GetPosition(rabbit)
 				vel, _ := world.GetVelocity(rabbit)
-				hunger, _ := world.GetHunger(rabbit)
+				hunger, _ := world.GetSatiation(rabbit)
 
 				// Проверяем выход за границы
 				if pos.X < 0 || pos.X > config.WorldWidth || pos.Y < 0 || pos.Y > config.WorldHeight {

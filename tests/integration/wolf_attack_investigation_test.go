@@ -29,7 +29,7 @@ func TestWolfAttackBehavior(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, wolfX, wolfY)
 
 	// Делаем волка голодным для охоты
-	world.SetHunger(wolf, core.Hunger{Value: 30.0}) // Меньше 60% - будет охотиться
+	world.SetSatiation(wolf, core.Satiation{Value: 30.0}) // Меньше 60% - будет охотиться
 
 	t.Logf("=== Исследование поведения волка при атаке ===")
 	t.Logf("Начальные позиции: волк (%.1f, %.1f), заяц (%.1f, %.1f)", wolfX, wolfY, rabbitX, rabbitY)
@@ -67,7 +67,7 @@ func TestWolfAttackBehavior(t *testing.T) {
 		// DEBUG: Проверяем компоненты волка перед обновлением поведения
 		if tickCount == 0 {
 			wolfBehavior, hasBehavior := world.GetBehavior(wolf)
-			wolfHunger, hasHunger := world.GetHunger(wolf)
+			wolfHunger, hasHunger := world.GetSatiation(wolf)
 			t.Logf("DEBUG: Волк behavior=%+v (has=%t), hunger=%+v (has=%t)",
 				wolfBehavior, hasBehavior, wolfHunger, hasHunger)
 		}
@@ -128,7 +128,7 @@ func TestWolfOvershooting(t *testing.T) {
 	world.SetSpeed(rabbit, core.Speed{Base: 0, Current: 0})
 
 	// Волка делаем голодным
-	world.SetHunger(wolf, core.Hunger{Value: 20.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 20.0})
 
 	t.Logf("=== Тест перепрыгивания волка ===")
 
@@ -150,7 +150,7 @@ func TestWolfOvershooting(t *testing.T) {
 		// DEBUG: Проверяем компоненты волка (только для первых 3 тиков)
 		if i < 3 {
 			wolfBehavior, hasBehavior := world.GetBehavior(wolf)
-			wolfHunger, hasHunger := world.GetHunger(wolf)
+			wolfHunger, hasHunger := world.GetSatiation(wolf)
 			wolfVel, _ := world.GetVelocity(wolf)
 			wolfSpeed, hasSpeed := world.GetSpeed(wolf)
 			t.Logf("DEBUG Тик %d: Волк behavior=%+v (has=%t), hunger=%+v (has=%t)",

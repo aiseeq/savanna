@@ -79,12 +79,12 @@ func TestSimpleEating(t *testing.T) {
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 16, 16) // Центр 32x32 тайла
 
 	// Делаем зайца ОЧЕНЬ голодным чтобы он точно ел (меньше порога 90%)
-	world.SetHunger(rabbit, core.Hunger{Value: 10.0})    // 10% голода - очень голодный, точно будет есть
-	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0}) // Стоит на месте
+	world.SetSatiation(rabbit, core.Satiation{Value: 10.0}) // 10% голода - очень голодный, точно будет есть
+	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0})    // Стоит на месте
 
 	t.Logf("\n--- Начальное состояние ---")
 	pos, _ := world.GetPosition(rabbit)
-	hunger, _ := world.GetHunger(rabbit)
+	hunger, _ := world.GetSatiation(rabbit)
 	grassAmount := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
 	t.Logf("Позиция зайца: (%.1f, %.1f)", pos.X, pos.Y)
@@ -115,7 +115,7 @@ func TestSimpleEating(t *testing.T) {
 		t.Logf("\n=== ТИК %d ===", i)
 
 		// Состояние ДО обновления систем
-		hunger, _ = world.GetHunger(rabbit)
+		hunger, _ = world.GetSatiation(rabbit)
 		vel, _ := world.GetVelocity(rabbit)
 		anim, _ := world.GetAnimation(rabbit)
 		isEatingBefore := world.HasComponent(rabbit, core.MaskEatingState)
@@ -157,7 +157,7 @@ func TestSimpleEating(t *testing.T) {
 		}
 
 		// Состояние ПОСЛЕ обновления систем
-		hunger, _ = world.GetHunger(rabbit)
+		hunger, _ = world.GetSatiation(rabbit)
 		vel, _ = world.GetVelocity(rabbit)
 		anim, _ = world.GetAnimation(rabbit)
 		isEatingAfter := world.HasComponent(rabbit, core.MaskEatingState)

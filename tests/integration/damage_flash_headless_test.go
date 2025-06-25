@@ -28,7 +28,7 @@ func TestDamageFlashHeadless(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 300.5, 300) // Дистанция 0.5 < атака волка 0.9
 
 	// Делаем волка голодным для гарантированной атаки
-	world.SetHunger(wolf, core.Hunger{Value: 20.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 20.0})
 
 	t.Logf("=== ТЕСТ DAMAGEFLASH HEADLESS ===")
 	t.Logf("Заяц: entity %d (позиция 300,300)", rabbit)
@@ -66,7 +66,7 @@ func TestDamageFlashHeadless(t *testing.T) {
 
 		// Логируем диагностику каждую секунду
 		if i%60 == 0 {
-			hunger, _ := world.GetHunger(wolf)
+			hunger, _ := world.GetSatiation(wolf)
 			hasAttack := world.HasComponent(wolf, core.MaskAttackState)
 			t.Logf("Секунда %d: Голод волка %.1f%%, AttackState=%v", i/60, hunger.Value, hasAttack)
 		}
@@ -168,7 +168,7 @@ func TestDamageFlashMultipleAttacks(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 305, 300)
 
 	// Делаем волка очень голодным
-	world.SetHunger(wolf, core.Hunger{Value: 10.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 10.0})
 
 	t.Logf("=== ТЕСТ МНОЖЕСТВЕННЫХ DAMAGEFLASH ===")
 
@@ -231,7 +231,7 @@ func TestDamageFlashMultipleAttacks(t *testing.T) {
 
 		// Логируем состояние каждые 60 тиков
 		if i%60 == 0 {
-			hunger, _ := world.GetHunger(wolf)
+			hunger, _ := world.GetSatiation(wolf)
 			t.Logf("Тик %d: Голод волка %.1f%%, ждём вторую атаку", i, hunger.Value)
 		}
 	}

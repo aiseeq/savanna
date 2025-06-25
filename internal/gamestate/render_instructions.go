@@ -118,7 +118,7 @@ func (gs *GameState) GenerateRenderInstructions() RenderInstructionSet {
 	gs.generateHealthBarInstructions(&instructions)
 
 	// ИСПРАВЛЕНИЕ: Генерируем инструкции для отображения сытости над животными
-	gs.generateHungerDisplayInstructions(&instructions)
+	gs.generateSatiationDisplayInstructions(&instructions)
 
 	return instructions
 }
@@ -227,7 +227,7 @@ func (gs *GameState) generateUIInstructions(instructions *RenderInstructionSet) 
 	// Hunger первого зайца (для отладки)
 	firstRabbit := gs.getFirstAnimalOfType(core.TypeRabbit)
 	if firstRabbit != 0 {
-		if hunger, ok := gs.world.GetHunger(firstRabbit); ok {
+		if hunger, ok := gs.world.GetSatiation(firstRabbit); ok {
 			instructions.UI = append(instructions.UI, UIInstruction{
 				Text:     fmt.Sprintf("First Rabbit Hunger: %.1f%%", hunger.Value),
 				X:        10,
@@ -331,35 +331,35 @@ func (gs *GameState) getFirstAnimalOfType(animalType core.AnimalType) core.Entit
 	return firstEntity
 }
 
-// generateHungerDisplayInstructions генерирует инструкции для отображения сытости над животными
-func (gs *GameState) generateHungerDisplayInstructions(instructions *RenderInstructionSet) {
-	gs.world.ForEachWith(core.MaskAnimalType|core.MaskPosition|core.MaskHunger, func(entity core.EntityID) {
+// generateSatiationDisplayInstructions генерирует инструкции для отображения сытости над животными
+func (gs *GameState) generateSatiationDisplayInstructions(instructions *RenderInstructionSet) {
+	gs.world.ForEachWith(core.MaskAnimalType|core.MaskPosition|core.MaskSatiation, func(entity core.EntityID) {
 		pos, _ := gs.world.GetPosition(entity)
-		hunger, _ := gs.world.GetHunger(entity)
+		satiation, _ := gs.world.GetSatiation(entity)
 		animalType, _ := gs.world.GetAnimalType(entity)
 
 		// ИСПРАВЛЕНИЕ: Позиция текста зависит от размера СПРАЙТА, не от физического размера
-		var hungerOffset float64 = 50
+		var satiationOffset float64 = 50
 		var textOffsetX float64 = 10
 
 		// Настройка под размер спрайта конкретного животного
 		switch animalType {
 		case core.TypeRabbit:
-			hungerOffset = 35 // Выше хелсбара зайца
+			satiationOffset = 35 // Выше хелсбара зайца
 			textOffsetX = 8
 		case core.TypeWolf:
-			hungerOffset = 50 // Выше хелсбара волка
+			satiationOffset = 50 // Выше хелсбара волка
 			textOffsetX = 10
 		}
 
 		// Форматируем текст сытости
-		hungerText := fmt.Sprintf("%.0f%%", hunger.Value)
+		satiationText := fmt.Sprintf("%.0f%%", satiation.Value)
 
 		// Определяем цвет по уровню сытости
 		var textColor color.RGBA
-		if hunger.Value < 30.0 {
+		if satiation.Value < 30.0 {
 			textColor = color.RGBA{255, 100, 100, 255} // Красный при низкой сытости
-		} else if hunger.Value < 60.0 {
+		} else if satiation.Value < 60.0 {
 			textColor = color.RGBA{255, 255, 100, 255} // Жёлтый при средней сытости
 		} else {
 			textColor = color.RGBA{100, 255, 100, 255} // Зелёный при высокой сытости
@@ -367,9 +367,9 @@ func (gs *GameState) generateHungerDisplayInstructions(instructions *RenderInstr
 
 		// Добавляем UI инструкцию для отображения сытости над животным
 		instruction := UIInstruction{
-			Text:     hungerText,
-			X:        float64(pos.X) - textOffsetX,  // Центровка относительно спрайта
-			Y:        float64(pos.Y) - hungerOffset, // Выше хелсбара
+			Text:     satiationText,
+			X:        float64(pos.X) - textOffsetX,     // Центровка относительно спрайта
+			Y:        float64(pos.Y) - satiationOffset, // Выше хелсбара
 			Color:    textColor,
 			FontSize: 12, // Чуть меньший шрифт для компактности
 		}

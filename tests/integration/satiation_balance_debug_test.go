@@ -11,13 +11,13 @@ import (
 	"github.com/aiseeq/savanna/internal/simulation"
 )
 
-// TestHungerBalanceDebug проверяет точный баланс голода во время еды
+// TestSatiationBalanceDebug проверяет точный баланс сытости во время еды
 //
-//nolint:revive // function-length: Детальный тест баланса голода с множественными проверками
-func TestHungerBalanceDebug(t *testing.T) {
+//nolint:revive // function-length: Детальный тест баланса сытости с множественными проверками
+func TestSatiationBalanceDebug(t *testing.T) {
 	t.Parallel()
 
-	t.Logf("=== Отладка баланса голода: потеря vs восстановление ===")
+	t.Logf("=== Отладка баланса сытости: потеря vs восстановление ===")
 
 	cfg := config.LoadDefaultConfig()
 	worldWidth := float32(cfg.World.Size * 32)
@@ -57,8 +57,8 @@ func TestHungerBalanceDebug(t *testing.T) {
 	terrain.SetGrassAmount(tileX, tileY, 100.0)
 
 	// Делаем зайца голодным
-	initialHunger := float32(60.0)
-	world.SetHunger(rabbit, core.Hunger{Value: initialHunger})
+	initialSatiation := float32(60.0)
+	world.SetSatiation(rabbit, core.Satiation{Value: initialSatiation})
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0})
 
 	// Создаём EatingState принудительно
@@ -72,15 +72,15 @@ func TestHungerBalanceDebug(t *testing.T) {
 	deltaTime := float32(1.0 / 60.0) // 60 FPS
 
 	t.Logf("Начальное состояние:")
-	t.Logf("  Голод: %.2f%%", initialHunger)
-	t.Logf("  Скорость потери голода: %.2f%%/сек", 2.0)
+	t.Logf("  Сытость: %.2f%%", initialSatiation)
+	t.Logf("  Скорость потери сытости: %.2f%%/сек", 2.0)
 	t.Logf("  За кадр анимации (0.25с): %.2f%% потери", 2.0*0.25)
 
 	// Симулируем ПОЛНЫЙ цикл анимации (30 тиков = 2 кадра)
-	hungerHistory := make([]float32, 0, 31)
+	satiationHistory := make([]float32, 0, 31)
 	frameHistory := make([]int, 0, 31)
-	hunger, _ := world.GetHunger(rabbit)
-	hungerHistory = append(hungerHistory, hunger.Value)
+	satiation, _ := world.GetSatiation(rabbit)
+	satiationHistory = append(satiationHistory, satiation.Value)
 	anim, _ := world.GetAnimation(rabbit)
 	frameHistory = append(frameHistory, anim.Frame)
 
@@ -126,34 +126,34 @@ func TestHungerBalanceDebug(t *testing.T) {
 
 		systemManager.Update(world, deltaTime)
 
-		// Записываем голод и кадр после каждого тика
-		currentHunger, _ := world.GetHunger(rabbit)
+		// Записываем сытость и кадр после каждого тика
+		currentSatiation, _ := world.GetSatiation(rabbit)
 		currentAnim, _ := world.GetAnimation(rabbit)
-		hungerHistory = append(hungerHistory, currentHunger.Value)
+		satiationHistory = append(satiationHistory, currentSatiation.Value)
 		frameHistory = append(frameHistory, currentAnim.Frame)
 
-		t.Logf("Тик %2d: голод=%.3f%%, таймер=%.3f, кадр=%d", tick, currentHunger.Value, currentAnim.Timer, currentAnim.Frame)
+		t.Logf("Тик %2d: сытость=%.3f%%, таймер=%.3f, кадр=%d", tick, currentSatiation.Value, currentAnim.Timer, currentAnim.Frame)
 	}
 
-	// Анализируем изменения голода
+	// Анализируем изменения сытости
 	t.Logf("\n=== АНАЛИЗ ИЗМЕНЕНИЙ ГОЛОДА ===")
-	t.Logf("История голода: %v", hungerHistory)
+	t.Logf("История сытости: %v", satiationHistory)
 
-	// Ищем момент когда голод изменился
-	for i := 1; i < len(hungerHistory); i++ {
-		change := hungerHistory[i] - hungerHistory[i-1]
+	// Ищем момент когда сытость изменился
+	for i := 1; i < len(satiationHistory); i++ {
+		change := satiationHistory[i] - satiationHistory[i-1]
 		if change != 0 {
 			t.Logf("Тик %d: изменение %.3f%% (%.3f -> %.3f)",
-				i-1, change, hungerHistory[i-1], hungerHistory[i])
+				i-1, change, satiationHistory[i-1], satiationHistory[i])
 		}
 	}
 
-	finalHunger := hungerHistory[len(hungerHistory)-1]
-	totalChange := finalHunger - initialHunger
+	finalSatiation := satiationHistory[len(satiationHistory)-1]
+	totalChange := finalSatiation - initialSatiation
 
 	t.Logf("\n=== ИТОГИ ===")
-	t.Logf("Начальный голод: %.3f%%", initialHunger)
-	t.Logf("Финальный голод: %.3f%%", finalHunger)
+	t.Logf("Начальный сытость: %.3f%%", initialSatiation)
+	t.Logf("Финальный сытость: %.3f%%", finalSatiation)
 	t.Logf("Общее изменение: %.3f%% за 30 тиков (2 кадра анимации)", totalChange)
 	t.Logf("Ожидаемая потеря: %.3f%% (2.0%% * 0.5сек)", 2.0*0.5)
 	t.Logf("Ожидаемое восстановление: +4.0%% (2 травы * 2 * 1 кадр на цикл)")

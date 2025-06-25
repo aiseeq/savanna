@@ -64,7 +64,7 @@ func (r *IsometricRenderer) ScreenToWorld(screenX, screenY float32) (worldX, wor
 }
 
 // RenderWorld отрисовывает весь мир в правильном порядке согласно этапу 7
-func (r *IsometricRenderer) RenderWorld(screen *ebiten.Image, terrain *generator.Terrain, world *core.World, camera *Camera) {
+func (r *IsometricRenderer) RenderWorld(screen *ebiten.Image, terrain *generator.Terrain, world *core.World, camera *Camera, debugMode bool) {
 	// Порядок отрисовки (критически важен для изометрии):
 	// 1. Тайлы местности (трава, вода)
 	r.renderTerrain(screen, terrain, camera)
@@ -73,17 +73,7 @@ func (r *IsometricRenderer) RenderWorld(screen *ebiten.Image, terrain *generator
 	r.renderObstacles(screen, terrain, camera)
 
 	// 3. Животные, отсортированные по Y (дальние сначала)
-	r.renderAnimals(screen, world, camera)
-
-	// DEBUG: Рисуем красный крест в ЦЕНТРЕ КАРТЫ (не экрана)
-	mapCenterTileX := float32(terrain.Width) / 2.0
-	mapCenterTileY := float32(terrain.Height) / 2.0
-	centerScreenX, centerScreenY := camera.WorldToScreen(mapCenterTileX, mapCenterTileY)
-
-	crossSize := float32(20)
-	red := color.RGBA{255, 0, 0, 255}
-	vector.StrokeLine(screen, centerScreenX-crossSize, centerScreenY, centerScreenX+crossSize, centerScreenY, 3, red, false)
-	vector.StrokeLine(screen, centerScreenX, centerScreenY-crossSize, centerScreenX, centerScreenY+crossSize, 3, red, false)
+	r.renderAnimals(screen, world, camera, debugMode)
 }
 
 // renderTerrain отрисовывает тайлы местности
@@ -264,7 +254,7 @@ func (r *IsometricRenderer) renderBush(screen *ebiten.Image, tileX, tileY int, c
 }
 
 // renderAnimals отрисовывает животных, отсортированных по Y
-func (r *IsometricRenderer) renderAnimals(screen *ebiten.Image, world *core.World, camera *Camera) {
+func (r *IsometricRenderer) renderAnimals(screen *ebiten.Image, world *core.World, camera *Camera, debugMode bool) {
 	// Собираем всех животных с их Y координатами для сортировки
 	type AnimalRenderInfo struct {
 		entity core.EntityID
@@ -291,25 +281,35 @@ func (r *IsometricRenderer) renderAnimals(screen *ebiten.Image, world *core.Worl
 
 	// Отрисовываем в отсортированном порядке
 	for _, animal := range animals {
-		r.renderAnimal(screen, world, animal.entity, camera)
+		r.renderAnimal(screen, world, animal.entity, camera, debugMode)
 	}
 }
 
 // renderAnimal отрисовывает одно животное
-func (r *IsometricRenderer) renderAnimal(screen *ebiten.Image, world *core.World, entity core.EntityID, camera *Camera) {
+func (r *IsometricRenderer) renderAnimal(screen *ebiten.Image, world *core.World, entity core.EntityID, camera *Camera, debugMode bool) {
 	pos, hasPos := world.GetPosition(entity)
 	if !hasPos {
 		return
 	}
 
+	// ИСПРАВЛЕНИЕ: Конвертируем позицию из пикселей в тайлы перед преобразованием
+	// pos.X и pos.Y хранятся в пикселях, но camera.WorldToScreen ожидает тайлы
+	tileX := pos.X / TileWidth
+	tileY := pos.Y / TileWidth // Используем TileWidth для обеих осей (физическая ширина тайла = 1.0)
+
 	// Преобразуем в экранные координаты с учётом камеры
-	screenX, screenY := camera.WorldToScreen(pos.X, pos.Y)
+	screenX, screenY := camera.WorldToScreen(tileX, tileY)
 
 	// DEBUG: Отладочный вывод удален для предотвращения спама в консоли
 
 	// ИСПРАВЛЕНИЕ: Используем ТОЛЬКО спрайты - никаких кругов!
 	if r.spriteRenderer != nil {
 		r.spriteRenderer.DrawAnimalAt(screen, world, entity, screenX, screenY, camera.GetZoom())
+
+		// DEBUG: Отрисовываем физические размеры в дебаг-режиме (F3)
+		if debugMode {
+			r.drawPhysicalSizeDebug(screen, world, entity, screenX, screenY, camera)
+		}
 		return // Возвращаемся сразу - спрайты есть
 	}
 
@@ -379,4 +379,60 @@ func max(a, b float32) float32 {
 		return a
 	}
 	return b
+}
+
+// drawPhysicalSizeDebug отрисовывает физические размеры животных для отладки
+func (r *IsometricRenderer) drawPhysicalSizeDebug(screen *ebiten.Image, world *core.World, entity core.EntityID, screenX, screenY float32, camera *Camera) {
+	// Получаем физический размер
+	size, hasSize := world.GetSize(entity)
+	if !hasSize {
+		return
+	}
+
+	// Получаем тип для выбора цвета
+	animalType, hasType := world.GetAnimalType(entity)
+	if !hasType {
+		return
+	}
+
+	// ИСПРАВЛЕНИЕ: size.Radius уже в ПИКСЕЛЯХ, не в тайлах!
+	radiusPixelsWorld := size.Radius                           // Уже в пикселях мирового пространства
+	radiusPixelsScreen := radiusPixelsWorld * camera.GetZoom() // Применяем только зум камеры
+
+	// В изометрической проекции круг становится эллипсом
+	// Соотношение осей определяется соотношением TileWidth:TileHeight = 32:16 = 2:1
+	ellipseRadiusX := radiusPixelsScreen     // Горизонтальный радиус (полный)
+	ellipseRadiusY := radiusPixelsScreen / 2 // Вертикальный радиус (сжат в 2 раза для изометрии)
+
+	// Выбираем цвет в зависимости от типа животного
+	var debugColor color.RGBA
+	switch animalType {
+	case core.TypeRabbit:
+		debugColor = color.RGBA{R: 255, G: 255, B: 0, A: 128} // Полупрозрачный желтый
+	case core.TypeWolf:
+		debugColor = color.RGBA{R: 255, G: 0, B: 255, A: 128} // Полупрозрачный пурпурный
+	default:
+		debugColor = color.RGBA{R: 0, G: 255, B: 255, A: 128} // Полупрозрачный бирюзовый
+	}
+
+	// Рисуем контур эллипса (изометрическая проекция физического круга)
+	r.drawEllipseOutline(screen, screenX, screenY, ellipseRadiusX, ellipseRadiusY, debugColor)
+}
+
+// drawEllipseOutline рисует контур эллипса
+func (r *IsometricRenderer) drawEllipseOutline(screen *ebiten.Image, centerX, centerY, radiusX, radiusY float32, col color.RGBA) {
+	// Рисуем эллипс как набор линий (простая аппроксимация)
+	const segments = 32 // Количество сегментов для сглаженности
+
+	var prevX, prevY float32
+	for i := 0; i <= segments; i++ {
+		angle := float64(i) * 2 * math.Pi / segments
+		x := centerX + radiusX*float32(math.Cos(angle))
+		y := centerY + radiusY*float32(math.Sin(angle))
+
+		if i > 0 {
+			vector.StrokeLine(screen, prevX, prevY, x, y, 1, col, false)
+		}
+		prevX, prevY = x, y
+	}
 }

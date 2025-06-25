@@ -41,7 +41,7 @@ func TestCoreFeedingLogic(t *testing.T) {
 
 	// Use Add* methods based on CreateAnimal pattern
 	world.AddVelocity(rabbit, core.Velocity{X: 0, Y: 0})
-	world.AddHunger(rabbit, core.Hunger{Value: 80.0}) // Hungry enough to trigger search
+	world.AddSatiation(rabbit, core.Satiation{Value: 80.0}) // Hungry enough to trigger search
 	world.AddAnimalType(rabbit, core.TypeRabbit)
 	world.AddHealth(rabbit, core.Health{Current: 100, Max: 100})
 	world.AddSize(rabbit, core.Size{Radius: 16.0})
@@ -57,25 +57,25 @@ func TestCoreFeedingLogic(t *testing.T) {
 
 	// Add AnimalConfig component (required by GrassSearchSystem)
 	world.AddAnimalConfig(rabbit, core.AnimalConfig{
-		HungerThreshold: 90.0, // RabbitHungerThreshold
-		MaxHealth:       100,
-		CollisionRadius: 16.0,
-		AttackRange:     0, // Herbivores don't attack
-		AttackDamage:    0,
-		AttackCooldown:  0,
-		HitChance:       0,
+		SatiationThreshold: 90.0, // RabbitSatiationThreshold
+		MaxHealth:          100,
+		CollisionRadius:    16.0,
+		AttackRange:        0, // Herbivores don't attack
+		AttackDamage:       0,
+		AttackCooldown:     0,
+		HitChance:          0,
 	})
 
 	// Add Behavior component for GrassSearchSystem to work
 	world.AddBehavior(rabbit, core.Behavior{
-		Type:            core.BehaviorHerbivore, // CRITICAL: Must be herbivore
-		HungerThreshold: 90.0,
-		VisionRange:     100.0,
+		Type:               core.BehaviorHerbivore, // CRITICAL: Must be herbivore
+		SatiationThreshold: 90.0,
+		VisionRange:        100.0,
 	})
 
 	t.Logf("Initial state:")
 	pos, _ := world.GetPosition(rabbit)
-	hunger, _ := world.GetHunger(rabbit)
+	hunger, _ := world.GetSatiation(rabbit)
 	grassAmount := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 	t.Logf("  Rabbit position: (%.1f, %.1f)", pos.X, pos.Y)
 	t.Logf("  Rabbit hunger: %.1f%%", hunger.Value)
@@ -141,7 +141,7 @@ func TestCoreFeedingLogic(t *testing.T) {
 		}
 
 		// Check progress
-		currentHunger, _ := world.GetHunger(rabbit)
+		currentHunger, _ := world.GetSatiation(rabbit)
 		currentGrass := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
 		if i%5 == 0 {
@@ -162,7 +162,7 @@ func TestCoreFeedingLogic(t *testing.T) {
 	}
 
 	// Final checks
-	finalHunger, _ := world.GetHunger(rabbit)
+	finalHunger, _ := world.GetSatiation(rabbit)
 	finalGrass := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
 	t.Logf("Final state:")

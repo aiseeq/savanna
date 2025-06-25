@@ -128,44 +128,44 @@ func (cm *ComponentManager) RemoveHealth(entity EntityID) bool {
 	return true
 }
 
-// Hunger component management
+// Satiation component management
 
-// AddHunger добавляет компонент Hunger к сущности
-func (cm *ComponentManager) AddHunger(entity EntityID, hunger Hunger) {
-	cm.hungers[entity] = hunger
+// AddSatiation добавляет компонент Satiation к сущности
+func (cm *ComponentManager) AddSatiation(entity EntityID, satiation Satiation) {
+	cm.satiations[entity] = satiation
 
 	index := uint(entity) / constants.BitsPerUint64
 	bit := uint(entity) % constants.BitsPerUint64
-	cm.hasHunger[index] |= 1 << bit
+	cm.hasSatiation[index] |= 1 << bit
 }
 
-// GetHunger возвращает компонент Hunger сущности
-func (cm *ComponentManager) GetHunger(entity EntityID) (Hunger, bool) {
-	if !cm.HasComponent(entity, MaskHunger) {
-		return Hunger{}, false
+// GetSatiation возвращает компонент Satiation сущности
+func (cm *ComponentManager) GetSatiation(entity EntityID) (Satiation, bool) {
+	if !cm.HasComponent(entity, MaskSatiation) {
+		return Satiation{}, false
 	}
-	return cm.hungers[entity], true
+	return cm.satiations[entity], true
 }
 
-// SetHunger обновляет компонент Hunger сущности
-func (cm *ComponentManager) SetHunger(entity EntityID, hunger Hunger) bool {
-	if !cm.HasComponent(entity, MaskHunger) {
+// SetSatiation обновляет компонент Satiation сущности
+func (cm *ComponentManager) SetSatiation(entity EntityID, satiation Satiation) bool {
+	if !cm.HasComponent(entity, MaskSatiation) {
 		return false
 	}
-	cm.hungers[entity] = hunger
+	cm.satiations[entity] = satiation
 	return true
 }
 
-// RemoveHunger удаляет компонент Hunger у сущности
-func (cm *ComponentManager) RemoveHunger(entity EntityID) bool {
-	if !cm.HasComponent(entity, MaskHunger) {
+// RemoveSatiation удаляет компонент Satiation у сущности
+func (cm *ComponentManager) RemoveSatiation(entity EntityID) bool {
+	if !cm.HasComponent(entity, MaskSatiation) {
 		return false
 	}
 
 	index := uint(entity) / constants.BitsPerUint64
 	bit := uint(entity) % constants.BitsPerUint64
-	cm.hasHunger[index] &= ^(1 << bit)
-	cm.hungers[entity] = Hunger{} // Очистка данных
+	cm.hasSatiation[index] &= ^(1 << bit)
+	cm.satiations[entity] = Satiation{} // Очистка данных
 
 	return true
 }

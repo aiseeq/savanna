@@ -46,7 +46,7 @@ func TestWolfWithoutBoundaryInterference(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 780, 800) // 20 единиц от зайца
 
 	// Делаем волка голодным
-	world.SetHunger(wolf, core.Hunger{Value: 20.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 20.0})
 
 	t.Logf("=== Тест без влияния границ ===")
 

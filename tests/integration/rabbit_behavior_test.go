@@ -44,7 +44,7 @@ func TestRabbitMovementStability(t *testing.T) {
 
 		// Логгируем каждые 10 кадров
 		if frame%10 == 0 {
-			hunger, _ := world.GetHunger(rabbit)
+			hunger, _ := world.GetSatiation(rabbit)
 			behavior, _ := world.GetBehavior(rabbit)
 
 			t.Logf("Кадр %d: Заяц pos=(%.1f,%.1f) vel=(%.1f,%.1f) hunger=%.1f type=%d",

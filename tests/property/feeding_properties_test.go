@@ -50,13 +50,13 @@ func TestRabbitFeedingInvariant(t *testing.T) {
 		// Создаём зайца с заданным голодом
 		rabbit := simulation.CreateAnimal(world, core.TypeRabbit,
 			float32(posX*32+16), float32(posY*32+16)) // Центр тайла
-		world.SetHunger(rabbit, core.Hunger{Value: hunger})
+		world.SetSatiation(rabbit, core.Satiation{Value: hunger})
 
 		// Запускаем систему поиска
 		grassSearchSystem.Update(world, 1.0/60.0)
 
 		// Проверяем инвариант
-		isHungry := hunger < simulation.RabbitHungerThreshold
+		isHungry := hunger < simulation.RabbitSatiationThreshold
 		hasEnoughGrass := grassAmount >= simulation.MinGrassAmountToFind
 		shouldEat := isHungry && hasEnoughGrass
 
@@ -126,14 +126,14 @@ func TestEnergyConservationProperty(t *testing.T) {
 		for i := 0; i < initialRabbits; i++ {
 			rabbit := simulation.CreateAnimal(world, core.TypeRabbit,
 				float32(i*50+100), float32(i*50+100))
-			world.SetHunger(rabbit, core.Hunger{Value: 100.0}) // Сытые
+			world.SetSatiation(rabbit, core.Satiation{Value: 100.0}) // Сытые
 			initialAnimalEnergy += 100.0
 		}
 
 		for i := 0; i < initialWolves; i++ {
 			wolf := simulation.CreateAnimal(world, core.TypeWolf,
 				float32(i*80+200), float32(i*80+200))
-			world.SetHunger(wolf, core.Hunger{Value: 100.0}) // Сытые
+			world.SetSatiation(wolf, core.Satiation{Value: 100.0}) // Сытые
 			initialAnimalEnergy += 100.0
 		}
 
@@ -141,10 +141,10 @@ func TestEnergyConservationProperty(t *testing.T) {
 
 		// Запускаем симуляцию
 		grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem)
-		hungerSystem := simulation.NewHungerSystem()
+		satiationSystem := simulation.NewSatiationSystem()
 
 		for tick := 0; tick < simulationTicks; tick++ {
-			hungerSystem.Update(world, 1.0/60.0)
+			satiationSystem.Update(world, 1.0/60.0)
 			grassSearchSystem.Update(world, 1.0/60.0)
 		}
 
@@ -157,9 +157,9 @@ func TestEnergyConservationProperty(t *testing.T) {
 		}
 
 		finalAnimalEnergy := float32(0)
-		world.ForEachWith(core.MaskHunger, func(entity core.EntityID) {
-			if hunger, hasHunger := world.GetHunger(entity); hasHunger {
-				finalAnimalEnergy += hunger.Value
+		world.ForEachWith(core.MaskSatiation, func(entity core.EntityID) {
+			if satiation, hasSatiation := world.GetSatiation(entity); hasSatiation {
+				finalAnimalEnergy += satiation.Value
 			}
 		})
 
@@ -213,7 +213,7 @@ func TestGrassSearchDeterminismProperty(t *testing.T) {
 			grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem)
 
 			rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 80, 80)
-			world.SetHunger(rabbit, core.Hunger{Value: hunger})
+			world.SetSatiation(rabbit, core.Satiation{Value: hunger})
 
 			grassSearchSystem.Update(world, 1.0/60.0)
 

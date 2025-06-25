@@ -21,7 +21,7 @@ func TestStateDrivenCombat(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 50, 48) // Расстояние = 2 пикселя
 
 	// Волк голоден
-	world.SetHunger(wolf, core.Hunger{Value: 5.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 5.0})
 
 	t.Logf("=== ТЕСТ АРХИТЕКТУРЫ: СОСТОЯНИЕ → АНИМАЦИЯ ===")
 

@@ -44,7 +44,7 @@ func TestDirectAttack(t *testing.T) {
 	}
 
 	// Делаем волка голодным для активации атаки
-	world.SetHunger(wolf, core.Hunger{Value: 30.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 30.0})
 
 	deltaTime := float32(1.0 / 60.0)
 

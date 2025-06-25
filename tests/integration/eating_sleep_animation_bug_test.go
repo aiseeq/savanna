@@ -67,8 +67,8 @@ func TestEatingSleepAnimationBug(t *testing.T) {
 
 	// Создаём голодного зайца точно на траве
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, grassX, grassY)
-	world.SetHunger(rabbit, core.Hunger{Value: 85.0})    // Голодный
-	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0}) // Стоит
+	world.SetSatiation(rabbit, core.Satiation{Value: 85.0}) // Голодный
+	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0})    // Стоит
 
 	deltaTime := float32(1.0 / 60.0)
 
@@ -82,7 +82,7 @@ func TestEatingSleepAnimationBug(t *testing.T) {
 		// Получаем состояние зайца
 		pos, _ := world.GetPosition(rabbit)
 		vel, _ := world.GetVelocity(rabbit)
-		hunger, _ := world.GetHunger(rabbit)
+		hunger, _ := world.GetSatiation(rabbit)
 		anim, _ := world.GetAnimation(rabbit)
 		isEating := world.HasComponent(rabbit, core.MaskEatingState)
 		grassAmount := vegetationSystem.GetGrassAt(pos.X, pos.Y)
@@ -140,7 +140,7 @@ func TestEatingSleepAnimationBug(t *testing.T) {
 	}
 
 	// Если дошли сюда - заяц так и не начал есть
-	hunger, _ := world.GetHunger(rabbit)
+	hunger, _ := world.GetSatiation(rabbit)
 	anim, _ := world.GetAnimation(rabbit)
 	animType := animation.AnimationType(anim.CurrentAnim)
 	t.Errorf("❌ Заяц не начал есть за 200 тиков. Голод: %.1f%%, анимация: %s", hunger.Value, animType.String())

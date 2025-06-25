@@ -145,8 +145,8 @@ func initializeSystems(systemManager *core.SystemManager, world *core.World, con
 	// Добавляем системы в КРИТИЧЕСКОМ порядке (из CLAUDE.md)
 	systemManager.AddSystem(vegetationSystem)
 
-	hungerSystem := simulation.NewHungerSystem()
-	systemManager.AddSystem(&adapters.HungerSystemAdapter{System: hungerSystem})
+	satiationSystem := simulation.NewSatiationSystem()
+	systemManager.AddSystem(&adapters.SatiationSystemAdapter{System: satiationSystem})
 
 	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem)
 	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{System: grassSearchSystem})
@@ -162,8 +162,8 @@ func initializeSystems(systemManager *core.SystemManager, world *core.World, con
 	behaviorAdapter := &adapters.BehaviorSystemAdapter{System: behaviorSystem}
 	systemManager.AddSystem(behaviorAdapter)
 
-	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem()
-	systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{System: hungerSpeedModifier})
+	satiationSpeedModifier := simulation.NewSatiationSpeedModifierSystem()
+	systemManager.AddSystem(&adapters.SatiationSpeedModifierSystemAdapter{System: satiationSpeedModifier})
 
 	movementSystem := simulation.NewMovementSystem(config.WorldWidth, config.WorldHeight)
 	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})

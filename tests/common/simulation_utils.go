@@ -103,7 +103,7 @@ type HungerTestParams struct {
 func AssertEntityHunger(t *testing.T, world *core.World, params HungerTestParams) {
 	t.Helper()
 
-	hunger, hasHunger := world.GetHunger(params.Entity)
+	hunger, hasHunger := world.GetSatiation(params.Entity)
 	if !hasHunger {
 		t.Fatalf("%s: у сущности %d нет компонента Hunger", params.Message, params.Entity)
 	}
@@ -185,7 +185,7 @@ func AssertRabbitDamaged(t *testing.T, world *core.World, rabbit core.EntityID) 
 func AssertWolfFed(t *testing.T, world *core.World, wolf core.EntityID, initialHunger float32) {
 	t.Helper()
 
-	hunger, hasHunger := world.GetHunger(wolf)
+	hunger, hasHunger := world.GetSatiation(wolf)
 	if !hasHunger {
 		t.Fatal("У волка нет компонента Hunger")
 	}
@@ -212,8 +212,8 @@ func GetEntityDistance(world *core.World, entity1, entity2 core.EntityID) float3
 // IsWolfAttacking проверяет атакует ли волк (унификация логики из разных тестов)
 func IsWolfAttacking(world *core.World, wolf core.EntityID) bool {
 	// Проверяем голод волка
-	hunger, hasHunger := world.GetHunger(wolf)
-	if !hasHunger || hunger.Value > WolfAttackHungerThreshold {
+	hunger, hasHunger := world.GetSatiation(wolf)
+	if !hasHunger || hunger.Value > WolfAttackSatiationThreshold {
 		return false
 	}
 
@@ -253,7 +253,7 @@ func LogEntityState(t *testing.T, world *core.World, entity core.EntityID, entit
 	}
 
 	// Голод
-	if hunger, has := world.GetHunger(entity); has {
+	if hunger, has := world.GetSatiation(entity); has {
 		t.Logf("%s %d: голод %.1f%%", entityName, entity, hunger.Value)
 	}
 

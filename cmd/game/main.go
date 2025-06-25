@@ -42,13 +42,41 @@ type Game struct {
 
 	// Дебаг режим
 	debugMode bool // Включен ли дебаг режим (F3)
+
+	// Автоматическое создание скриншотов
+	visualTestMode     bool   // Режим автоматического создания скриншотов
+	screenshotCount    int    // Сколько скриншотов уже создано
+	maxScreenshots     int    // Максимальное количество скриншотов
+	screenshotInterval int    // Интервал между скриншотами (в тиках)
+	lastScreenshotTick int    // Последний тик когда был создан скриншот
+	screenshotDir      string // Директория для сохранения скриншотов
+	tickCounter        int    // Счетчик тиков
+	headlessMode       bool   // Флаг headless режима
 }
 
 // Update обновляет логику игры (рефакторинг: использует менеджеры)
 func (g *Game) Update() error {
+	g.tickCounter++
+
 	// Проверяем выход
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		return fmt.Errorf("игра завершена пользователем")
+	}
+
+	// Автоматическое создание скриншотов в визуальном тесте
+	if g.visualTestMode {
+		if g.tickCounter >= g.lastScreenshotTick+g.screenshotInterval {
+			g.takeVisualTestScreenshot()
+			g.lastScreenshotTick = g.tickCounter
+			g.screenshotCount++
+
+			// Завершаем после создания всех скриншотов
+			if g.screenshotCount >= g.maxScreenshots {
+				g.createVisualTestReport()
+				fmt.Printf("✅ Визуальный тест завершен! Проверьте папку: %s\n", g.screenshotDir)
+				return fmt.Errorf("визуальный тест завершен")
+			}
+		}
 	}
 
 	// Обновляем менеджеры (каждый отвечает за свою область)
@@ -84,7 +112,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// Используем новую изометрическую систему отрисовки
 	world := g.gameWorld.GetWorld()
-	g.isometricRenderer.RenderWorld(screen, g.terrain, world, g.camera)
+	g.isometricRenderer.RenderWorld(screen, g.terrain, world, g.camera, g.debugMode)
 
 	// Дебаг отрисовка
 	if g.debugMode {
@@ -150,8 +178,8 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 	})
 
 	if found {
-		if hunger, ok := world.GetHunger(firstRabbit); ok {
-			g.drawText(screen, fmt.Sprintf("Hunger: %.1f%%", hunger.Value), 10, y, font)
+		if hunger, ok := world.GetSatiation(firstRabbit); ok {
+			g.drawText(screen, fmt.Sprintf("Satiation: %.1f%%", hunger.Value), 10, y, font)
 		}
 	}
 }
@@ -245,7 +273,7 @@ func (g *Game) drawHungerText(
 	world *core.World,
 	params HungerTextParams,
 ) {
-	hunger, hasHunger := world.GetHunger(entity)
+	hunger, hasHunger := world.GetSatiation(entity)
 	if !hasHunger {
 		return
 	}
@@ -276,7 +304,7 @@ func (g *Game) drawHungerText(
 		// Критический голод - красный
 		textColor = color.RGBA{255, 50, 50, 255}
 	} else if hunger.Value < 60.0 {
-		// Средний голод - жёлтый
+		// Средняя сытость - жёлтый
 		textColor = color.RGBA{255, 255, 50, 255}
 	} else {
 		// Сытость - зелёный
@@ -512,6 +540,26 @@ func main() {
 		"pprof", false,
 		"Включить профилирование производительности на порту 6060",
 	)
+	var visualTestFlag = flag.Bool(
+		"visual-test", false,
+		"Запустить автоматический визуальный тест (10 скриншотов каждую секунду)",
+	)
+	var screenshotsFlag = flag.Int(
+		"screenshots", 10,
+		"Количество скриншотов для визуального теста",
+	)
+	var intervalFlag = flag.Int(
+		"interval", 60,
+		"Интервал между скриншотами в тиках (60 = 1 секунда)",
+	)
+	var headlessFlag = flag.Bool(
+		"headless", false,
+		"Запустить в headless режиме (без GUI, только симуляция)",
+	)
+	var speedFlag = flag.Float64(
+		"speed", 1.0,
+		"Множитель скорости симуляции (2.0 = в 2 раза быстрее, 0.5 = в 2 раза медленнее)",
+	)
 	flag.Parse()
 
 	if *pprofFlag {
@@ -578,6 +626,30 @@ func main() {
 	// ИСПРАВЛЕНИЕ: Подключаем спрайтовый рендерер к изометрическому
 	isometricRenderer.SetSpriteRenderer(spriteRenderer)
 
+	// Подготовка для визуального теста
+	var screenshotDir string
+	if *visualTestFlag {
+		screenshotDir = "visual_analysis"
+
+		// Очищаем папку перед запуском теста
+		if _, err := os.Stat(screenshotDir); err == nil {
+			log.Printf("🧹 Очищаем папку %s", screenshotDir)
+			err := os.RemoveAll(screenshotDir)
+			if err != nil {
+				log.Fatalf("❌ Не удалось очистить папку %s: %v", screenshotDir, err)
+			}
+		}
+
+		// Создаем свежую папку
+		err := os.MkdirAll(screenshotDir, 0755)
+		if err != nil {
+			log.Fatalf("❌ Не удалось создать директорию для скриншотов: %v", err)
+		}
+		log.Printf("📁 Скриншоты будут сохранены в: %s", screenshotDir)
+		log.Printf("📸 Будет создано %d скриншотов с интервалом %d тиков",
+			*screenshotsFlag, *intervalFlag)
+	}
+
 	// Создаём игру с менеджерами
 	game := &Game{
 		gameWorld:         gameWorld,
@@ -588,18 +660,63 @@ func main() {
 		camera:            camera,
 		terrain:           terrain,
 		debugMode:         false, // По умолчанию выключен
+
+		// Настройки визуального теста
+		visualTestMode:     *visualTestFlag,
+		screenshotCount:    0,
+		maxScreenshots:     *screenshotsFlag,
+		screenshotInterval: *intervalFlag,
+		lastScreenshotTick: 0,
+		screenshotDir:      screenshotDir,
+		tickCounter:        0,
+		headlessMode:       *headlessFlag, // Headless только если явно указан флаг
 	}
 
-	// Настройки окна
-	ebiten.SetWindowSize(1024, 768)
-	ebiten.SetWindowTitle("Savanna Ecosystem Simulator")
-	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
-	ebiten.SetVsyncEnabled(true)
-	ebiten.SetScreenClearedEveryFrame(true)
+	// Выбираем режим запуска
+	if *headlessFlag {
+		// Headless режим
+		log.Println("🤖 Запуск в headless режиме...")
+		if err := runHeadlessMode(game, *speedFlag); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		// Настройки окна для GUI режима
+		ebiten.SetWindowSize(1024, 768)
+		ebiten.SetWindowTitle("Savanna Ecosystem Simulator")
+		ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+		ebiten.SetVsyncEnabled(true)
+		ebiten.SetScreenClearedEveryFrame(true)
+		ebiten.SetTPS(60) // Явное ограничение TPS до 60
 
-	// Запускаем игру
-	if err := ebiten.RunGame(game); err != nil {
-		log.Fatal(err)
+		// Запускаем игру
+		if err := ebiten.RunGame(game); err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
+// runHeadlessMode запускает игру в режиме без GUI для визуального тестирования
+func runHeadlessMode(game *Game, speedMultiplier float64) error {
+	log.Printf("⏱️  Запуск headless симуляции со скоростью %.1fx...", speedMultiplier)
+
+	// Фиксированный timestep для детерминированности с учетом ускорения
+	const targetFPS = 60
+	frameDelay := time.Duration(float64(time.Second/targetFPS) / speedMultiplier)
+
+	for {
+		// Обновляем игровую логику
+		err := game.Update()
+		if err != nil {
+			// Завершаем если тест закончен
+			if err.Error() == "визуальный тест завершен" {
+				log.Println("✅ Headless симуляция завершена")
+				return nil
+			}
+			return err
+		}
+
+		// Эмулируем задержку кадра с ускорением
+		time.Sleep(frameDelay)
 	}
 }
 
@@ -641,6 +758,190 @@ func (g *Game) takeDebugScreenshot() {
 	}
 
 	fmt.Printf("📸 Дебаг-скриншот сохранён: %s\n", filename)
+}
+
+// takeVisualTestScreenshot создаёт скриншот для визуального теста или статистику в headless режиме
+func (g *Game) takeVisualTestScreenshot() {
+	// Собираем статистику животных
+	stats := g.gatherAnimalStats()
+
+	// В headless режиме только статистика
+	if g.isHeadlessMode() {
+		fmt.Printf("📊 Тик %d (сек %d): %d зайцев, %d волков, %d трупов - голод: зайцы %.1f%%, волки %.1f%%\n",
+			g.tickCounter, g.screenshotCount,
+			stats.AliveRabbits, stats.AliveWolves, stats.Corpses,
+			stats.AvgRabbitHunger, stats.AvgWolfHunger)
+		return
+	}
+
+	// GUI режим - создаем скриншот
+	screen := ebiten.NewImage(1024, 768)
+	g.Draw(screen)
+
+	filename := fmt.Sprintf("screenshot_%02d_sec_%d.png",
+		g.screenshotCount+1, g.screenshotCount)
+	filepath := fmt.Sprintf("%s/%s", g.screenshotDir, filename)
+
+	err := g.saveScreenshot(screen, filepath)
+	if err != nil {
+		fmt.Printf("❌ Ошибка сохранения скриншота %s: %v\n", filename, err)
+		return
+	}
+
+	fmt.Printf("📸 Скриншот %d: %s\n", g.screenshotCount+1, filename)
+	fmt.Printf("   Живых зайцев: %d, волков: %d, трупов: %d\n",
+		stats.AliveRabbits, stats.AliveWolves, stats.Corpses)
+	fmt.Printf("   Средняя сытость: зайцы %.1f%%, волки %.1f%%\n",
+		stats.AvgRabbitHunger, stats.AvgWolfHunger)
+}
+
+// isHeadlessMode проверяет запущен ли headless режим
+func (g *Game) isHeadlessMode() bool {
+	return g.headlessMode
+}
+
+// saveScreenshot сохраняет скриншот в PNG файл
+func (g *Game) saveScreenshot(img *ebiten.Image, filepath string) error {
+	file, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	rgba := img.SubImage(img.Bounds())
+	return png.Encode(file, rgba.(image.Image))
+}
+
+// AnimalStats статистика животных для визуального теста
+type AnimalStats struct {
+	TotalRabbits    int
+	TotalWolves     int
+	AliveRabbits    int
+	AliveWolves     int
+	Corpses         int
+	AvgRabbitHunger float32
+	AvgWolfHunger   float32
+}
+
+// gatherAnimalStats собирает статистику животных
+func (g *Game) gatherAnimalStats() AnimalStats {
+	stats := AnimalStats{}
+	world := g.gameWorld.GetWorld()
+
+	rabbitHungerSum := float32(0)
+	wolfHungerSum := float32(0)
+
+	world.ForEachWith(core.MaskAnimalType, func(entity core.EntityID) {
+		animalType, hasType := world.GetAnimalType(entity)
+		if !hasType {
+			return
+		}
+
+		isAlive := world.IsAlive(entity)
+
+		if animalType == core.TypeRabbit {
+			stats.TotalRabbits++
+			if isAlive {
+				stats.AliveRabbits++
+				if hunger, hasHunger := world.GetSatiation(entity); hasHunger {
+					rabbitHungerSum += hunger.Value
+				}
+			}
+		} else if animalType == core.TypeWolf {
+			stats.TotalWolves++
+			if isAlive {
+				stats.AliveWolves++
+				if hunger, hasHunger := world.GetSatiation(entity); hasHunger {
+					wolfHungerSum += hunger.Value
+				}
+			}
+		}
+
+		if world.HasComponent(entity, core.MaskCorpse) {
+			stats.Corpses++
+		}
+	})
+
+	// Средние значения
+	if stats.AliveRabbits > 0 {
+		stats.AvgRabbitHunger = rabbitHungerSum / float32(stats.AliveRabbits)
+	}
+	if stats.AliveWolves > 0 {
+		stats.AvgWolfHunger = wolfHungerSum / float32(stats.AliveWolves)
+	}
+
+	return stats
+}
+
+// createVisualTestReport создаёт финальный отчет визуального теста
+func (g *Game) createVisualTestReport() {
+	reportPath := fmt.Sprintf("%s/visual_analysis_report.txt", g.screenshotDir)
+	file, err := os.Create(reportPath)
+	if err != nil {
+		fmt.Printf("❌ Ошибка создания отчета: %v\n", err)
+		return
+	}
+	defer file.Close()
+
+	stats := g.gatherAnimalStats()
+
+	report := fmt.Sprintf(`ОТЧЕТ ВИЗУАЛЬНОГО АНАЛИЗА ИГРЫ SAVANNA
+======================================
+
+ДАТА: %s
+ДЛИТЕЛЬНОСТЬ: %d секунд (%d скриншотов)
+РАЗМЕР МИРА: 40x40 тайлов
+РАЗМЕР ОКНА: 1024x768 пикселей
+
+ФИНАЛЬНАЯ СТАТИСТИКА:
+--------------------
+Зайцы: %d живых из %d (%.1f%% выживаемость)
+Волки: %d живых из %d (%.1f%% выживаемость)
+Трупы: %d
+
+Средняя сытость зайцев: %.1f%%
+Средняя сытость волков: %.1f%%
+
+ФАЙЛЫ СКРИНШОТОВ:
+----------------
+`,
+		time.Now().Format("2006-01-02 15:04:05"),
+		g.maxScreenshots, g.maxScreenshots,
+		stats.AliveRabbits, stats.TotalRabbits,
+		float32(stats.AliveRabbits)/max(float32(stats.TotalRabbits), 1)*100,
+		stats.AliveWolves, stats.TotalWolves,
+		float32(stats.AliveWolves)/max(float32(stats.TotalWolves), 1)*100,
+		stats.Corpses,
+		stats.AvgRabbitHunger, stats.AvgWolfHunger)
+
+	// Добавляем список файлов
+	for i := 0; i < g.maxScreenshots; i++ {
+		report += fmt.Sprintf("- screenshot_%02d_sec_%d.png\n", i+1, i)
+	}
+
+	report += `
+ИНСТРУКЦИИ ДЛЯ АНАЛИЗА:
+----------------------
+1. Откройте скриншоты в порядке времени
+2. Проверьте что животные видны и движутся
+3. Убедитесь что волки преследуют зайцев
+4. Проверьте что UI элементы отображаются корректно
+5. Убедитесь что симуляция стабильна
+
+ВОЗМОЖНЫЕ ПРОБЛЕМЫ:
+------------------
+- Животные не видны или слишком маленькие/большие
+- Все животные стоят на месте
+- Слишком быстрое вымирание зайцев
+- Волки не атакуют зайцев
+- Симуляция зависает на одном состоянии
+- UI элементы отсутствуют или неправильные
+
+СОЗДАН: Автоматически игрой Savanna в режиме визуального тестирования
+`
+
+	file.WriteString(report)
+	fmt.Printf("📊 Отчет создан: %s\n", reportPath)
 }
 
 // min возвращает минимальное из двух float32

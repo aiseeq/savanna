@@ -27,9 +27,9 @@ func TestDamageFlashCreationInAttackSystem(t *testing.T) {
 		AttackRange: 28.8, // Атака волка в пикселях (0.9 тайла * 32 пикселя/тайл)
 	})
 	world.AddBehavior(attacker, core.Behavior{
-		Type:            core.BehaviorPredator,
-		VisionRange:     160.0, // 5 тайлов в пикселях
-		HungerThreshold: 60.0,
+		Type:               core.BehaviorPredator,
+		VisionRange:        160.0, // 5 тайлов в пикселях
+		SatiationThreshold: 60.0,
 	})
 	world.AddAnimalConfig(attacker, core.AnimalConfig{
 		AttackDamage: 25,

@@ -59,7 +59,7 @@ func TestWolfEatingBehaviorImproved(t *testing.T) {
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, rabbitX, rabbitY)
 
 	// Делаем волка голодным
-	world.SetHunger(wolf, core.Hunger{Value: 30.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 30.0})
 
 	// Убиваем зайца и создаём из него труп
 	world.RemoveHealth(rabbit)
@@ -124,7 +124,7 @@ func TestWolfEatingBehaviorImproved(t *testing.T) {
 		// Проверяем состояние каждые 15 тиков
 		if tick%15 == 0 {
 			wolfPos, _ := world.GetPosition(wolf)
-			wolfHunger, _ := world.GetHunger(wolf)
+			wolfHunger, _ := world.GetSatiation(wolf)
 			isEating := world.HasComponent(wolf, core.MaskEatingState)
 			currentAnimType := animation.AnimationType(anim.CurrentAnim)
 

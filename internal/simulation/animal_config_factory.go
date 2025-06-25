@@ -13,22 +13,22 @@ func CreateAnimalConfig(animalType core.AnimalType) core.AnimalConfig {
 	default:
 		// Базовая конфигурация для неизвестных типов
 		return core.AnimalConfig{
-			BaseRadius:       DefaultAnimalRadius,
-			MaxHealth:        DefaultAnimalHealth,
-			BaseSpeed:        DefaultAnimalSpeed,
-			CollisionRadius:  DefaultAnimalRadius * CollisionRadiusMultiplier,
-			AttackRange:      PacifistAttackDamage, // Не атакует
-			VisionRange:      DefaultAnimalRadius * DefaultVisionMultiplier,
-			HungerThreshold:  DefaultHungerThreshold,
-			FleeThreshold:    DefaultAnimalRadius * RabbitFleeDistanceMultiplier, // Используем множитель зайца как базовый
-			SearchSpeed:      SearchSpeedMultiplier,
-			WanderingSpeed:   WanderingSpeedMultiplier,
-			ContentSpeed:     ContentSpeedMultiplier,
-			MinDirectionTime: DefaultMinDirectionTime,
-			MaxDirectionTime: DefaultMaxDirectionTime,
-			AttackDamage:     PacifistAttackDamage,
-			AttackCooldown:   PacifistAttackCooldown,
-			HitChance:        PacifistHitChance,
+			BaseRadius:         DefaultAnimalRadius,
+			MaxHealth:          DefaultAnimalHealth,
+			BaseSpeed:          DefaultAnimalSpeed,
+			CollisionRadius:    DefaultAnimalRadius * CollisionRadiusMultiplier,
+			AttackRange:        PacifistAttackDamage, // Не атакует
+			VisionRange:        DefaultAnimalRadius * DefaultVisionMultiplier,
+			SatiationThreshold: DefaultSatiationThreshold,
+			FleeThreshold:      DefaultAnimalRadius * RabbitFleeDistanceMultiplier, // Используем множитель зайца как базовый
+			SearchSpeed:        SearchSpeedMultiplier,
+			WanderingSpeed:     WanderingSpeedMultiplier,
+			ContentSpeed:       ContentSpeedMultiplier,
+			MinDirectionTime:   DefaultMinDirectionTime,
+			MaxDirectionTime:   DefaultMaxDirectionTime,
+			AttackDamage:       PacifistAttackDamage,
+			AttackCooldown:     PacifistAttackCooldown,
+			HitChance:          PacifistHitChance,
 		}
 	}
 }
@@ -48,8 +48,8 @@ func createRabbitConfig() core.AnimalConfig {
 		VisionRange:     RabbitBaseRadius * RabbitVisionMultiplier,
 
 		// Поведение травоядного
-		HungerThreshold: RabbitHungerThreshold,
-		FleeThreshold:   RabbitBaseRadius * RabbitFleeDistanceMultiplier,
+		SatiationThreshold: RabbitSatiationThreshold,
+		FleeThreshold:      RabbitBaseRadius * RabbitFleeDistanceMultiplier,
 
 		// Скорости в разных состояниях
 		SearchSpeed:    SearchSpeedMultiplier,
@@ -82,8 +82,8 @@ func createWolfConfig() core.AnimalConfig {
 		VisionRange:     WolfBaseRadius * WolfVisionMultiplier,
 
 		// Поведение хищника
-		HungerThreshold: WolfHungerThreshold,
-		FleeThreshold:   PacifistAttackDamage, // Волк не убегает (используем 0.0)
+		SatiationThreshold: WolfSatiationThreshold,
+		FleeThreshold:      PacifistAttackDamage, // Волк не убегает (используем 0.0)
 
 		// Скорости в разных состояниях
 		SearchSpeed:    HuntingSpeedMultiplier, // Полная скорость при охоте

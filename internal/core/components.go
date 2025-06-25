@@ -18,8 +18,8 @@ type Health struct {
 	Max     int16 // Максимальное здоровье
 }
 
-// Hunger уровень голода (0-100)
-type Hunger struct {
+// Satiation уровень сытости (0-100)
+type Satiation struct {
 	Value float32 // 0 = умирает от голода, 100 = сыт
 }
 
@@ -172,8 +172,8 @@ type AnimalConfig struct {
 	VisionRange     float32 // Дальность видения (BaseRadius * множитель)
 
 	// Поведение
-	HungerThreshold float32 // При каком голоде начинает искать еду
-	FleeThreshold   float32 // Дистанция на которой убегает от угрозы
+	SatiationThreshold float32 // При какой сытости начинает искать еду
+	FleeThreshold      float32 // Дистанция на которой убегает от угрозы
 
 	// Множители скорости в разных состояниях
 	SearchSpeed    float32 // Множитель скорости при поиске еды (0.8)
@@ -192,16 +192,16 @@ type AnimalConfig struct {
 
 // Behavior поведение животного
 type Behavior struct {
-	Type             BehaviorType // Тип поведения
-	DirectionTimer   float32      // Таймер смены направления движения
-	HungerThreshold  float32      // При каком голоде начинает искать еду
-	FleeThreshold    float32      // Дистанция на которой убегает от угрозы
-	SearchSpeed      float32      // Множитель скорости при поиске еды (0.8)
-	WanderingSpeed   float32      // Множитель скорости при блуждании (0.7)
-	ContentSpeed     float32      // Множитель скорости в покое (0.3)
-	VisionRange      float32      // Дальность видения
-	MinDirectionTime float32      // Минимальное время случайного движения
-	MaxDirectionTime float32      // Максимальное время случайного движения
+	Type               BehaviorType // Тип поведения
+	DirectionTimer     float32      // Таймер смены направления движения
+	SatiationThreshold float32      // При какой сытости начинает искать еду
+	FleeThreshold      float32      // Дистанция на которой убегает от угрозы
+	SearchSpeed        float32      // Множитель скорости при поиске еды (0.8)
+	WanderingSpeed     float32      // Множитель скорости при блуждании (0.7)
+	ContentSpeed       float32      // Множитель скорости в покое (0.3)
+	VisionRange        float32      // Дальность видения
+	MinDirectionTime   float32      // Минимальное время случайного движения
+	MaxDirectionTime   float32      // Максимальное время случайного движения
 }
 
 // ComponentMask битовые маски для быстрой проверки наличия компонентов
@@ -211,7 +211,7 @@ const (
 	MaskPosition ComponentMask = 1 << iota
 	MaskVelocity
 	MaskHealth
-	MaskHunger
+	MaskSatiation
 	MaskAnimalType
 	MaskSize
 	MaskSpeed
@@ -291,11 +291,11 @@ var (
 	MovingEntities = NewComponentSet(MaskPosition, MaskVelocity)
 
 	// LivingEntities живые сущности
-	LivingEntities = NewComponentSet(MaskPosition, MaskHealth, MaskHunger, MaskAnimalType, MaskSize)
+	LivingEntities = NewComponentSet(MaskPosition, MaskHealth, MaskSatiation, MaskAnimalType, MaskSize)
 
 	// AnimalsEntities животные (для рендеринга и логики)
 	AnimalsEntities = NewComponentSet(
-		MaskPosition, MaskVelocity, MaskHealth, MaskHunger,
+		MaskPosition, MaskVelocity, MaskHealth, MaskSatiation,
 		MaskAnimalType, MaskSize, MaskSpeed, MaskAnimalConfig,
 	)
 )

@@ -56,7 +56,7 @@ func TestRabbitAnimationSwitching(t *testing.T) {
 	terrain.SetGrassAmount(tileX, tileY, 100.0)
 
 	// Делаем зайца голодным
-	world.SetHunger(rabbit, core.Hunger{Value: 60.0})
+	world.SetSatiation(rabbit, core.Satiation{Value: 60.0})
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0})
 
 	deltaTime := float32(1.0 / 60.0)
@@ -128,7 +128,7 @@ func TestRabbitAnimationSwitching(t *testing.T) {
 
 		// Логируем каждые 15 тиков (0.25 сек - один кадр анимации)
 		if tick%15 == 0 || animationChanged {
-			currentHunger, _ := world.GetHunger(rabbit)
+			currentHunger, _ := world.GetSatiation(rabbit)
 			isEating := world.HasComponent(rabbit, core.MaskEatingState)
 			currentAnimType := animation.AnimationType(anim.CurrentAnim)
 

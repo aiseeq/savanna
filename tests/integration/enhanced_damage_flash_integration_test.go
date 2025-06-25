@@ -30,7 +30,7 @@ func TestEnhancedDamageFlash(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 300.5, 300) // Дистанция 0.5 < атака волка 0.9
 
 	// Делаем волка голодным для гарантированной атаки
-	world.SetHunger(wolf, core.Hunger{Value: 20.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 20.0})
 
 	t.Logf("=== ТЕСТ УСИЛЕННОГО DAMAGEFLASH ===")
 

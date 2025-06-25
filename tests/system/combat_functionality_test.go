@@ -103,11 +103,11 @@ func createTestAnimals(
 		case core.TypeWolf:
 			wolf := simulation.CreateAnimal(world, core.TypeWolf, placement.X, placement.Y)
 			// КРИТИЧЕСКИ ВАЖНО: делаем волков голодными для тестирования боевой системы
-			world.SetHunger(wolf, core.Hunger{Value: 10.0}) //nolint:gomnd // 10% - очень голодные
+			world.SetSatiation(wolf, core.Satiation{Value: 10.0}) //nolint:gomnd // 10% - очень голодные
 
 			// КРИТИЧЕСКИ ВАЖНО: увеличиваем порог охоты для надёжного тестирования
 			behavior, _ := world.GetBehavior(wolf)
-			behavior.HungerThreshold = 90.0 //nolint:gomnd // Охотится пока голод < 90%
+			behavior.SatiationThreshold = 90.0 //nolint:gomnd // Охотится пока сытость < 90%
 			world.SetBehavior(wolf, behavior)
 
 			wolves = append(wolves, wolf)
@@ -125,7 +125,7 @@ func logWolfPositions(t *testing.T, world *core.World, wolves, rabbits []core.En
 	// DEBUG: проверяем расстояния между волками и зайцами
 	for i, wolf := range wolves {
 		wolfPos, _ := world.GetPosition(wolf)
-		wolfHunger, _ := world.GetHunger(wolf)
+		wolfSatiation, _ := world.GetSatiation(wolf)
 
 		minDistanceToRabbit := float32(999999) //nolint:gomnd // Большое число для поиска минимума
 		for _, rabbit := range rabbits {
@@ -138,8 +138,8 @@ func logWolfPositions(t *testing.T, world *core.World, wolves, rabbits []core.En
 			}
 		}
 
-		t.Logf("DEBUG: Волк %d - позиция (%.1f, %.1f), голод %.1f%%, ближайший заяц: %.1f пикселей",
-			i, wolfPos.X, wolfPos.Y, wolfHunger.Value, float32(math.Sqrt(float64(minDistanceToRabbit))))
+		t.Logf("DEBUG: Волк %d - позиция (%.1f, %.1f), сытость %.1f%%, ближайший заяц: %.1f пикселей",
+			i, wolfPos.X, wolfPos.Y, wolfSatiation.Value, float32(math.Sqrt(float64(minDistanceToRabbit))))
 	}
 }
 
@@ -370,8 +370,8 @@ func getRabbitAnimationTypeForTest(world *core.World, entity core.EntityID) anim
 
 // isWolfAttackingForTest проверяет атакует ли волк
 func isWolfAttackingForTest(world *core.World, wolf core.EntityID) bool {
-	hunger, hasHunger := world.GetHunger(wolf)
-	if !hasHunger || hunger.Value >= 60.0 {
+	satiation, hasSatiation := world.GetSatiation(wolf)
+	if !hasSatiation || satiation.Value >= 60.0 {
 		return false
 	}
 

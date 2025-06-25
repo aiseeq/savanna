@@ -72,7 +72,7 @@ found:
 
 	// Создаём зайца в центре тайла с травой
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, rabbitX, rabbitY)
-	world.SetHunger(rabbit, core.Hunger{Value: 10.0}) // Очень голодный
+	world.SetSatiation(rabbit, core.Satiation{Value: 10.0}) // Очень голодный
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0})
 
 	// Устанавливаем анимацию поедания
@@ -122,7 +122,7 @@ found:
 		if tick%60 == 59 {
 			currentGrass := vegetationSystem.GetGrassAt(rabbitX, rabbitY)
 			currentColor := calculateGrassColor(currentGrass)
-			hunger, _ := world.GetHunger(rabbit)
+			hunger, _ := world.GetSatiation(rabbit)
 			_, isEating := world.GetEatingState(rabbit)
 
 			pos, _ := world.GetPosition(rabbit)
@@ -132,7 +132,7 @@ found:
 			_, _, foundGrass := vegetationSystem.FindNearestGrass(pos.X, pos.Y, 30.0, 10.0)
 
 			t.Logf("Через %d сек: трава=%.1f единиц, голод=%.1f%%, ест=%v", (tick+1)/60, currentGrass, hunger.Value, isEating)
-			t.Logf("  Позиция зайца: (%.1f, %.1f), порог голода=%.1f%%, найдена трава=%v", pos.X, pos.Y, config.HungerThreshold, foundGrass)
+			t.Logf("  Позиция зайца: (%.1f, %.1f), порог голода=%.1f%%, найдена трава=%v", pos.X, pos.Y, config.SatiationThreshold, foundGrass)
 			t.Logf("  Цвет: R=%d, G=%d, B=%d", currentColor.R, currentColor.G, currentColor.B)
 
 			// Проверяем что трава потреблена и цвет изменился

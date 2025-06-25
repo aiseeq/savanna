@@ -37,7 +37,7 @@ func TestEatingFrameValidation_DiscreteNutrition(t *testing.T) {
 	rabbit := CreateAnimal(world, core.TypeRabbit, 5, 5)
 
 	// Устанавливаем голод чтобы заяц захотел есть
-	world.SetHunger(rabbit, core.Hunger{Value: 50.0}) // Голодный
+	world.SetSatiation(rabbit, core.Satiation{Value: 50.0}) // Голодный
 
 	// Добавляем состояние поедания травы
 	eatingState := core.EatingState{
@@ -57,14 +57,14 @@ func TestEatingFrameValidation_DiscreteNutrition(t *testing.T) {
 		FacingRight: true,
 	})
 
-	initialHunger, _ := world.GetHunger(rabbit)
+	initialHunger, _ := world.GetSatiation(rabbit)
 	t.Logf("Initial hunger: %.1f", initialHunger.Value)
 
 	// Тест кадра 0 - НЕ должен давать питательность
 	deltaTime := float32(1.0 / 60.0)
 	grassEatingSystem.Update(world, deltaTime)
 
-	hungerAfterFrame0, _ := world.GetHunger(rabbit)
+	hungerAfterFrame0, _ := world.GetSatiation(rabbit)
 	if hungerAfterFrame0.Value != initialHunger.Value {
 		t.Errorf("Frame 0 should NOT give nutrition. Expected hunger %.1f, got %.1f",
 			initialHunger.Value, hungerAfterFrame0.Value)
@@ -82,7 +82,7 @@ func TestEatingFrameValidation_DiscreteNutrition(t *testing.T) {
 
 	grassEatingSystem.Update(world, deltaTime)
 
-	hungerAfterFrame1, _ := world.GetHunger(rabbit)
+	hungerAfterFrame1, _ := world.GetSatiation(rabbit)
 	expectedNutrition := GrassPerEatingTick * GrassNutritionValue // 1.0 * 2.0 = 2.0
 	expectedHunger := initialHunger.Value + float32(expectedNutrition)
 
@@ -95,7 +95,7 @@ func TestEatingFrameValidation_DiscreteNutrition(t *testing.T) {
 	// Тест кадра 1 (повторно) - НЕ должен давать дополнительную питательность
 	grassEatingSystem.Update(world, deltaTime)
 
-	hungerAfterFrame1Again, _ := world.GetHunger(rabbit)
+	hungerAfterFrame1Again, _ := world.GetSatiation(rabbit)
 	if hungerAfterFrame1Again.Value != hungerAfterFrame1.Value {
 		t.Errorf("Staying on frame 1 should NOT give additional nutrition. Expected hunger %.1f, got %.1f",
 			hungerAfterFrame1.Value, hungerAfterFrame1Again.Value)
@@ -113,7 +113,7 @@ func TestEatingFrameValidation_DiscreteNutrition(t *testing.T) {
 
 	grassEatingSystem.Update(world, deltaTime)
 
-	hungerAfterBackToFrame0, _ := world.GetHunger(rabbit)
+	hungerAfterBackToFrame0, _ := world.GetSatiation(rabbit)
 	if hungerAfterBackToFrame0.Value != hungerAfterFrame1Again.Value {
 		t.Errorf("Frame 1→0 transition should NOT give nutrition. Expected hunger %.1f, got %.1f",
 			hungerAfterFrame1Again.Value, hungerAfterBackToFrame0.Value)
@@ -131,7 +131,7 @@ func TestEatingFrameValidation_DiscreteNutrition(t *testing.T) {
 
 	grassEatingSystem.Update(world, deltaTime)
 
-	hungerAfterSecondCycle, _ := world.GetHunger(rabbit)
+	hungerAfterSecondCycle, _ := world.GetSatiation(rabbit)
 	expectedHungerSecondCycle := hungerAfterBackToFrame0.Value + float32(expectedNutrition)
 
 	if hungerAfterSecondCycle.Value != expectedHungerSecondCycle {
@@ -172,9 +172,9 @@ func TestEatingFrameValidation_IntegrationWithSystems(t *testing.T) {
 	rabbit := CreateAnimal(world, core.TypeRabbit, 5, 5)
 
 	// Устанавливаем голод чтобы GrassSearchSystem создал EatingState
-	world.SetHunger(rabbit, core.Hunger{Value: 50.0}) // Голодный
+	world.SetSatiation(rabbit, core.Satiation{Value: 50.0}) // Голодный
 
-	initialHunger, _ := world.GetHunger(rabbit)
+	initialHunger, _ := world.GetSatiation(rabbit)
 
 	// Запускаем GrassSearchSystem - должен создать EatingState
 	grassSearchSystem.Update(world, 1.0/60.0)
@@ -201,7 +201,7 @@ func TestEatingFrameValidation_IntegrationWithSystems(t *testing.T) {
 	// Запускаем GrassEatingSystem на кадре 0 - не должен дать питательность
 	grassEatingSystem.Update(world, 1.0/60.0)
 
-	hungerAfterFrame0, _ := world.GetHunger(rabbit)
+	hungerAfterFrame0, _ := world.GetSatiation(rabbit)
 	if hungerAfterFrame0.Value != initialHunger.Value {
 		t.Errorf("Frame 0 should not give nutrition in integration test")
 	}
@@ -217,7 +217,7 @@ func TestEatingFrameValidation_IntegrationWithSystems(t *testing.T) {
 
 	grassEatingSystem.Update(world, 1.0/60.0)
 
-	hungerAfterFrame1, _ := world.GetHunger(rabbit)
+	hungerAfterFrame1, _ := world.GetSatiation(rabbit)
 	expectedIncrease := GrassPerEatingTick * GrassNutritionValue
 
 	if hungerAfterFrame1.Value <= initialHunger.Value {
@@ -256,7 +256,7 @@ func TestEatingFrameValidation_SystemOrder(t *testing.T) {
 
 	// Создаем голодного зайца
 	rabbit := CreateAnimal(world, core.TypeRabbit, 5, 5)
-	world.SetHunger(rabbit, core.Hunger{Value: 50.0})
+	world.SetSatiation(rabbit, core.Satiation{Value: 50.0})
 
 	// Шаг 1: GrassSearchSystem создает EatingState
 	grassSearchSystem.Update(world, 1.0/60.0)
@@ -287,9 +287,9 @@ func TestEatingFrameValidation_SystemOrder(t *testing.T) {
 		FacingRight: true,
 	})
 
-	initialHunger, _ := world.GetHunger(rabbit)
+	initialHunger, _ := world.GetSatiation(rabbit)
 	grassEatingSystem.Update(world, 1.0/60.0)
-	finalHunger, _ := world.GetHunger(rabbit)
+	finalHunger, _ := world.GetSatiation(rabbit)
 
 	if finalHunger.Value <= initialHunger.Value {
 		t.Errorf("Step 2: GrassEatingSystem should increase hunger from %.1f to %.1f",

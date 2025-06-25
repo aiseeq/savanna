@@ -99,7 +99,7 @@ func TestSingleWolfKillRabbit(t *testing.T) {
 	}
 
 	// Волк должен поесть
-	hunger, hasHunger := world.GetHunger(wolf)
+	hunger, hasHunger := world.GetSatiation(wolf)
 	if hasHunger && hunger.Value > common.VeryHungryPercentage {
 		t.Logf("Волк поел: голод вырос с %.1f до %.1f", common.VeryHungryPercentage, hunger.Value)
 	} else {

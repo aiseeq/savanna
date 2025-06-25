@@ -86,7 +86,7 @@ func TestGUIAnimationBug(t *testing.T) {
 
 	// Создаём голодного зайца
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, grassX, grassY)
-	world.SetHunger(rabbit, core.Hunger{Value: 85.0})
+	world.SetSatiation(rabbit, core.Satiation{Value: 85.0})
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0})
 
 	deltaTime := float32(1.0 / 60.0)
@@ -103,7 +103,7 @@ func TestGUIAnimationBug(t *testing.T) {
 		animalType, _ := world.GetAnimalType(rabbit)
 		anim, _ := world.GetAnimation(rabbit)
 		vel, _ := world.GetVelocity(rabbit)
-		hunger, _ := world.GetHunger(rabbit)
+		hunger, _ := world.GetSatiation(rabbit)
 		isEating := world.HasComponent(rabbit, core.MaskEatingState)
 		grassAmount := vegetationSystem.GetGrassAt(grassX, grassY)
 

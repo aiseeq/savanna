@@ -81,7 +81,7 @@ func TestComponentMultiple(t *testing.T) {
 		t.Error("Entity should have all three components")
 	}
 
-	if world.HasComponents(entity, core.MaskPosition|core.MaskHunger) {
+	if world.HasComponents(entity, core.MaskPosition|core.MaskSatiation) {
 		t.Error("Entity should not have Hunger component")
 	}
 

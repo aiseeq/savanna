@@ -31,8 +31,8 @@ func (sds *StarvationDamageSystem) Update(world core.StarvationDamageSystemAcces
 
 // damageStarvingAnimals наносит урон здоровью голодающим животным
 func (sds *StarvationDamageSystem) damageStarvingAnimals(world core.StarvationDamageSystemAccess) {
-	world.ForEachWith(core.MaskHunger|core.MaskHealth, func(entity core.EntityID) {
-		hunger, hasHunger := world.GetHunger(entity)
+	world.ForEachWith(core.MaskSatiation|core.MaskHealth, func(entity core.EntityID) {
+		hunger, hasHunger := world.GetSatiation(entity)
 		if !hasHunger {
 			return
 		}

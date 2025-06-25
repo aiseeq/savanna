@@ -56,8 +56,8 @@ func TestRabbitAnimations(t *testing.T) {
 
 	// Создаём голодного зайца
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, grassX, grassY)
-	world.SetHunger(rabbit, core.Hunger{Value: 80.0})    // Голодный
-	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0}) // Стоит
+	world.SetSatiation(rabbit, core.Satiation{Value: 80.0}) // Голодный
+	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0})    // Стоит
 
 	deltaTime := float32(1.0 / 60.0)
 

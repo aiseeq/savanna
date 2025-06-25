@@ -42,7 +42,7 @@ func TestWolfContinuousHunting(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 300, 300)
 
 	// Делаем волка очень голодным
-	world.SetHunger(wolf, core.Hunger{Value: 5.0}) // 5% = критически голодный
+	world.SetSatiation(wolf, core.Satiation{Value: 5.0}) // 5% = критически голодный
 
 	// Получаем конфигурацию для анализа
 	rabbitConfig, _ := world.GetAnimalConfig(rabbits[0])
@@ -52,13 +52,13 @@ func TestWolfContinuousHunting(t *testing.T) {
 	deltaTime := float32(1.0 / 60.0)
 
 	t.Logf("=== НАЧАЛЬНОЕ СОСТОЯНИЕ ===")
-	wolfHunger, _ := world.GetHunger(wolf)
+	wolfHunger, _ := world.GetSatiation(wolf)
 	wolfPos, _ := world.GetPosition(wolf)
 	wolfBehavior, _ := world.GetBehavior(wolf)
 	t.Logf("Волк: позиция (%.1f, %.1f), голод %.1f%%, поведение %s",
 		wolfPos.X, wolfPos.Y, wolfHunger.Value, wolfBehavior.Type.String())
 	t.Logf("Порог голода волка: %.1f%%, видимость %.1f тайлов",
-		wolfBehavior.HungerThreshold, wolfBehavior.VisionRange)
+		wolfBehavior.SatiationThreshold, wolfBehavior.VisionRange)
 
 	// Симулируем до 6000 тиков (100 секунд) для полного цикла голода
 	for i := 0; i < 6000; i++ {
@@ -69,7 +69,7 @@ func TestWolfContinuousHunting(t *testing.T) {
 
 		// Отладочная информация каждые 1200 тиков (20 секунд)
 		if i%1200 == 0 {
-			wolfHunger, _ := world.GetHunger(wolf)
+			wolfHunger, _ := world.GetSatiation(wolf)
 			wolfPos, _ := world.GetPosition(wolf)
 			hasAttackState := world.HasComponent(wolf, core.MaskAttackState)
 			hasEatingState := world.HasComponent(wolf, core.MaskEatingState)
@@ -84,7 +84,7 @@ func TestWolfContinuousHunting(t *testing.T) {
 					if world.IsAlive(rabbit) {
 						rabbitPos, _ := world.GetPosition(rabbit)
 						world.SetPosition(wolf, core.Position{X: rabbitPos.X + 5, Y: rabbitPos.Y})
-						world.SetHunger(wolf, core.Hunger{Value: 20.0})
+						world.SetSatiation(wolf, core.Satiation{Value: 20.0})
 						t.Logf("🔄 Телепорт волка к зайцу (%.1f,%.1f) и снижение голода до 20%%", rabbitPos.X, rabbitPos.Y)
 						break
 					}
@@ -106,7 +106,7 @@ func TestWolfContinuousHunting(t *testing.T) {
 		if currentKilledCount > killedRabbits {
 			newKills := currentKilledCount - killedRabbits
 			killedRabbits = currentKilledCount
-			wolfHunger, _ := world.GetHunger(wolf)
+			wolfHunger, _ := world.GetSatiation(wolf)
 			t.Logf("✅ Убито зайцев: %d -> %d (+%d) на тике %d (%.1fs), голод волка %.1f%%",
 				killedRabbits-newKills, killedRabbits, newKills, i, float32(i)/60.0, wolfHunger.Value)
 

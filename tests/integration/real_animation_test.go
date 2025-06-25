@@ -42,7 +42,7 @@ func TestRealAnimationBehavior(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 41, 48)     // Рядом с зайцем, на расстоянии 1 пиксель
 
 	// Делаем волка ОЧЕНЬ голодным чтобы он точно атаковал
-	world.SetHunger(wolf, core.Hunger{Value: 5.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 5.0})
 
 	t.Logf("=== ТЕСТ РЕАЛЬНОГО ПОВЕДЕНИЯ АНИМАЦИИ ===")
 	t.Logf("Карта: 96x96, заяц: (40,48), волк: (56,48), расстояние: 16")
@@ -188,7 +188,7 @@ func TestRealAnimationBehavior(t *testing.T) {
 		}
 
 		// Отслеживаем голод волка
-		if wolfHunger, hasHunger := world.GetHunger(wolf); hasHunger {
+		if wolfHunger, hasHunger := world.GetSatiation(wolf); hasHunger {
 			if wolfHunger.Value != lastWolfHunger {
 				t.Logf("[TICK %3d] 🐺 Голод волка: %.1f%% -> %.1f%%", tick, lastWolfHunger, wolfHunger.Value)
 				lastWolfHunger = wolfHunger.Value
@@ -292,7 +292,7 @@ func getRabbitAnimationTypeReal(world *core.World, entity core.EntityID) animati
 // isWolfAttackingInTest проверяет, атакует ли волк ТОЧНО как в main.go
 func isWolfAttackingInTest(world *core.World, wolf core.EntityID) bool {
 	// Сначала проверяем голод волка - сытый волк не атакует
-	hunger, hasHunger := world.GetHunger(wolf)
+	hunger, hasHunger := world.GetSatiation(wolf)
 	if !hasHunger || hunger.Value > 60.0 {
 		return false
 	}

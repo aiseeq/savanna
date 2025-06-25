@@ -35,7 +35,7 @@ func TestFrameByFrameCombat(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 301, 300) // Дистанция 1 пиксель
 
 	// Делаем волка голодным
-	world.SetHunger(wolf, core.Hunger{Value: 30.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 30.0})
 
 	initialHealth, _ := world.GetHealth(rabbit)
 	t.Logf("=== НАЧАЛО ТЕСТА ===")
@@ -299,7 +299,7 @@ func TestFrameByFrameCombat(t *testing.T) {
 	// === ФАЗА 5: ПРОЦЕСС ПОЕДАНИЯ ===
 	t.Logf("\n=== ФАЗА 5: ПРОЦЕСС ПОЕДАНИЯ ===")
 
-	initialHunger, _ := world.GetHunger(wolf)
+	initialHunger, _ := world.GetSatiation(wolf)
 	t.Logf("Голод волка до поедания: %.1f%%", initialHunger.Value)
 
 	// Симулируем поедание
@@ -307,7 +307,7 @@ func TestFrameByFrameCombat(t *testing.T) {
 		combatSystem.Update(world, deltaTime)
 
 		if i%60 == 0 { // Каждую секунду
-			hunger, _ := world.GetHunger(wolf)
+			hunger, _ := world.GetSatiation(wolf)
 			if world.HasComponent(rabbit, core.MaskCorpse) {
 				corpse, _ := world.GetCorpse(rabbit)
 				t.Logf("%.1fс: голод волка %.1f%%, питательность трупа %.1f",
@@ -321,7 +321,7 @@ func TestFrameByFrameCombat(t *testing.T) {
 
 		// Проверяем исчезновение трупа
 		if !world.IsAlive(rabbit) {
-			finalHunger, _ := world.GetHunger(wolf)
+			finalHunger, _ := world.GetSatiation(wolf)
 			t.Logf("✅ УСПЕХ: Труп полностью съеден на тике %d", i)
 			t.Logf("✅ Голод волка восстановился: %.1f%% -> %.1f%%",
 				initialHunger.Value, finalHunger.Value)
@@ -346,7 +346,7 @@ func TestMissChance(t *testing.T) {
 
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 300, 300)
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 301, 300) // Дистанция 1 пиксель
-	world.SetHunger(wolf, core.Hunger{Value: 30.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 30.0})
 
 	initialHealth, _ := world.GetHealth(rabbit)
 

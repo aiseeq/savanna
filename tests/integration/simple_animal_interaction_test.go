@@ -29,7 +29,7 @@ func TestSimpleAnimalInteraction(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 101, 100) // Дистанция 1 пиксель
 
 	// Делаем волка голодным чтобы он охотился
-	world.SetHunger(wolf, core.Hunger{Value: 30.0}) // 30% < 60% порога
+	world.SetSatiation(wolf, core.Satiation{Value: 30.0}) // 30% < 60% порога
 
 	initialRabbitPos, _ := world.GetPosition(rabbit)
 	initialWolfPos, _ := world.GetPosition(wolf)

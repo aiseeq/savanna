@@ -33,7 +33,7 @@ func TestDamageFrameValidation(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 45, 48) // На расстоянии 5 пикселей
 
 	// Волк очень голоден
-	world.SetHunger(wolf, core.Hunger{Value: 5.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 5.0})
 
 	// ИСПРАВЛЕНИЕ: Фиксируем RNG для гарантированного попадания
 	rng := world.GetRNG()

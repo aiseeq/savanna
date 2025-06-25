@@ -26,13 +26,13 @@ func createEntityFromConfig(world *core.World, config core.AnimalConfig, x, y fl
 	var initialHunger float32
 	switch animalType {
 	case core.TypeRabbit:
-		initialHunger = RabbitInitialHunger
+		initialHunger = RabbitInitialSatiation
 	case core.TypeWolf:
-		initialHunger = WolfInitialHunger
+		initialHunger = WolfInitialSatiation
 	default:
-		initialHunger = DefaultInitialHunger
+		initialHunger = DefaultInitialSatiation
 	}
-	world.AddHunger(entity, core.Hunger{Value: initialHunger})
+	world.AddSatiation(entity, core.Satiation{Value: initialHunger})
 
 	// Добавляем AnimalConfig компонент
 	world.AddAnimalConfig(entity, config)
@@ -55,16 +55,16 @@ func createEntityFromConfig(world *core.World, config core.AnimalConfig, x, y fl
 	// Поведение из конфигурации
 	behaviorType := getBehaviorTypeFromConfig(config)
 	world.AddBehavior(entity, core.Behavior{
-		Type:             behaviorType,
-		DirectionTimer:   0,
-		HungerThreshold:  config.HungerThreshold,
-		FleeThreshold:    config.FleeThreshold,
-		SearchSpeed:      config.SearchSpeed,
-		WanderingSpeed:   config.WanderingSpeed,
-		ContentSpeed:     config.ContentSpeed,
-		VisionRange:      config.VisionRange,
-		MinDirectionTime: config.MinDirectionTime,
-		MaxDirectionTime: config.MaxDirectionTime,
+		Type:               behaviorType,
+		DirectionTimer:     0,
+		SatiationThreshold: config.SatiationThreshold,
+		FleeThreshold:      config.FleeThreshold,
+		SearchSpeed:        config.SearchSpeed,
+		WanderingSpeed:     config.WanderingSpeed,
+		ContentSpeed:       config.ContentSpeed,
+		VisionRange:        config.VisionRange,
+		MinDirectionTime:   config.MinDirectionTime,
+		MaxDirectionTime:   config.MaxDirectionTime,
 	})
 
 	// Анимация

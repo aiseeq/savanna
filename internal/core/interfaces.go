@@ -26,8 +26,8 @@ type ComponentReader interface {
 	GetVelocity(EntityID) (Velocity, bool)
 	// Health
 	GetHealth(EntityID) (Health, bool)
-	// Hunger
-	GetHunger(EntityID) (Hunger, bool)
+	// Satiation
+	GetSatiation(EntityID) (Satiation, bool)
 	// AnimalType
 	GetAnimalType(EntityID) (AnimalType, bool)
 	// Size
@@ -61,8 +61,8 @@ type ComponentWriter interface {
 	SetVelocity(EntityID, Velocity) bool
 	// Health
 	SetHealth(EntityID, Health) bool
-	// Hunger
-	SetHunger(EntityID, Hunger) bool
+	// Satiation
+	SetSatiation(EntityID, Satiation) bool
 	// AnimalType
 	SetAnimalType(EntityID, AnimalType) bool
 	// Speed
@@ -141,7 +141,7 @@ type ECSAccess interface {
 // SimulationAccess интерфейс для большинства систем симуляции
 // Предоставляет: чтение/запись компонентов, ECS запросы, пространственный поиск, время/RNG
 type SimulationAccess interface {
-	ComponentReader // Чтение компонентов (Position, Health, Hunger и т.д.)
+	ComponentReader // Чтение компонентов (Position, Health, Satiation и т.д.)
 	ComponentWriter // Изменение компонентов (SetHealth, AddEatingState и т.д.)
 	QueryProvider   // ECS запросы (ForEachWith, HasComponent и т.д.)
 	SpatialQueries  // Пространственные запросы (FindNearestByType и т.д.)
@@ -150,26 +150,26 @@ type SimulationAccess interface {
 
 // ===== УЗКОСПЕЦИАЛИЗИРОВАННЫЕ ИНТЕРФЕЙСЫ (ISP УЛУЧШЕНИЯ) =====
 
-// HungerSystemAccess специализированный интерфейс для системы голода
-// Предоставляет: только компоненты голода и сытости
-type HungerSystemAccess interface {
-	// Чтение голода
-	GetHunger(EntityID) (Hunger, bool)
-	GetSize(EntityID) (Size, bool) // Для расчёта скорости голода крупных животных
+// SatiationSystemAccess специализированный интерфейс для системы сытости
+// Предоставляет: только компоненты сытости
+type SatiationSystemAccess interface {
+	// Чтение сытости
+	GetSatiation(EntityID) (Satiation, bool)
+	GetSize(EntityID) (Size, bool) // Для расчёта скорости потери сытости крупных животных
 	// Проверка компонентов для определения едят ли животные
 	HasComponent(EntityID, ComponentMask) bool
-	// Изменение голода
-	SetHunger(EntityID, Hunger) bool
+	// Изменение сытости
+	SetSatiation(EntityID, Satiation) bool
 	// Итерация
 	ForEachWith(ComponentMask, QueryFunc)
 }
 
 // GrassSearchSystemAccess специализированный интерфейс для поиска травы
-// Предоставляет: позицию, голод, конфигурацию животного, создание EatingState
+// Предоставляет: позицию, сытость, конфигурацию животного, создание EatingState
 type GrassSearchSystemAccess interface {
 	// Чтение состояния животного
 	GetPosition(EntityID) (Position, bool)
-	GetHunger(EntityID) (Hunger, bool)
+	GetSatiation(EntityID) (Satiation, bool)
 	GetAnimalType(EntityID) (AnimalType, bool)
 	GetAnimalConfig(EntityID) (AnimalConfig, bool)
 	GetBehavior(EntityID) (Behavior, bool)
@@ -182,11 +182,11 @@ type GrassSearchSystemAccess interface {
 	ForEachWith(ComponentMask, QueryFunc)
 }
 
-// StarvationDamageSystemAccess специализированный интерфейс для урона от голода
-// Предоставляет: только голод и здоровье
+// StarvationDamageSystemAccess специализированный интерфейс для урона от истощения
+// Предоставляет: только сытость и здоровье
 type StarvationDamageSystemAccess interface {
 	// Чтение состояния
-	GetHunger(EntityID) (Hunger, bool)
+	GetSatiation(EntityID) (Satiation, bool)
 	GetHealth(EntityID) (Health, bool)
 	// Изменение здоровья
 	SetHealth(EntityID, Health) bool
@@ -194,11 +194,11 @@ type StarvationDamageSystemAccess interface {
 	ForEachWith(ComponentMask, QueryFunc)
 }
 
-// HungerSpeedModifierSystemAccess специализированный интерфейс для влияния голода на скорость
-// Предоставляет: только голод, здоровье и скорость
-type HungerSpeedModifierSystemAccess interface {
+// SatiationSpeedModifierSystemAccess специализированный интерфейс для влияния сытости на скорость
+// Предоставляет: только сытость, здоровье и скорость
+type SatiationSpeedModifierSystemAccess interface {
 	// Чтение состояния
-	GetHunger(EntityID) (Hunger, bool)
+	GetSatiation(EntityID) (Satiation, bool)
 	GetHealth(EntityID) (Health, bool)
 	GetSpeed(EntityID) (Speed, bool)
 	// Изменение скорости
@@ -222,7 +222,7 @@ type MovementSystemAccess interface {
 // Предоставляет: состояние животных, поиск целей, изменение поведения
 type BehaviorSystemAccess interface {
 	EntityProvider  // IsAlive для проверки валидности целей
-	ComponentReader // AnimalType, Behavior, Position, Hunger для принятия решений
+	ComponentReader // AnimalType, Behavior, Position, Satiation для принятия решений
 	ComponentWriter // Velocity, Behavior для изменения действий животного
 	QueryProvider   // ForEachWith для обработки всех животных
 	SpatialQueries  // FindNearestByType для поиска пищи/хищников

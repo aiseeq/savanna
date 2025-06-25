@@ -52,7 +52,7 @@ func TestCorpseDecayMechanics(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 301, 300) // Дистанция 1 пиксель
 
 	// Делаем волка голодным
-	world.SetHunger(wolf, core.Hunger{Value: 30.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 30.0})
 
 	// Убиваем зайца вручную и создаём труп (имитируем убийство волком)
 	world.SetHealth(rabbit, core.Health{Current: 0, Max: 50})
@@ -155,7 +155,7 @@ func TestCorpseDecayMechanics(t *testing.T) {
 	t.Logf("\n=== ФАЗА ПРЕКРАЩЕНИЯ ПОЕДАНИЯ ===")
 
 	// Делаем волка сытым чтобы он перестал есть
-	world.SetHunger(wolf, core.Hunger{Value: 90.0}) // Сытый волк
+	world.SetSatiation(wolf, core.Satiation{Value: 90.0}) // Сытый волк
 
 	// Обновляем систему чтобы волк перестал есть
 	for i := 0; i < 60; i++ {
@@ -319,7 +319,7 @@ func TestCorpseNutritionDepletion(t *testing.T) {
 
 	// Создаём очень голодного волка для агрессивного поедания (на той же позиции что и труп)
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 300, 300)
-	world.SetHunger(wolf, core.Hunger{Value: 5.0}) // Очень голодный
+	world.SetSatiation(wolf, core.Satiation{Value: 5.0}) // Очень голодный
 
 	deltaTime := float32(1.0 / 60.0)
 

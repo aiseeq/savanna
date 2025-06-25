@@ -45,7 +45,7 @@ func TestWolfSwitchingTargetsBug(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 47, 48)      // Близко к обоим
 
 	// Делаем волка очень голодным
-	world.SetHunger(wolf, core.Hunger{Value: 20.0}) // 20% - очень голодный
+	world.SetSatiation(wolf, core.Satiation{Value: 20.0}) // 20% - очень голодный
 
 	t.Logf("=== НАЧАЛЬНОЕ СОСТОЯНИЕ ===")
 	t.Logf("Волк на (47, 48), голод 20%%")
@@ -115,7 +115,7 @@ func TestWolfSwitchingTargetsBug(t *testing.T) {
 				t.Logf("✅ Тик %d: Первый заяц полностью съеден (исчез), волк может атаковать второго", i)
 
 				// Проверяем что голод волка восстановился
-				hunger, _ := world.GetHunger(wolf)
+				hunger, _ := world.GetSatiation(wolf)
 				if hunger.Value > 20.0 {
 					t.Logf("✅ Голод волка восстановился: %.1f%%", hunger.Value)
 				}
@@ -129,7 +129,7 @@ func TestWolfSwitchingTargetsBug(t *testing.T) {
 		if i%60 == 0 {
 			rabbit1Alive := world.IsAlive(rabbit1)
 			rabbit2Alive := world.IsAlive(rabbit2)
-			hunger, _ := world.GetHunger(wolf)
+			hunger, _ := world.GetSatiation(wolf)
 
 			t.Logf("Секунда %d: Заяц1=%v, Заяц2=%v, голод волка=%.1f%%",
 				i/60+1, rabbit1Alive, rabbit2Alive, hunger.Value)
@@ -141,7 +141,7 @@ func TestWolfSwitchingTargetsBug(t *testing.T) {
 	rabbit2Alive := world.IsAlive(rabbit2)
 	rabbit1IsCorpse := world.HasComponent(rabbit1, core.MaskCorpse)
 	rabbit2IsCorpse := world.HasComponent(rabbit2, core.MaskCorpse)
-	finalHunger, _ := world.GetHunger(wolf)
+	finalHunger, _ := world.GetSatiation(wolf)
 
 	t.Logf("=== ФИНАЛЬНОЕ СОСТОЯНИЕ ===")
 	t.Logf("Заяц1: жив=%v, труп=%v", rabbit1Alive, rabbit1IsCorpse)

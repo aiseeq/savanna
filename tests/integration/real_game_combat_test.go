@@ -44,13 +44,13 @@ func TestRealGameCombat(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 801, 800) // Дистанция 1 пиксель < атака волка 15 тайлов
 
 	// Делаем волка очень голодным
-	world.SetHunger(wolf, core.Hunger{Value: 10.0}) // 10% - очень голодный
+	world.SetSatiation(wolf, core.Satiation{Value: 10.0}) // 10% - очень голодный
 
 	t.Logf("=== ТЕСТ РЕАЛЬНОЙ ИГРЫ ===")
 	t.Logf("Заяц: (800, 800), Волк: (801, 800), расстояние: 1 пиксель")
 
 	initialHealth, _ := world.GetHealth(rabbit)
-	initialHunger, _ := world.GetHunger(wolf)
+	initialHunger, _ := world.GetSatiation(wolf)
 	t.Logf("Здоровье зайца: %d, голод волка: %.1f%%", initialHealth.Current, initialHunger.Value)
 
 	deltaTime := float32(1.0 / 60.0)
@@ -96,7 +96,7 @@ func TestRealGameCombat(t *testing.T) {
 		// Логируем состояние каждые 2 секунды
 		if i%120 == 0 {
 			health, _ := world.GetHealth(rabbit)
-			hunger, _ := world.GetHunger(wolf)
+			hunger, _ := world.GetSatiation(wolf)
 			wolfPos, _ := world.GetPosition(wolf)
 			rabbitPos, _ := world.GetPosition(rabbit)
 			anim, _ := world.GetAnimation(wolf)
@@ -117,7 +117,7 @@ func TestRealGameCombat(t *testing.T) {
 
 		// Если труп съеден - завершаем тест
 		if deathDetected && !world.IsAlive(rabbit) {
-			finalHunger, _ := world.GetHunger(wolf)
+			finalHunger, _ := world.GetSatiation(wolf)
 			t.Logf("🎉 ПОЛНЫЙ ЦИКЛ ЗАВЕРШЁН на тике %d (%.1f сек)", i, float32(i)/60.0)
 			t.Logf("Голод волка: %.1f%% -> %.1f%%", initialHunger.Value, finalHunger.Value)
 			break

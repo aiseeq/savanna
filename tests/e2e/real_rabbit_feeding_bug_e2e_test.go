@@ -41,9 +41,9 @@ func TestRealRabbitFeedingBugE2E(t *testing.T) {
 	vegetationSystem := simulation.NewVegetationSystem(terrain)
 
 	// НОВЫЕ СИСТЕМЫ (следуют принципу SRP):
-	hungerSystem := simulation.NewHungerSystem()                           // 1. Только управление голодом
+	satiationSystem := simulation.NewSatiationSystem()                     // 1. Только управление голодом
 	grassSearchSystem := simulation.NewGrassSearchSystem(vegetationSystem) // 2. Только поиск травы и создание EatingState
-	hungerSpeedModifier := simulation.NewHungerSpeedModifierSystem()       // 3. Только влияние голода на скорость
+	satiationSpeedModifier := simulation.NewSatiationSpeedModifierSystem() // 3. Только влияние голода на скорость
 	starvationDamage := simulation.NewStarvationDamageSystem()             // 4. Только урон от голода
 
 	grassEatingSystem := NewDebugGrassEatingSystem(simulation.NewGrassEatingSystem(vegetationSystem))
@@ -54,7 +54,7 @@ func TestRealRabbitFeedingBugE2E(t *testing.T) {
 	// Добавляем системы в правильном порядке (КРИТИЧЕСКИ ВАЖЕН ДЛЯ ПИТАНИЯ!)
 	systemManager.AddSystem(vegetationSystem)              // 1. Рост травы
 	systemManager.AddSystem(&adapters.HungerSystemAdapter{ // 2. Управление голодом
-		System: hungerSystem,
+		System: satiationSystem,
 	})
 	systemManager.AddSystem(&adapters.GrassSearchSystemAdapter{ // 3. Создание EatingState
 		System: grassSearchSystem,
@@ -63,7 +63,7 @@ func TestRealRabbitFeedingBugE2E(t *testing.T) {
 	// 5. Поведение (проверяет EatingState)
 	systemManager.AddSystem(&adapters.BehaviorSystemAdapter{System: animalBehaviorSystem})
 	systemManager.AddSystem(&adapters.HungerSpeedModifierSystemAdapter{ // 6. Влияние голода на скорость
-		System: hungerSpeedModifier,
+		System: satiationSpeedModifier,
 	})
 	// 7. Движение (сбрасывает скорость едящих)
 	systemManager.AddSystem(&adapters.MovementSystemAdapter{System: movementSystem})
@@ -97,12 +97,12 @@ func TestRealRabbitFeedingBugE2E(t *testing.T) {
 
 	// Делаем зайца голодным чтобы он точно хотел есть
 	initialHunger := float32(30.0) // Очень голодный
-	world.SetHunger(rabbit, core.Hunger{Value: initialHunger})
+	world.SetSatiation(rabbit, core.Satiation{Value: initialHunger})
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0}) // Стоит на месте
 
 	// Проверяем начальное состояние
 	pos, _ := world.GetPosition(rabbit)
-	hunger, _ := world.GetHunger(rabbit)
+	hunger, _ := world.GetSatiation(rabbit)
 
 	// КРИТИЧЕСКИЙ ТЕСТ: проверяем есть ли ВООБЩЕ системы которые могут восстанавливать голод
 	t.Logf("\n=== Проверяем доступные системы для восстановления голода ===")
@@ -153,7 +153,7 @@ func TestRealRabbitFeedingBugE2E(t *testing.T) {
 
 		// ТЕСТ: проверяем анимацию каждые 3 тика, особенно в момент завершения кадра (15 тиков)
 		if tick%3 == 2 {
-			currentHunger, _ := world.GetHunger(rabbit)
+			currentHunger, _ := world.GetSatiation(rabbit)
 			currentGrass := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
 			// Детальная отладка анимации и GrassEatingSystem
@@ -210,7 +210,7 @@ func TestRealRabbitFeedingBugE2E(t *testing.T) {
 	}
 
 	// Анализируем результаты
-	finalHunger, _ := world.GetHunger(rabbit)
+	finalHunger, _ := world.GetSatiation(rabbit)
 	finalGrass := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
 	t.Logf("\n=== АНАЛИЗ РЕЗУЛЬТАТОВ ===")

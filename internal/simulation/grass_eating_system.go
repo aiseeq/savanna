@@ -33,7 +33,7 @@ func (ges *GrassEatingSystem) Update(world *core.World, deltaTime float32) {
 	}
 
 	// Ищем травоядных которые едят траву (устраняет нарушение OCP - было core.TypeRabbit)
-	grassEatingMask := core.MaskEatingState | core.MaskPosition | core.MaskHunger | core.MaskBehavior
+	grassEatingMask := core.MaskEatingState | core.MaskPosition | core.MaskSatiation | core.MaskBehavior
 	world.ForEachWith(grassEatingMask, func(entity core.EntityID) {
 		// Проверяем что это травоядное через поведение, а НЕ через захардкоженный тип
 		behavior, hasBehavior := world.GetBehavior(entity)
@@ -133,15 +133,15 @@ func (ges *GrassEatingSystem) processGrassEatingTick(
 	// Используем константу питательности травы
 	hungerToRestore := consumedGrass * GrassNutritionValue
 
-	hunger, hasHunger := world.GetHunger(entity)
+	hunger, hasHunger := world.GetSatiation(entity)
 	if hasHunger {
 		ges.feedAnimal(world, entity, hungerToRestore)
 
 		// Обновляем голод для проверки
-		hunger, _ = world.GetHunger(entity)
+		hunger, _ = world.GetSatiation(entity)
 
 		// ИСПРАВЛЕНИЕ: Заяц прекращает есть когда почти полностью сыт (допуск для float32)
-		const satietyThreshold = MaxHungerLimit - constants.SatietyTolerance // Используем константы из game_balance.go
+		const satietyThreshold = MaxSatiationLimit - constants.SatietyTolerance // Используем константы из game_balance.go
 		if hunger.Value >= satietyThreshold {
 			// Заяц полностью наелся - заканчиваем поедание
 			world.RemoveEatingState(entity)
@@ -153,15 +153,15 @@ func (ges *GrassEatingSystem) processGrassEatingTick(
 
 // feedAnimal восстанавливает голод животного
 func (ges *GrassEatingSystem) feedAnimal(world *core.World, entity core.EntityID, foodValue float32) {
-	hunger, hasHunger := world.GetHunger(entity)
+	hunger, hasHunger := world.GetSatiation(entity)
 	if !hasHunger {
 		return
 	}
 
 	hunger.Value += foodValue
-	if hunger.Value > MaxHungerLimit {
-		hunger.Value = MaxHungerLimit
+	if hunger.Value > MaxSatiationLimit {
+		hunger.Value = MaxSatiationLimit
 	}
 
-	world.SetHunger(entity, hunger)
+	world.SetSatiation(entity, hunger)
 }

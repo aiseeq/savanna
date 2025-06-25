@@ -219,7 +219,7 @@ func gatherEcosystemStats(world *core.World, animals []core.EntityID) EcosystemS
 				stats.AliveRabbits++
 
 				// Считаем средние значения только для живых
-				if hunger, hasHunger := world.GetHunger(animal); hasHunger {
+				if hunger, hasHunger := world.GetSatiation(animal); hasHunger {
 					rabbitHungerSum += hunger.Value
 				}
 				if health, hasHealth := world.GetHealth(animal); hasHealth {
@@ -232,7 +232,7 @@ func gatherEcosystemStats(world *core.World, animals []core.EntityID) EcosystemS
 				stats.AliveWolves++
 
 				// Считаем средние значения только для живых
-				if hunger, hasHunger := world.GetHunger(animal); hasHunger {
+				if hunger, hasHunger := world.GetSatiation(animal); hasHunger {
 					wolfHungerSum += hunger.Value
 				}
 				if health, hasHealth := world.GetHealth(animal); hasHealth {

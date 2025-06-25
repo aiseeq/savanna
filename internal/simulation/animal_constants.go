@@ -21,7 +21,7 @@ const (
 
 // Пороги поведения (алиасы от game_balance.go)
 const (
-	RabbitHungryThreshold = RabbitHungerThreshold // DEPRECATED: используйте RabbitHungerThreshold
+	RabbitHungryThreshold = RabbitSatiationThreshold // DEPRECATED: используйте RabbitSatiationThreshold
 )
 
 // === МИГРАЦИОННОЕ РУКОВОДСТВО ===
@@ -36,6 +36,6 @@ const (
 // ОСТАВШИЕСЯ DEPRECATED КОНСТАНТЫ (требуют миграции):
 // Вместо:  simulation.RabbitSpeed → simulation.RabbitBaseSpeed
 // Вместо:  simulation.WolfSpeed   → simulation.WolfBaseSpeed
-// Вместо:  simulation.RabbitHungryThreshold → simulation.RabbitHungerThreshold
+// Вместо:  simulation.RabbitHungryThreshold → simulation.RabbitSatiationThreshold
 //
 // Все основные константы централизованы в game_balance.go для единого управления балансом.

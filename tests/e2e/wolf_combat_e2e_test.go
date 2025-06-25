@@ -66,11 +66,11 @@ func TestWolfCombatE2E(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 52, 48)     // Рядом с зайцем
 
 	// Делаем волка голодным
-	world.SetHunger(wolf, core.Hunger{Value: 5.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 5.0})
 
 	t.Logf("Начальное состояние:")
 	rabbitHealth, _ := world.GetHealth(rabbit)
-	wolfHunger, _ := world.GetHunger(wolf)
+	wolfHunger, _ := world.GetSatiation(wolf)
 	t.Logf("  Заяц: здоровье %d", rabbitHealth.Current)
 	t.Logf("  Волк: голод %.1f%%", wolfHunger.Value)
 
@@ -242,7 +242,7 @@ func TestWolfCombatE2E(t *testing.T) {
 		}
 
 		// Отслеживаем голод волка
-		currentWolfHunger, _ := world.GetHunger(wolf)
+		currentWolfHunger, _ := world.GetSatiation(wolf)
 		if currentWolfHunger.Value != lastWolfHunger {
 			t.Logf("[TICK %3d] 🍖 Голод волка: %.1f%% -> %.1f%%", tick, lastWolfHunger, currentWolfHunger.Value)
 			lastWolfHunger = currentWolfHunger.Value
@@ -304,7 +304,7 @@ func TestWolfCombatE2E(t *testing.T) {
 
 	// Финальные проверки
 	finalRabbitHealth, _ := world.GetHealth(rabbit)
-	finalWolfHunger, _ := world.GetHunger(wolf)
+	finalWolfHunger, _ := world.GetSatiation(wolf)
 
 	t.Logf("Финальное состояние:")
 	t.Logf("  Заяц: здоровье %d", finalRabbitHealth.Current)
@@ -386,7 +386,7 @@ func getRabbitAnimationTypeE2E(world *core.World, entity core.EntityID) animatio
 }
 
 func isWolfAttackingE2E(world *core.World, wolf core.EntityID) bool {
-	hunger, hasHunger := world.GetHunger(wolf)
+	hunger, hasHunger := world.GetSatiation(wolf)
 	if !hasHunger || hunger.Value > 60.0 {
 		return false
 	}

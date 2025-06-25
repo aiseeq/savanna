@@ -19,7 +19,7 @@ func TestExactDamageTiming(t *testing.T) {
 	wolf := simulation.CreateAnimal(world, core.TypeWolf, 45, 48)
 
 	// Волк голоден
-	world.SetHunger(wolf, core.Hunger{Value: 5.0})
+	world.SetSatiation(wolf, core.Satiation{Value: 5.0})
 
 	// Сначала создаем AttackState через CombatSystem
 	combatSystem.Update(world, 1.0/60.0)

@@ -74,7 +74,7 @@ func TestRabbitFeedingBugE2E(t *testing.T) {
 
 	// Делаем зайца голодным но не критично (как в игре)
 	initialHunger := float32(60.0) // 60% - будет искать еду но не умрёт
-	world.SetHunger(rabbit, core.Hunger{Value: initialHunger})
+	world.SetSatiation(rabbit, core.Satiation{Value: initialHunger})
 	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0}) // Стоит на месте
 
 	// Размещаем траву прямо под зайцем
@@ -84,7 +84,7 @@ func TestRabbitFeedingBugE2E(t *testing.T) {
 	terrain.SetGrassAmount(tileX, tileY, 100.0) // Много травы
 
 	pos, _ := world.GetPosition(rabbit)
-	hunger, _ := world.GetHunger(rabbit)
+	hunger, _ := world.GetSatiation(rabbit)
 	grassAmount := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
 	t.Logf("Начальное состояние (как в игре):")
@@ -168,7 +168,7 @@ func TestRabbitFeedingBugE2E(t *testing.T) {
 
 		// Проверяем состояние каждые 15 тиков (кадр анимации поедания)
 		if tick%15 == 0 {
-			currentHunger, _ := world.GetHunger(rabbit)
+			currentHunger, _ := world.GetSatiation(rabbit)
 			currentGrass := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 			isEating := world.HasComponent(rabbit, core.MaskEatingState)
 			currentAnimType := animation.AnimationType(anim.CurrentAnim)
@@ -231,7 +231,7 @@ func TestRabbitFeedingBugE2E(t *testing.T) {
 	}
 
 	// Анализируем результат
-	finalHunger, _ := world.GetHunger(rabbit)
+	finalHunger, _ := world.GetSatiation(rabbit)
 	finalGrass := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 	isStillEating := world.HasComponent(rabbit, core.MaskEatingState)
 

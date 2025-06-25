@@ -52,10 +52,10 @@ func (es *EatingSystem) Update(world *core.World, deltaTime float32) {
 // findCorpseToEat ищет ближайший труп для поедания
 func (es *EatingSystem) findCorpseToEat(world *core.World, predator core.EntityID) {
 	// Хищник начинает есть только если голоден (используем AnimalConfig)
-	hunger, hasHunger := world.GetHunger(predator)
+	satiation, hasSatiation := world.GetSatiation(predator)
 	config, hasConfig := world.GetAnimalConfig(predator)
-	if !hasHunger || !hasConfig || hunger.Value >= config.HungerThreshold {
-		return // Сыт - не нужно есть (голод выше порога)
+	if !hasSatiation || !hasConfig || satiation.Value >= config.SatiationThreshold {
+		return // Сыт - не нужно есть (сытость выше порога)
 	}
 
 	predatorPos, hasPos := world.GetPosition(predator)
@@ -103,15 +103,15 @@ func (es *EatingSystem) continueEating(
 	eatingState core.EatingState,
 	_ float32,
 ) {
-	// ИСПРАВЛЕНИЕ: Хищник ест до полного насыщения (99.9%), а НЕ до HungerThreshold
-	hunger, hasHunger := world.GetHunger(predator)
-	if !hasHunger {
+	// ИСПРАВЛЕНИЕ: Хищник ест до полного насыщения (99.9%), а НЕ до SatiationThreshold
+	satiation, hasSatiation := world.GetSatiation(predator)
+	if !hasSatiation {
 		return
 	}
 
 	// Проверяем достигнуто ли полное насыщение (как у зайцев)
-	const satietyThreshold = MaxHungerLimit - constants.SatietyTolerance // 99.9%
-	if hunger.Value >= satietyThreshold {
+	const satietyThreshold = MaxSatiationLimit - constants.SatietyTolerance // 99.9%
+	if satiation.Value >= satietyThreshold {
 		// Хищник полностью наелся - превращаем недоеденный труп в падаль
 		es.convertCorpseToCarrion(world, eatingState.Target, predator)
 		world.RemoveEatingState(predator)
@@ -243,7 +243,7 @@ func (es *EatingSystem) processCorpseEatingTick(
 	eatingState.EatingProgress = (params.MaxNutritional - params.NutritionalValue) / params.MaxNutritional
 	world.SetEatingState(predator, eatingState)
 
-	// Восстанавливаем голод животного
+	// Восстанавливаем сытость животного
 	es.feedPredator(world, predator, nutritionEaten*constants.NutritionToHungerRatio)
 
 	// Если еда полностью съедена, убираем её
@@ -254,19 +254,19 @@ func (es *EatingSystem) processCorpseEatingTick(
 	}
 }
 
-// feedPredator восстанавливает голод хищника
+// feedPredator восстанавливает сытость хищника
 func (es *EatingSystem) feedPredator(world *core.World, predator core.EntityID, foodValue float32) {
-	hunger, hasHunger := world.GetHunger(predator)
-	if !hasHunger {
+	satiation, hasSatiation := world.GetSatiation(predator)
+	if !hasSatiation {
 		return
 	}
 
-	hunger.Value += foodValue
-	if hunger.Value > MaxHungerLimit {
-		hunger.Value = MaxHungerLimit
+	satiation.Value += foodValue
+	if satiation.Value > MaxSatiationLimit {
+		satiation.Value = MaxSatiationLimit
 	}
 
-	world.SetHunger(predator, hunger)
+	world.SetSatiation(predator, satiation)
 }
 
 // convertCorpseToCarrion превращает недоеденный труп в падаль

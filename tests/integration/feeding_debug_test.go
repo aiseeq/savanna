@@ -52,14 +52,14 @@ func TestFeedingDebug(t *testing.T) {
 
 	// Создаём зайца и настраиваем его для еды
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, grassX, grassY)
-	world.SetHunger(rabbit, core.Hunger{Value: 85.0})    // Голодный
-	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0}) // Стоит
+	world.SetSatiation(rabbit, core.Satiation{Value: 85.0}) // Голодный
+	world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0})    // Стоит
 
 	deltaTime := float32(1.0 / 60.0)
 
 	// Проверяем начальное состояние
 	pos, _ := world.GetPosition(rabbit)
-	hunger, _ := world.GetHunger(rabbit)
+	hunger, _ := world.GetSatiation(rabbit)
 	animalType, _ := world.GetAnimalType(rabbit)
 	grassAmount := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
@@ -114,7 +114,7 @@ func TestFeedingDebug(t *testing.T) {
 		t.Logf("\nТик %d:", i)
 
 		// Состояние ДО обновления
-		hunger, _ = world.GetHunger(rabbit)
+		hunger, _ = world.GetSatiation(rabbit)
 		pos, _ = world.GetPosition(rabbit)
 		grassBefore := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 		isEatingBefore := world.HasComponent(rabbit, core.MaskEatingState)
@@ -148,7 +148,7 @@ func TestFeedingDebug(t *testing.T) {
 		grassEatingSystem.Update(world, deltaTime) // 2. Потребляет траву если есть EatingState
 
 		// Состояние ПОСЛЕ обновления
-		hunger, _ = world.GetHunger(rabbit)
+		hunger, _ = world.GetSatiation(rabbit)
 		grassAfter := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 		isEatingAfter := world.HasComponent(rabbit, core.MaskEatingState)
 

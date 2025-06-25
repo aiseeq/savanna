@@ -1,6 +1,6 @@
 # Makefile для проекта Savanna - симулятор экосистемы саванны
 
-.PHONY: build build-with-lint build-fast run run-animviewer test test-unit test-perf bench fmt lint lint-install lint-fix check generate profile simulate balance clean help
+.PHONY: build build-with-lint build-fast run run-animviewer run-visual-test test test-unit test-perf bench fmt lint lint-install lint-fix check generate profile simulate balance clean help
 
 # Основные команды
 build: ## Собрать все версии (без линтинга)
@@ -9,21 +9,17 @@ build: ## Собрать все версии (без линтинга)
 	@echo "Сборка просмотрщика анимаций..."
 	go build -buildvcs=false -o bin/savanna-animviewer ./cmd/animviewer
 	@echo "Сборка отладчика системы питания..."
-	go build -buildvcs=false -o bin/debug-eating-system ./cmd/debug_eating_system
-	@echo "Сборка завершена"
 
 build-with-lint: lint ## Собрать с проверкой линтера
 	@echo "Сборка с линтингом..."
 	go build -buildvcs=false -o bin/savanna-game ./cmd/game
 	go build -buildvcs=false -o bin/savanna-animviewer ./cmd/animviewer
-	go build -buildvcs=false -o bin/debug-eating-system ./cmd/debug_eating_system
 	@echo "Сборка с линтингом завершена"
 
 build-fast: ## Собрать без линтинга (быстро)
 	@echo "Быстрая сборка без проверок..."
 	go build -buildvcs=false -o bin/savanna-game ./cmd/game
 	go build -buildvcs=false -o bin/savanna-animviewer ./cmd/animviewer
-	go build -buildvcs=false -o bin/debug-eating-system ./cmd/debug_eating_system
 	@echo "Быстрая сборка завершена"
 
 build-windows: ## Собрать для Windows с отключенным DPI awareness
@@ -41,11 +37,9 @@ run-animviewer: build ## Запустить просмотрщик анимац�
 	@echo "Запуск просмотрщика анимаций..."
 	DISPLAY=:0 MIT_SHM=0 LIBGL_ALWAYS_SOFTWARE=1 GDK_SCALE=1 GDK_DPI_SCALE=1 QT_AUTO_SCREEN_SCALE_FACTOR=0 QT_SCALE_FACTOR=1 QT_SCREEN_SCALE_FACTORS=1 XCURSOR_SIZE=16 EBITEN_GRAPHICS_LIBRARY=opengl XFORCEDPI=96 ./bin/savanna-animviewer --show wolf
 
-run-debug-eating: ## Запустить headless отладчик системы питания
-	@echo "Сборка headless отладчика..."
-	go build -buildvcs=false -o bin/debug-eating-system ./cmd/debug_eating_system
-	@echo "Запуск headless отладчика системы питания..."
-	./bin/debug-eating-system
+run-visual-test: build ## Запустить визуальный тестовый режим
+	@echo "Запуск визуального тестового режима..."
+	DISPLAY=:99 MIT_SHM=0 LIBGL_ALWAYS_SOFTWARE=1 GDK_SCALE=1 GDK_DPI_SCALE=1 QT_AUTO_SCREEN_SCALE_FACTOR=0 QT_SCALE_FACTOR=1 QT_SCREEN_SCALE_FACTORS=1 XCURSOR_SIZE=16 EBITEN_GRAPHICS_LIBRARY=opengl XFORCEDPI=96 ./bin/savanna-game --visual-test
 
 test: ## Все тесты с виртуальным дисплеем
 	@echo "🧪 Запуск всех тестов с виртуальным дисплеем..."

@@ -33,7 +33,7 @@ func TestFontDisplayE2E(t *testing.T) {
 
 	// Создаём зайца
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 80, 80)
-	world.SetHunger(rabbit, core.Hunger{Value: 75.0})
+	world.SetSatiation(rabbit, core.Satiation{Value: 75.0})
 
 	// Симулируем создание игрового мира со статистикой
 	gameWorld := &MockGameWorld{
@@ -141,7 +141,7 @@ func createUITextLines(gameWorld *MockGameWorld, camera Camera, timeManager *Moc
 	})
 
 	if found {
-		if hunger, ok := world.GetHunger(firstRabbit); ok {
+		if hunger, ok := world.GetSatiation(firstRabbit); ok {
 			lines = append(lines, fmt.Sprintf("Hunger: %.1f%%", hunger.Value))
 		}
 	}

@@ -143,7 +143,7 @@ func TestEcosystemSurvival(t *testing.T) {
 			for _, wolf := range wolves {
 				if world.IsAlive(wolf) {
 					wolfPos, _ := world.GetPosition(wolf)
-					wolfHunger, _ := world.GetHunger(wolf)
+					wolfHunger, _ := world.GetSatiation(wolf)
 					t.Logf("  Волк: голод=%.1f, позиция=(%.1f,%.1f)", wolfHunger.Value, wolfPos.X, wolfPos.Y)
 				}
 			}
@@ -153,7 +153,7 @@ func TestEcosystemSurvival(t *testing.T) {
 			for i, rabbit := range rabbits {
 				if world.IsAlive(rabbit) {
 					health, _ := world.GetHealth(rabbit)
-					hunger, _ := world.GetHunger(rabbit)
+					hunger, _ := world.GetSatiation(rabbit)
 					pos, _ := world.GetPosition(rabbit)
 					t.Logf("    Заяц %d: здоровье=%d, голод=%.1f, позиция=(%.1f,%.1f)",
 						i, health.Current, hunger.Value, pos.X, pos.Y)
@@ -189,7 +189,7 @@ func TestAnimalHealthAndHunger(t *testing.T) {
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 500, 500)
 
 	health, hasHealth := world.GetHealth(rabbit)
-	hunger, hasHunger := world.GetHunger(rabbit)
+	hunger, hasHunger := world.GetSatiation(rabbit)
 
 	if !hasHealth {
 		t.Error("Заяц не имеет компонента здоровья")
@@ -232,7 +232,7 @@ func TestFeedingSystemIsolated(t *testing.T) {
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 320, 320)
 
 	health, _ := world.GetHealth(rabbit)
-	hunger, _ := world.GetHunger(rabbit)
+	hunger, _ := world.GetSatiation(rabbit)
 
 	t.Logf("До feeding: здоровье=%d, голод=%.1f", health.Current, hunger.Value)
 
@@ -247,7 +247,7 @@ func TestFeedingSystemIsolated(t *testing.T) {
 	}
 
 	health, _ = world.GetHealth(rabbit)
-	hunger, _ = world.GetHunger(rabbit)
+	hunger, _ = world.GetSatiation(rabbit)
 
 	t.Logf("После feeding: здоровье=%d, голод=%.1f", health.Current, hunger.Value)
 
@@ -257,7 +257,7 @@ func TestFeedingSystemIsolated(t *testing.T) {
 
 		if !world.IsAlive(rabbit) {
 			health, _ = world.GetHealth(rabbit)
-			hunger, _ = world.GetHunger(rabbit)
+			hunger, _ = world.GetSatiation(rabbit)
 			t.Logf("Заяц умер на итерации %d: здоровье=%d, голод=%.1f", i, health.Current, hunger.Value)
 
 			if hunger.Value <= 0 && health.Current <= 0 {

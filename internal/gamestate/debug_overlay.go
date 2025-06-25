@@ -181,10 +181,10 @@ func (d *DebugOverlay) addEntityDebugInfo(
 		y += 15
 	}
 
-	// Голод
-	if hunger, ok := world.GetHunger(entity); ok {
+	// Сытость
+	if satiation, ok := world.GetSatiation(entity); ok {
 		instructions = append(instructions, DebugTextInstruction{
-			Text: fmt.Sprintf("%s Hunger: %.1f%%", label, hunger.Value),
+			Text: fmt.Sprintf("%s Satiation: %.1f%%", label, satiation.Value),
 			X:    10,
 			Y:    y,
 		})

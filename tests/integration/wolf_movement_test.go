@@ -26,7 +26,7 @@ func TestWolfMovement(t *testing.T) {
 	rabbit := simulation.CreateAnimal(world, core.TypeRabbit, 120, 100) // 20 пикселей = 0.6 тайла
 
 	// Делаем волка очень голодным для активации охоты
-	world.SetHunger(wolf, core.Hunger{Value: 20.0}) // Очень голодный
+	world.SetSatiation(wolf, core.Satiation{Value: 20.0}) // Очень голодный
 
 	t.Logf("=== Тест движения волка ===")
 
@@ -42,7 +42,7 @@ func TestWolfMovement(t *testing.T) {
 		if frame%10 == 0 {
 			pos, _ := world.GetPosition(wolf)
 			vel, _ := world.GetVelocity(wolf)
-			hunger, _ := world.GetHunger(wolf)
+			hunger, _ := world.GetSatiation(wolf)
 			speed, _ := world.GetSpeed(wolf)
 			behavior, _ := world.GetBehavior(wolf)
 
@@ -52,8 +52,8 @@ func TestWolfMovement(t *testing.T) {
 
 			t.Logf("Кадр %d: Волк pos=(%.1f,%.1f) vel=(%.3f,%.3f) hunger=%.1f speed=%.3f baseSpeed=%.3f",
 				frame, pos.X, pos.Y, vel.X, vel.Y, hunger.Value, speed.Current, speed.Base)
-			t.Logf("  Behavior: SearchSpeed=%.3f HungerThreshold=%.1f VisionRange=%.1f",
-				behavior.SearchSpeed, behavior.HungerThreshold, behavior.VisionRange)
+			t.Logf("  Behavior: SearchSpeed=%.3f SatiationThreshold=%.1f VisionRange=%.1f",
+				behavior.SearchSpeed, behavior.SatiationThreshold, behavior.VisionRange)
 			visionRangePixels := behavior.VisionRange * 32.0 // Конвертируем тайлы в пиксели
 			t.Logf("  Заяц pos=(%.1f,%.1f) distance=%.1f visionRange=%.1f пикс (в зрении: %v)",
 				rabbitPos.X, rabbitPos.Y, distance, visionRangePixels, distance <= visionRangePixels)
