@@ -184,11 +184,12 @@ func (sr *SpriteRenderer) DrawAnimal(
 	}
 
 	// Центрируем спрайт относительно позиции животного
+	// ИСПРАВЛЕНИЕ: Сдвигаем спрайт на треть высоты выше для лучшего визуального позиционирования
 	spriteWidth := float64(sprite.Bounds().Dx()) * spriteScale
 	spriteHeight := float64(sprite.Bounds().Dy()) * spriteScale
 	op.GeoM.Translate(
 		float64(params.ScreenX)-spriteWidth/2,
-		float64(params.ScreenY)-spriteHeight/2,
+		float64(params.ScreenY)-spriteHeight/2-spriteHeight/3, // Сдвигаем на треть высоты выше
 	)
 
 	// ИСПРАВЛЕНИЕ: Применяем DamageFlash эффект к самому спрайту

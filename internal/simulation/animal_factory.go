@@ -16,6 +16,13 @@ func CreateAnimal(world *core.World, animalType core.AnimalType, x, y float32) c
 func createEntityFromConfig(world *core.World, config core.AnimalConfig, x, y float32) core.EntityID {
 	entity := world.CreateEntity()
 
+	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем Size ПЕРЕД Position
+	// чтобы updateSpatialEntity мог получить правильный радиус
+	world.AddSize(entity, core.Size{
+		Radius:      constants.TilesToPixels(config.CollisionRadius),
+		AttackRange: constants.TilesToPixels(config.AttackRange),
+	})
+
 	// Добавляем базовые компоненты
 	world.AddPosition(entity, core.Position{X: x, Y: y})
 	world.AddVelocity(entity, core.Velocity{X: 0, Y: 0})
@@ -39,12 +46,6 @@ func createEntityFromConfig(world *core.World, config core.AnimalConfig, x, y fl
 
 	// Тип животного определяется из анимации или конфигурации
 	world.AddAnimalType(entity, getAnimalTypeFromConfig(config))
-
-	// Размеры из конфигурации (конвертируем тайлы в пиксели для рендеринга)
-	world.AddSize(entity, core.Size{
-		Radius:      constants.TilesToPixels(config.CollisionRadius),
-		AttackRange: constants.TilesToPixels(config.AttackRange),
-	})
 
 	// Скорость из конфигурации
 	world.AddSpeed(entity, core.Speed{

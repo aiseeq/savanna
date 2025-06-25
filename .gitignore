@@ -73,3 +73,6 @@ headless
 cmd/game/*.ttf
 cmd/game/*.woff2
 # cmd/animviewer/DejaVuSansMono.ttf is allowed for embedding
+
+# Visual analysis test results
+visual_analysis/
