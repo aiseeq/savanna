@@ -9,29 +9,25 @@ import (
 	"github.com/aiseeq/savanna/internal/physics"
 )
 
-// Константы для оптимизированной системы коллизий (устраняет магические числа)
+// Локальные константы для системы коллизий (основные перенесены в game_balance.go)
 const (
-	// Множители для радиусов и поиска
-	// ИСПРАВЛЕНИЕ: Расталкивание только при физическом контакте
-	SearchRadiusMultiplier    = 1.1 // Ищем в радиусе чуть больше размера объекта (было 2.0)
-	SeparationForceMultiplier = 0.6 // Коэффициент силы разделения позиций при коллизии
-
-	// Параметры взаимодействий хищник-добыча
+	// Параметры взаимодействий хищник-добыча (оставляем локальные)
 	PredatorPreyDamping = 0.7 // Замедление при коллизии хищник-добыча (70% скорости)
 
-	// Параметры мягкого расталкивания
-	SoftPushThreshold = 1.0 // Порог для активации мягкого расталкивания (пикс)
-	SoftPushForce     = 1.0 // Базовая сила мягкого расталкивания
-
-	// Параметры жёсткого расталкивания
-	PenetrationThreshold = 0.1  // Порог проникновения для жёсткого расталкивания
-	PushForceMultiplier  = 10.0 // Множитель силы жёсткого расталкивания
-
-	// Пороги движения
+	// Пороги движения (оставляем локальные)
+	SoftPushThreshold     = 1.0 // Порог для активации мягкого расталкивания (пикс)
 	SlowMovementThreshold = 1.0 // Порог медленного движения (пикс/сек)
 )
 
+// РЕФАКТОРИНГ: Основные константы коллизий перенесены в game_balance.go:
+// - CollisionSearchRadiusMultiplier (было SearchRadiusMultiplier = 2.2)
+// - CollisionSeparationForceMultiplier (было SeparationForceMultiplier = 1.5)
+// - SoftCollisionPushForce (было SoftPushForce = 3.0)
+// - HardCollisionPenetrationThreshold (было PenetrationThreshold = 0.05)
+// - HardCollisionPushForceMultiplier (было PushForceMultiplier = 25.0)
+
 // CollisionConstants структура констант для обратной совместимости
+// РЕФАКТОРИНГ: Теперь использует константы из game_balance.go
 var CollisionConstants = struct {
 	SearchRadiusMultiplier    float32
 	SeparationForceMultiplier float32
@@ -42,13 +38,13 @@ var CollisionConstants = struct {
 	PushForceMultiplier       float32
 	SlowMovementThreshold     float32
 }{
-	SearchRadiusMultiplier:    SearchRadiusMultiplier,
-	SeparationForceMultiplier: SeparationForceMultiplier,
+	SearchRadiusMultiplier:    CollisionSearchRadiusMultiplier,
+	SeparationForceMultiplier: CollisionSeparationForceMultiplier,
 	PredatorPreyDamping:       PredatorPreyDamping,
 	SoftPushThreshold:         SoftPushThreshold,
-	SoftPushForce:             SoftPushForce,
-	PenetrationThreshold:      PenetrationThreshold,
-	PushForceMultiplier:       PushForceMultiplier,
+	SoftPushForce:             SoftCollisionPushForce,
+	PenetrationThreshold:      HardCollisionPenetrationThreshold,
+	PushForceMultiplier:       HardCollisionPushForceMultiplier,
 	SlowMovementThreshold:     SlowMovementThreshold,
 }
 
@@ -287,7 +283,13 @@ func (ms *MovementSystem) findCollisionCandidates(
 
 	searchRadiusPixels := size.Radius * CollisionConstants.SearchRadiusMultiplier
 	searchRadius := constants.SizeRadiusToTiles(searchRadiusPixels) // Конвертируем в тайлы для поиска
-	return world.QueryInRadius(pos.X, pos.Y, searchRadius)
+
+	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Конвертируем позицию в тайлы для QueryInRadius
+	posInTiles := physics.Vec2{
+		X: constants.PixelsToTiles(pos.X),
+		Y: constants.PixelsToTiles(pos.Y),
+	}
+	return world.QueryInRadius(posInTiles.X, posInTiles.Y, searchRadius)
 }
 
 // processCollisionCandidates проверяет кандидатов и обрабатывает коллизии (KISS: простой цикл)
@@ -313,7 +315,33 @@ func (ms *MovementSystem) checkAndHandleCollision(world core.MovementSystemAcces
 	circles := ms.createCollisionCircles(world, entity1, entity2)
 	collision := ms.detectCollision(circles.circle1, circles.circle2)
 
-	if collision.Colliding {
+	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем предварительное расталкивание при близости
+	// ОПТИМИЗАЦИЯ: Сначала проверяем манхеттенское расстояние как быстрый предфильтр
+	dx := circles.circle1.Center.X - circles.circle2.Center.X
+	dy := circles.circle1.Center.Y - circles.circle2.Center.Y
+	manhattanDistance := math.Abs(float64(dx)) + math.Abs(float64(dy))
+	maxPossibleRadius := float64(circles.circle1.Radius + circles.circle2.Radius + 0.1) // +0.1 тайла буфер
+
+	// Быстрое отсечение: если манхеттенское расстояние больше чем возможный радиус * 1.5, то точно нет коллизии
+	if manhattanDistance > maxPossibleRadius*1.5 {
+		return // Нет смысла проверять евклидово расстояние
+	}
+
+	// Вычисляем точное евклидово расстояние только для потенциально близких объектов
+	distance := math.Sqrt(float64(dx*dx + dy*dy))
+	safeDistance := maxPossibleRadius
+
+	// Применяем расталкивание если пересекаются ИЛИ слишком близко
+	if collision.Colliding || distance < safeDistance {
+		// Если не пересекаются, но близко - создаём искусственную коллизию
+		if !collision.Colliding {
+			penetration := float32(safeDistance - distance)
+			collision = physics.CollisionDetails{
+				Colliding:   true,
+				Penetration: penetration,
+				Normal:      physics.Vec2{X: dx / float32(distance), Y: dy / float32(distance)},
+			}
+		}
 		ms.separateEntities(world, entity1, entity2, collision)
 	}
 }
@@ -333,13 +361,20 @@ func (ms *MovementSystem) createCollisionCircles(
 	size1, _ := world.GetSize(entity1)
 	size2, _ := world.GetSize(entity2)
 
+	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Конвертируем позиции в тайлы
 	return collisionCircles{
 		circle1: physics.Circle{
-			Center: physics.Vec2{X: pos1.X, Y: pos1.Y},
+			Center: physics.Vec2{
+				X: constants.PixelsToTiles(pos1.X),
+				Y: constants.PixelsToTiles(pos1.Y),
+			},
 			Radius: constants.SizeRadiusToTiles(size1.Radius), // Конвертируем в тайлы
 		},
 		circle2: physics.Circle{
-			Center: physics.Vec2{X: pos2.X, Y: pos2.Y},
+			Center: physics.Vec2{
+				X: constants.PixelsToTiles(pos2.X),
+				Y: constants.PixelsToTiles(pos2.Y),
+			},
 			Radius: constants.SizeRadiusToTiles(size2.Radius), // Конвертируем в тайлы
 		},
 	}
@@ -431,11 +466,14 @@ func (ms *MovementSystem) applyPositionSeparation(
 
 	// Сохраняем исходные позиции для проверки (убрано - не используются)
 
-	// Применяем разделение
-	pos1.X -= collision.Normal.X * separationForce
-	pos1.Y -= collision.Normal.Y * separationForce
-	pos2.X += collision.Normal.X * separationForce
-	pos2.Y += collision.Normal.Y * separationForce
+	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Конвертируем силу в пиксели для позиций
+	separationForcePixels := constants.TilesToPixels(separationForce)
+
+	// Применяем разделение в пикселях
+	pos1.X -= collision.Normal.X * separationForcePixels
+	pos1.Y -= collision.Normal.Y * separationForcePixels
+	pos2.X += collision.Normal.X * separationForcePixels
+	pos2.Y += collision.Normal.Y * separationForcePixels
 
 	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем что новые позиции в границах мира
 	pos1Bounded := ms.boundPosition(pos1)
@@ -456,19 +494,21 @@ func (ms *MovementSystem) applyPositionSeparation(
 func (ms *MovementSystem) boundPosition(pos core.Position) core.Position {
 	result := pos
 
-	// ИСПРАВЛЕНИЕ: Симметричные границы с минимальным отступом
-	const margin = 0.1 // Синхронизировано с constrainToBounds
+	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Конвертируем границы мира в пиксели
+	worldWidthPixels := constants.TilesToPixels(ms.worldWidth)
+	worldHeightPixels := constants.TilesToPixels(ms.worldHeight)
+	const marginPixels = 3.2 // 0.1 тайла в пикселях
 
-	if result.X < margin {
-		result.X = margin
-	} else if result.X > ms.worldWidth-margin {
-		result.X = ms.worldWidth - margin
+	if result.X < marginPixels {
+		result.X = marginPixels
+	} else if result.X > worldWidthPixels-marginPixels {
+		result.X = worldWidthPixels - marginPixels
 	}
 
-	if result.Y < margin {
-		result.Y = margin
-	} else if result.Y > ms.worldHeight-margin {
-		result.Y = ms.worldHeight - margin
+	if result.Y < marginPixels {
+		result.Y = marginPixels
+	} else if result.Y > worldHeightPixels-marginPixels {
+		result.Y = worldHeightPixels - marginPixels
 	}
 
 	return result

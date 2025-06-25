@@ -164,16 +164,32 @@ func (h *HerbivoreBehaviorStrategy) searchForGrass(
 		visionRangePixels, MinGrassAmountToFind,
 	)
 	if foundGrass {
-		// Идём к траве
+		// Основное направление к траве
 		grassDir := physics.Vec2{X: grassX - components.Position.X, Y: grassY - components.Position.Y}
 		grassDir = grassDir.Normalize()
+
+		// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем избегание близких животных
+		avoidanceDir := h.calculateAvoidanceDirection(world, entity, components)
+
+		// Комбинируем направление к траве с избеганием
+		finalDir := physics.Vec2{
+			X: grassDir.X + avoidanceDir.X,
+			Y: grassDir.Y + avoidanceDir.Y,
+		}
+
+		// Нормализуем итоговое направление
+		if finalDir.X != 0 || finalDir.Y != 0 {
+			finalDir = finalDir.Normalize()
+		} else {
+			finalDir = grassDir // Fallback к исходному направлению
+		}
 
 		components.Behavior.DirectionTimer = components.AnimalConfig.MinDirectionTime
 		world.SetBehavior(entity, components.Behavior)
 
 		return &core.Velocity{
-			X: grassDir.X * components.Speed.Current * components.AnimalConfig.SearchSpeed,
-			Y: grassDir.Y * components.Speed.Current * components.AnimalConfig.SearchSpeed,
+			X: finalDir.X * components.Speed.Current * components.AnimalConfig.SearchSpeed,
+			Y: finalDir.Y * components.Speed.Current * components.AnimalConfig.SearchSpeed,
 		}
 	}
 
@@ -307,6 +323,64 @@ func (h *HerbivoreBehaviorStrategy) calculateBoundaryRepulsion(position core.Pos
 	}
 
 	return repulsion
+}
+
+// calculateAvoidanceDirection вычисляет направление для избегания близких животных
+// Предотвращает петли столкновений когда животные постоянно бегут навстречу друг другу
+func (h *HerbivoreBehaviorStrategy) calculateAvoidanceDirection(
+	world core.BehaviorSystemAccess,
+	entity core.EntityID,
+	components AnimalComponents,
+) physics.Vec2 {
+	avoidanceForce := physics.Vec2{X: 0, Y: 0}
+
+	// Радиус поиска соседей - использует константу из game_balance.go
+	searchRadius := constants.TilesToPixels(components.AnimalConfig.CollisionRadius * BehaviorAvoidanceRadiusMultiplier)
+
+	// Ищем близких животных в радиусе
+	nearbyAnimals := world.QueryInRadius(components.Position.X, components.Position.Y, searchRadius)
+
+	for _, neighborID := range nearbyAnimals {
+		if neighborID == entity {
+			continue // Пропускаем себя
+		}
+
+		neighborPos, hasPos := world.GetPosition(neighborID)
+		if !hasPos {
+			continue
+		}
+
+		// ОПТИМИЗАЦИЯ: Быстрая проверка манхеттенского расстояния как предфильтр
+		dx := float64(components.Position.X - neighborPos.X)
+		dy := float64(components.Position.Y - neighborPos.Y)
+		manhattanDistance := math.Abs(dx) + math.Abs(dy)
+
+		// Если слишком далеко по манхеттенскому расстоянию, пропускаем евклидов расчёт
+		if manhattanDistance > float64(searchRadius)*1.5 {
+			continue // Быстрое отсечение удалённых объектов
+		}
+
+		// Вычисляем точное евклидово расстояние только для близких объектов
+		distance := math.Sqrt(dx*dx + dy*dy)
+
+		if distance > 0.1 && distance < float64(searchRadius) { // Избегаем деления на ноль
+			// Сила обратно пропорциональна расстоянию (чем ближе, тем сильнее отталкивание)
+			force := float32(1.0 / distance)
+
+			// Нормализованное направление от соседа
+			avoidanceForce.X += float32(dx/distance) * force
+			avoidanceForce.Y += float32(dy/distance) * force
+		}
+	}
+
+	// Ограничиваем силу избегания чтобы она не перебивала движение к траве
+	if avoidanceForce.Length() > BehaviorAvoidanceMaxStrength {
+		avoidanceForce = avoidanceForce.Normalize()
+		avoidanceForce.X *= BehaviorAvoidanceMaxStrength
+		avoidanceForce.Y *= BehaviorAvoidanceMaxStrength
+	}
+
+	return avoidanceForce
 }
 
 // УДАЛЕНО: getRandomWalkVelocityWithBehavior заменена на RandomWalk.GetRandomWalkVelocity

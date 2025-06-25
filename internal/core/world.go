@@ -3,6 +3,7 @@ package core
 import (
 	"math/rand"
 
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/physics"
 )
 
@@ -122,7 +123,20 @@ func (w *World) Clear() {
 // updateSpatialEntity обновляет позицию сущности в пространственной системе
 // Скрывает сложность доступа к SpatialProvider через WorldState (LoD)
 func (w *World) updateSpatialEntity(entity EntityID, x, y float32) {
-	w.worldState.GetSpatialProvider().UpdateEntity(uint32(entity), physics.Vec2{X: x, Y: y}, 0)
+	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Получаем реальный радиус животного для spatial grid
+	radius := float32(0)
+	if size, hasSize := w.componentManager.GetSize(entity); hasSize {
+		radius = size.Radius
+	}
+
+	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Конвертируем координаты в тайлы для spatial grid
+	posInTiles := physics.Vec2{
+		X: constants.PixelsToTiles(x),
+		Y: constants.PixelsToTiles(y),
+	}
+	radiusInTiles := constants.SizeRadiusToTiles(radius)
+
+	w.worldState.GetSpatialProvider().UpdateEntity(uint32(entity), posInTiles, radiusInTiles)
 }
 
 // removeSpatialEntity удаляет сущность из пространственной системы
