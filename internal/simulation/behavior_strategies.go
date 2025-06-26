@@ -1,11 +1,9 @@
 package simulation
 
 import (
-	"math"
-
 	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
-	"github.com/aiseeq/savanna/internal/physics"
+	"github.com/aiseeq/savanna/internal/vec2"
 )
 
 // BehaviorStrategy интерфейс для различных стратегий поведения животных
@@ -64,7 +62,7 @@ func (h *HerbivoreBehaviorStrategy) handlePredatorEscape(
 ) *core.Velocity {
 	nearestPredator, foundPredator := world.FindNearestByTypeInTiles(
 		components.Position.X, components.Position.Y,
-		components.AnimalConfig.VisionRange, core.TypeWolf, // РЕФАКТОРИНГ: используем AnimalConfig вместо Behavior
+		components.AnimalConfig.VisionRange, core.TypeWolf,
 	)
 	if !foundPredator {
 		return nil // Хищника нет
@@ -77,29 +75,25 @@ func (h *HerbivoreBehaviorStrategy) handlePredatorEscape(
 
 	predatorPos, _ := world.GetPosition(nearestPredator)
 
-	// Базовое направление побега (от хищника)
-	escapeDir := physics.Vec2{X: components.Position.X - predatorPos.X, Y: components.Position.Y - predatorPos.Y}
-	escapeDir = escapeDir.Normalize()
+	// ОПТИМИЗАЦИЯ: элегантное направление побега используя методы Position
+	escapeVector := components.Position.Sub(predatorPos).Normalize() // Вектор от хищника к нам
+	escapeDirection := vec2.New(escapeVector.X, escapeVector.Y)
 
-	// ИСПРАВЛЕНИЕ: Добавляем отталкивание от границ мира для предотвращения кластеризации в углах
+	// ЭЛЕГАНТНАЯ МАТЕМАТИКА: Добавляем отталкивание от границ мира
 	worldWidth, worldHeight := world.GetWorldDimensions()
 	boundaryRepulsion := h.calculateBoundaryRepulsion(components.Position, worldWidth, worldHeight)
 
-	// Комбинируем направление побега с отталкиванием от границ
-	finalEscapeDir := physics.Vec2{
-		X: escapeDir.X + boundaryRepulsion.X,
-		Y: escapeDir.Y + boundaryRepulsion.Y,
-	}
-	finalEscapeDir = finalEscapeDir.Normalize()
+	// Комбинируем направление побега с отталкиванием (комплексная арифметика!)
+	finalEscapeDirection := escapeDirection.Add(boundaryRepulsion).Normalize()
 
-	// Обновляем таймер направления в поведении используя значения из AnimalConfig
+	// Обновляем таймер направления в поведении
 	components.Behavior.DirectionTimer = components.AnimalConfig.MinDirectionTime
 	world.SetBehavior(entity, components.Behavior)
 
-	return &core.Velocity{
-		X: finalEscapeDir.X * components.Speed.Current,
-		Y: finalEscapeDir.Y * components.Speed.Current,
-	}
+	// Создаем скорость с элегантной арифметикой
+	speed := components.Speed.Current
+	resultVelocity := core.Velocity{X: finalEscapeDirection.X * speed, Y: finalEscapeDirection.Y * speed}
+	return &resultVelocity
 }
 
 // handleFeeding обрабатывает поиск и поедание травы (KISS: выделено в отдельный метод)
@@ -127,8 +121,8 @@ func (h *HerbivoreBehaviorStrategy) checkLocalGrass(
 	components AnimalComponents,
 	config core.AnimalConfig,
 ) *core.Velocity {
-	// ИСПРАВЛЕНИЕ: Конвертируем радиус коллизий из тайлов в пиксели для FindNearestGrass
-	collisionRadiusPixels := constants.TilesToPixels(config.CollisionRadius)
+	// ТИПОБЕЗОПАСНОСТЬ: Конвертируем радиус коллизий из тайлов в пиксели для FindNearestGrass
+	collisionRadiusPixels := constants.TilesToPixels(config.CollisionRadius) // Конвертируем physics.Tiles
 	localGrassX, localGrassY, hasLocalGrass := h.vegetation.FindNearestGrass(
 		components.Position.X, components.Position.Y,
 		collisionRadiusPixels, MinGrassAmountToFind,
@@ -137,15 +131,17 @@ func (h *HerbivoreBehaviorStrategy) checkLocalGrass(
 		return nil
 	}
 
-	dx := components.Position.X - localGrassX
-	dy := components.Position.Y - localGrassY
-	distanceToLocalGrass := math.Sqrt(float64(dx*dx + dy*dy))
+	// ОПТИМИЗАЦИЯ: элегантное расстояние до травы через методы Position + сравнение квадратов
+	grassPos := core.NewPosition(localGrassX, localGrassY)
+	distanceSquared := components.Position.DistanceSquaredTo(grassPos)
 
 	// ИСПРАВЛЕНИЕ: Конвертируем радиус коллизий из тайлов в пиксели для проверки расстояния
 	collisionRadiusPixelsForCheck := constants.TilesToPixels(config.CollisionRadius)
-	if distanceToLocalGrass <= float64(collisionRadiusPixelsForCheck*GrassProximityMultiplier) {
+	threshold := collisionRadiusPixelsForCheck * GrassProximityMultiplier
+	if distanceSquared <= threshold*threshold {
 		// Мы рядом с травой - останавливаемся и едим
-		return &core.Velocity{X: 0, Y: 0}
+		zeroVel := core.NewVelocity(0, 0)
+		return &zeroVel
 	}
 
 	return nil
@@ -164,21 +160,19 @@ func (h *HerbivoreBehaviorStrategy) searchForGrass(
 		visionRangePixels, MinGrassAmountToFind,
 	)
 	if foundGrass {
-		// Основное направление к траве
-		grassDir := physics.Vec2{X: grassX - components.Position.X, Y: grassY - components.Position.Y}
-		grassDir = grassDir.Normalize()
+		// ОПТИМИЗАЦИЯ: элегантное направление к траве через методы Position
+		grassPos := core.NewPosition(grassX, grassY)
+		grassVector := grassPos.Sub(components.Position).Normalize()
+		grassDir := vec2.New(grassVector.X, grassVector.Y)
 
 		// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем избегание близких животных
 		avoidanceDir := h.calculateAvoidanceDirection(world, entity, components)
 
-		// Комбинируем направление к траве с избеганием
-		finalDir := physics.Vec2{
-			X: grassDir.X + avoidanceDir.X,
-			Y: grassDir.Y + avoidanceDir.Y,
-		}
+		// Комбинируем направление к траве с избеганием (ЭЛЕГАНТНО!)
+		finalDir := grassDir.Add(avoidanceDir)
 
 		// Нормализуем итоговое направление
-		if finalDir.X != 0 || finalDir.Y != 0 {
+		if finalDir.Length() > 0 {
 			finalDir = finalDir.Normalize()
 		} else {
 			finalDir = grassDir // Fallback к исходному направлению
@@ -187,10 +181,10 @@ func (h *HerbivoreBehaviorStrategy) searchForGrass(
 		components.Behavior.DirectionTimer = components.AnimalConfig.MinDirectionTime
 		world.SetBehavior(entity, components.Behavior)
 
-		return &core.Velocity{
-			X: finalDir.X * components.Speed.Current * components.AnimalConfig.SearchSpeed,
-			Y: finalDir.Y * components.Speed.Current * components.AnimalConfig.SearchSpeed,
-		}
+		// Конвертируем в скорость
+		speed := components.Speed.Current * components.AnimalConfig.SearchSpeed
+		resultVel := core.Velocity{X: finalDir.X * speed, Y: finalDir.Y * speed}
+		return &resultVel
 	}
 
 	// Трава не найдена - продолжаем случайное движение в поисках
@@ -231,11 +225,13 @@ func (p *PredatorBehaviorStrategy) UpdateBehavior(
 ) core.Velocity {
 	// ИСПРАВЛЕНИЕ: Если хищник ест - останавливаем движение (решает проблему "волк над зайцем")
 	if world.HasComponent(entity, core.MaskEatingState) {
-		return core.Velocity{X: 0, Y: 0} // Волк стоит на месте при поедании
+		return core.NewVelocity(0, 0) // Волк стоит на месте при поедании
 	}
 
 	// Хищники охотятся только когда голодны
 	if components.Satiation.Value < components.AnimalConfig.SatiationThreshold {
+		// ЭЛЕГАНТНАЯ МАТЕМАТИКА: прямое использование комплексной позиции
+
 		// Ищем ближайшую добычу (травоядных)
 		nearestPrey, foundPrey := world.FindNearestByTypeInTiles(
 			components.Position.X, components.Position.Y,
@@ -244,21 +240,17 @@ func (p *PredatorBehaviorStrategy) UpdateBehavior(
 		if foundPrey {
 			preyPos, _ := world.GetPosition(nearestPrey)
 
-			// Направление к добыче
-			huntDir := physics.Vec2{
-				X: preyPos.X - components.Position.X,
-				Y: preyPos.Y - components.Position.Y,
-			}
-			huntDir = huntDir.Normalize()
+			// ОПТИМИЗАЦИЯ: элегантное направление к добыче через методы Position
+			huntVector := preyPos.Sub(components.Position).Normalize()
+			huntDir := vec2.New(huntVector.X, huntVector.Y)
 
 			// Обновляем таймер направления в поведении используя значения из AnimalConfig
 			components.Behavior.DirectionTimer = components.AnimalConfig.MinDirectionTime
 			world.SetBehavior(entity, components.Behavior)
 
-			return core.Velocity{
-				X: huntDir.X * components.Speed.Current,
-				Y: huntDir.Y * components.Speed.Current,
-			}
+			// ИСПРАВЛЕНИЕ: Используем SearchSpeed множитель для скорости охоты (как у травоядных при поиске травы)
+			speed := components.Speed.Current * components.AnimalConfig.SearchSpeed
+			return core.Velocity{X: huntDir.X * speed, Y: huntDir.Y * speed}
 		} else {
 			// Добыча не найдена - блуждаем в поисках
 			return RandomWalk.GetRandomWalkVelocity(
@@ -276,50 +268,51 @@ func (p *PredatorBehaviorStrategy) UpdateBehavior(
 }
 
 // calculateBoundaryRepulsion вычисляет вектор отталкивания от границ мира
-// Предотвращает кластеризацию животных в углах карты
-func (h *HerbivoreBehaviorStrategy) calculateBoundaryRepulsion(position core.Position, worldWidth, worldHeight float32) physics.Vec2 {
+// Предотвращает кластеризацию животных в углах карты - ЭЛЕГАНТНАЯ МАТЕМАТИКА
+func (h *HerbivoreBehaviorStrategy) calculateBoundaryRepulsion(position core.Position, worldWidth, worldHeight float32) vec2.Vec2 {
 	// Процент от размера мира для начала отталкивания (5% от каждого края)
 	const boundaryZonePercent = 0.05
 
 	boundaryThresholdX := worldWidth * boundaryZonePercent  // 5% от ширины
 	boundaryThresholdY := worldHeight * boundaryZonePercent // 5% от высоты
 
-	repulsion := physics.Vec2{X: 0, Y: 0}
+	var repulsionX, repulsionY float32
 
-	// Отталкивание от левой границы
+	// Отталкивание от левой границы (ЭЛЕГАНТНАЯ МАТЕМАТИКА)
 	if position.X < boundaryThresholdX {
 		force := (boundaryThresholdX - position.X) / boundaryThresholdX // 0-1, сильнее ближе к границе
-		repulsion.X += force                                            // Толкает вправо
+		repulsionX += force                                             // Толкает вправо
 	}
 
 	// Отталкивание от правой границы
 	if position.X > worldWidth-boundaryThresholdX {
 		distanceFromRightEdge := worldWidth - position.X
 		force := (boundaryThresholdX - distanceFromRightEdge) / boundaryThresholdX
-		repulsion.X -= force // Толкает влево
+		repulsionX -= force // Толкает влево
 	}
 
 	// Отталкивание от верхней границы
 	if position.Y < boundaryThresholdY {
 		force := (boundaryThresholdY - position.Y) / boundaryThresholdY
-		repulsion.Y += force // Толкает вниз
+		repulsionY += force // Толкает вниз
 	}
 
 	// Отталкивание от нижней границы
 	if position.Y > worldHeight-boundaryThresholdY {
 		distanceFromBottomEdge := worldHeight - position.Y
 		force := (boundaryThresholdY - distanceFromBottomEdge) / boundaryThresholdY
-		repulsion.Y -= force // Толкает вверх
+		repulsionY -= force // Толкает вверх
 	}
+
+	// Создаем вектор отталкивания из компонентов
+	repulsion := vec2.New(repulsionX, repulsionY)
 
 	// Нормализуем силу отталкивания чтобы она не была слишком сильной
 	// Максимальная сила отталкивания составляет 50% от направления побега
 	const maxRepulsionStrength = 0.5
 	repulsionMagnitude := repulsion.Length()
 	if repulsionMagnitude > maxRepulsionStrength {
-		repulsion = repulsion.Normalize()
-		repulsion.X *= maxRepulsionStrength
-		repulsion.Y *= maxRepulsionStrength
+		repulsion = repulsion.Normalize().Scale(maxRepulsionStrength)
 	}
 
 	return repulsion
@@ -331,13 +324,13 @@ func (h *HerbivoreBehaviorStrategy) calculateAvoidanceDirection(
 	world core.BehaviorSystemAccess,
 	entity core.EntityID,
 	components AnimalComponents,
-) physics.Vec2 {
-	avoidanceForce := physics.Vec2{X: 0, Y: 0}
+) vec2.Vec2 {
+	avoidanceForce := vec2.New(0, 0)
 
-	// Радиус поиска соседей - использует константу из game_balance.go
+	// Радиус поиска соседей - использует константу из game_balance.go (ТИПОБЕЗОПАСНО)
 	searchRadius := constants.TilesToPixels(components.AnimalConfig.CollisionRadius * BehaviorAvoidanceRadiusMultiplier)
 
-	// Ищем близких животных в радиусе
+	// Ищем близких животных в радиусе (ТИПОБЕЗОПАСНО)
 	nearbyAnimals := world.QueryInRadius(components.Position.X, components.Position.Y, searchRadius)
 
 	for _, neighborID := range nearbyAnimals {
@@ -350,34 +343,24 @@ func (h *HerbivoreBehaviorStrategy) calculateAvoidanceDirection(
 			continue
 		}
 
-		// ОПТИМИЗАЦИЯ: Быстрая проверка манхеттенского расстояния как предфильтр
-		dx := float64(components.Position.X - neighborPos.X)
-		dy := float64(components.Position.Y - neighborPos.Y)
-		manhattanDistance := math.Abs(dx) + math.Abs(dy)
+		// ОПТИМИЗАЦИЯ: элегантное расстояние и направление через методы Position (без дублирования!)
+		directionVector := components.Position.Sub(neighborPos) // Направление от соседа к нам
+		distance := directionVector.Length()
 
-		// Если слишком далеко по манхеттенскому расстоянию, пропускаем евклидов расчёт
-		if manhattanDistance > float64(searchRadius)*1.5 {
-			continue // Быстрое отсечение удалённых объектов
-		}
-
-		// Вычисляем точное евклидово расстояние только для близких объектов
-		distance := math.Sqrt(dx*dx + dy*dy)
-
-		if distance > 0.1 && distance < float64(searchRadius) { // Избегаем деления на ноль
+		if distance > 0.1 && distance < searchRadius { // Избегаем деления на ноль
 			// Сила обратно пропорциональна расстоянию (чем ближе, тем сильнее отталкивание)
-			force := float32(1.0 / distance)
+			force := 1.0 / distance
 
-			// Нормализованное направление от соседа
-			avoidanceForce.X += float32(dx/distance) * force
-			avoidanceForce.Y += float32(dy/distance) * force
+			// Нормализованное направление от соседа (используем уже вычисленный вектор!)
+			normalizedDirection := directionVector.Scale(1.0 / distance) // Вместо повторного вычисления
+			repulsionDirection := vec2.New(normalizedDirection.X*float32(force), normalizedDirection.Y*float32(force))
+			avoidanceForce = avoidanceForce.Add(repulsionDirection)
 		}
 	}
 
 	// Ограничиваем силу избегания чтобы она не перебивала движение к траве
 	if avoidanceForce.Length() > BehaviorAvoidanceMaxStrength {
-		avoidanceForce = avoidanceForce.Normalize()
-		avoidanceForce.X *= BehaviorAvoidanceMaxStrength
-		avoidanceForce.Y *= BehaviorAvoidanceMaxStrength
+		avoidanceForce = avoidanceForce.Normalize().Scale(BehaviorAvoidanceMaxStrength)
 	}
 
 	return avoidanceForce

@@ -9,6 +9,12 @@ import (
 	"github.com/aiseeq/savanna/internal/simulation"
 )
 
+// Локальные тестовые константы (перенесены из constants.go для соблюдения принципа запрета моков в production)
+const (
+	testWorldTileSize = 10    // Размер тестового мира в тайлах
+	testGrassAmount   = 100.0 // Количество травы в тестах
+)
+
 // TestSystemBundle содержит системы и анимации для правильного порядка обновления
 type TestSystemBundle struct {
 	SystemManager    *core.SystemManager
@@ -224,7 +230,7 @@ func CreateTestVegetationSystem(worldSize float32) *simulation.VegetationSystem 
 // CreateMockVegetationSystem создает mock vegetation систему для unit тестов
 func CreateMockVegetationSystem() *simulation.VegetationSystem {
 	// Используем минимальный mock terrain
-	terrain := NewMockTerrain(constants.TestWorldTileSize) // Тестовый размер мира
+	terrain := NewMockTerrain(testWorldTileSize) // Тестовый размер мира
 	return simulation.NewVegetationSystem(terrain)
 }
 
@@ -256,7 +262,7 @@ func (mt *MockTerrain) GetGrassAmount(x, y int) float32 {
 	if mt.GetTileType(x, y) != generator.TileGrass {
 		return 0
 	}
-	return constants.TestGrassAmount // Стандартное количество травы в тестах
+	return testGrassAmount // Стандартное количество травы в тестах
 }
 
 // SetGrassAmount устанавливает количество травы (ничего не делает в mock)

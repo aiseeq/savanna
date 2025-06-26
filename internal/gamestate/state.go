@@ -3,7 +3,6 @@ package gamestate
 
 import (
 	"math/rand"
-	"time"
 
 	"github.com/aiseeq/savanna/internal/adapters"
 	"github.com/aiseeq/savanna/internal/core"
@@ -17,9 +16,8 @@ type GameState struct {
 	systemManager *core.SystemManager
 
 	// Управление временем
-	lastUpdateTime time.Time
-	accumulator    float64
-	fixedTimeStep  float64
+	accumulator   float64
+	fixedTimeStep float64
 
 	// Состояние камеры (логическое, не визуальное)
 	camera CameraState
@@ -56,12 +54,11 @@ func NewGameState(config *GameConfig) *GameState {
 	initializeSystems(systemManager, world, config)
 
 	return &GameState{
-		world:          world,
-		systemManager:  systemManager,
-		lastUpdateTime: time.Now(),
-		accumulator:    0,
-		fixedTimeStep:  config.FixedTimeStep,
-		config:         config,
+		world:         world,
+		systemManager: systemManager,
+		accumulator:   0,
+		fixedTimeStep: config.FixedTimeStep,
+		config:        config,
 		camera: CameraState{
 			X: 0,
 			Y: 0,
@@ -71,14 +68,8 @@ func NewGameState(config *GameConfig) *GameState {
 
 // Update обновляет состояние игры с фиксированным шагом времени
 func (gs *GameState) Update() {
-	now := time.Now()
-	frameTime := now.Sub(gs.lastUpdateTime).Seconds()
-	gs.lastUpdateTime = now
-
-	// ФИКС ДЛЯ ТЕСТОВ: Если frameTime слишком мал, принудительно устанавливаем fixedTimeStep
-	if frameTime < gs.fixedTimeStep*0.1 {
-		frameTime = gs.fixedTimeStep
-	}
+	// Всегда используем фиксированный timestep для детерминированности
+	frameTime := gs.fixedTimeStep
 
 	// Ограничиваем максимальный шаг времени
 	if frameTime > 0.25 {
@@ -181,7 +172,7 @@ func initializeSystems(systemManager *core.SystemManager, world *core.World, con
 	systemManager.AddSystem(corpseSystem)
 
 	// Генерируем начальную популяцию (упрощенная версия для демонстрации)
-	createInitialPopulation(world, terrain, rand.New(rand.NewSource(config.RandomSeed)))
+	createInitialPopulation(world, terrain, world.GetRNG())
 }
 
 // createSimpleTerrain создает простой terrain для демонстрации

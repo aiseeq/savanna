@@ -3,7 +3,6 @@ package simulation
 import (
 	"testing"
 
-	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 )
 
@@ -55,7 +54,7 @@ func TestCreateAnimal_Rabbit(t *testing.T) {
 		t.Errorf("Expected initial hunger %f, got %f", RabbitInitialSatiation, hunger.Value)
 	}
 
-	// Проверяем размеры (должны быть в пикселях после конвертации)
+	// ИСПРАВЛЕНИЕ: Проверяем размеры (теперь хранятся в тайлах)
 	if !world.HasComponent(entity, core.MaskSize) {
 		t.Fatal("Rabbit should have Size component")
 	}
@@ -63,9 +62,9 @@ func TestCreateAnimal_Rabbit(t *testing.T) {
 	if !ok {
 		t.Fatal("Failed to get size component")
 	}
-	expectedRadius := float32(RabbitBaseRadius * constants.TileSizePixels)
-	if size.Radius != expectedRadius {
-		t.Errorf("Expected radius %f pixels, got %f", expectedRadius, size.Radius)
+	// Size.Radius теперь хранится в тайлах
+	if size.Radius != RabbitBaseRadius {
+		t.Errorf("Expected radius %f tiles, got %f", RabbitBaseRadius, size.Radius)
 	}
 	// Заяц не должен иметь радиус атаки
 	if size.AttackRange != 0 {
@@ -172,7 +171,7 @@ func TestCreateAnimal_Wolf(t *testing.T) {
 		t.Errorf("Expected initial hunger %f, got %f", WolfInitialSatiation, hunger.Value)
 	}
 
-	// Проверяем размеры (должны быть в пикселях после конвертации)
+	// ИСПРАВЛЕНИЕ: Проверяем размеры (теперь хранятся в тайлах)
 	if !world.HasComponent(entity, core.MaskSize) {
 		t.Fatal("Wolf should have Size component")
 	}
@@ -180,13 +179,14 @@ func TestCreateAnimal_Wolf(t *testing.T) {
 	if !ok {
 		t.Fatal("Failed to get size component")
 	}
-	expectedRadius := float32(WolfBaseRadius * constants.TileSizePixels)
-	if size.Radius != expectedRadius {
-		t.Errorf("Expected radius %f pixels, got %f", expectedRadius, size.Radius)
+	// Size.Radius теперь хранится в тайлах (ТИПОБЕЗОПАСНОСТЬ)
+	if size.Radius != WolfBaseRadius {
+		t.Errorf("Expected radius %f tiles, got %f", WolfBaseRadius, size.Radius)
 	}
-	expectedAttackRange := float32(WolfBaseRadius * WolfAttackRangeMultiplier * constants.TileSizePixels)
+	// Size.AttackRange теперь хранится в тайлах (ТИПОБЕЗОПАСНОСТЬ)
+	expectedAttackRange := float32(WolfBaseRadius * WolfAttackRangeMultiplier)
 	if size.AttackRange != expectedAttackRange {
-		t.Errorf("Expected attack range %f pixels, got %f", expectedAttackRange, size.AttackRange)
+		t.Errorf("Expected attack range %f tiles, got %f", expectedAttackRange, size.AttackRange)
 	}
 
 	// Проверяем скорость
@@ -257,7 +257,7 @@ func TestCreateAnimal_AllParametersFromGameBalance(t *testing.T) {
 		t.Fatal("Failed to get rabbit config")
 	}
 
-	// Проверяем, что все ключевые параметры взяты из констант баланса
+	// Проверяем, что все ключевые параметры взяты из констант баланса (ТИПОБЕЗОПАСНОСТЬ)
 	if rabbitConfig.BaseSpeed != RabbitBaseSpeed {
 		t.Errorf("Rabbit speed should be %f from game_balance.go, got %f", RabbitBaseSpeed, rabbitConfig.BaseSpeed)
 	}

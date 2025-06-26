@@ -396,6 +396,7 @@ func isWolfAttackingE2E(world *core.World, wolf core.EntityID) bool {
 		return false
 	}
 
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 	nearestRabbit, foundRabbit := world.FindNearestByType(pos.X, pos.Y, 15.0, core.TypeRabbit)
 	if !foundRabbit {
 		return false

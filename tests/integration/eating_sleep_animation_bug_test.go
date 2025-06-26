@@ -85,6 +85,7 @@ func TestEatingSleepAnimationBug(t *testing.T) {
 		hunger, _ := world.GetSatiation(rabbit)
 		anim, _ := world.GetAnimation(rabbit)
 		isEating := world.HasComponent(rabbit, core.MaskEatingState)
+		// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 		grassAmount := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
 		speed := vel.X*vel.X + vel.Y*vel.Y

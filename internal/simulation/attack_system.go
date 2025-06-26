@@ -3,6 +3,7 @@ package simulation
 import (
 	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
+	"github.com/aiseeq/savanna/internal/physics"
 )
 
 // AttackSystem отвечает ТОЛЬКО за атаки и нанесение урона (устраняет нарушение SRP)
@@ -81,7 +82,7 @@ func (as *AttackSystem) findAttackTarget(world *core.World, attacker core.Entity
 	// ПОИСК ЛЮБЫХ ТРАВОЯДНЫХ (устраняет захардкоженность TypeRabbit)
 	// Ищем ближайшее животное с поведением травоядного
 	var closestTarget core.EntityID
-	var closestDistance float32 = searchRadius*searchRadius + 1 // За пределами радиуса
+	var closestDistanceSquared float32 = searchRadius*searchRadius + 1 // За пределами радиуса
 
 	world.ForEachWith(core.MaskBehavior|core.MaskPosition|core.MaskSize, func(candidate core.EntityID) {
 		if !as.isValidHerbivoreTarget(world, attacker, candidate) {
@@ -89,12 +90,13 @@ func (as *AttackSystem) findAttackTarget(world *core.World, attacker core.Entity
 		}
 
 		candidatePos, _ := world.GetPosition(candidate)
+		// Вычисляем квадрат расстояния
 		dx := attackerPos.X - candidatePos.X
 		dy := attackerPos.Y - candidatePos.Y
-		distance := dx*dx + dy*dy
+		distanceSquared := dx*dx + dy*dy
 
-		if distance < closestDistance {
-			closestDistance = distance
+		if distanceSquared < closestDistanceSquared {
+			closestDistanceSquared = distanceSquared
 			closestTarget = candidate
 		}
 	})
@@ -270,10 +272,9 @@ func (as *AttackSystem) updateAttackStateWithAnimation(
 	if attackState.HasStruck && attackState.Phase == core.AttackPhaseStrike {
 		// Получаем данные анимации для расчета времени
 		const AttackFrameCount = 2 // Анимация атаки имеет 2 кадра (из loader.go)
-		const AttackFPS = 6.0      // Скорость анимации атаки (из loader.go)
 
 		// Время полной анимации = количество кадров / FPS
-		fullAnimationDuration := float32(AttackFrameCount) / AttackFPS
+		fullAnimationDuration := float32(AttackFrameCount) / AttackAnimationFPS
 
 		// Если прошло достаточно времени для завершения полной анимации, завершаем атаку
 		if attackState.TotalTimer >= fullAnimationDuration {
@@ -474,29 +475,26 @@ func (as *AttackSystem) cleanupCooldowns(world *core.World) {
 	}
 }
 
-// isWithinAttackRange проверяет находится ли цель в радиусе атаки
+// isWithinAttackRange проверяет находится ли цель в радиусе атаки (ТИПОБЕЗОПАСНО)
 func (as *AttackSystem) isWithinAttackRange(
 	attackerPos, targetPos core.Position, attackRange, targetRadius float32,
 ) bool {
-	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Позиции в ПИКСЕЛЯХ, размеры в ПИКСЕЛЯХ
-	// Конвертируем размеры из пикселей в тайлы для расчётов
-	attackRangeTiles := constants.SizeAttackRangeToTiles(attackRange)
-	targetRadiusTiles := constants.SizeRadiusToTiles(targetRadius)
+	// ЭЛЕГАНТНАЯ МАТЕМАТИКА: работаем напрямую с позициями
+	attackerTilePos := physics.PixelPosition{X: physics.NewPixels(attackerPos.X), Y: physics.NewPixels(attackerPos.Y)}.ToTiles()
+	targetTilePos := physics.PixelPosition{X: physics.NewPixels(targetPos.X), Y: physics.NewPixels(targetPos.Y)}.ToTiles()
 
-	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Конвертируем позиции из пикселей в тайлы
-	attackerPosTiles := constants.PixelsToTiles(attackerPos.X)
-	attackerPosTilesY := constants.PixelsToTiles(attackerPos.Y)
-	targetPosTiles := constants.PixelsToTiles(targetPos.X)
-	targetPosTilesY := constants.PixelsToTiles(targetPos.Y)
+	// Параметры уже в тайлах
+	attackRangeTiles := physics.NewTiles(attackRange)
+	targetRadiusTiles := physics.NewTiles(targetRadius)
 
 	// Вычисляем квадрат расстояния между центрами (в тайлах)
-	dx := attackerPosTiles - targetPosTiles
-	dy := attackerPosTilesY - targetPosTilesY
-	distanceSquared := dx*dx + dy*dy
+	dx := attackerTilePos.X.Sub(targetTilePos.X)
+	dy := attackerTilePos.Y.Sub(targetTilePos.Y)
+	distanceSquared := dx.Float32()*dx.Float32() + dy.Float32()*dy.Float32()
 
 	// Максимальная дистанция атаки: радиус атаки + радиус цели (в тайлах)
-	maxAttackDistance := attackRangeTiles + targetRadiusTiles
+	maxAttackDistance := attackRangeTiles.Add(targetRadiusTiles)
 
 	// Сравниваем квадраты для избежания sqrt
-	return distanceSquared <= maxAttackDistance*maxAttackDistance
+	return distanceSquared <= maxAttackDistance.Float32()*maxAttackDistance.Float32()
 }

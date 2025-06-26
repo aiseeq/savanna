@@ -17,29 +17,21 @@ func createEntityFromConfig(world *core.World, config core.AnimalConfig, x, y fl
 	entity := world.CreateEntity()
 
 	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем Size ПЕРЕД Position
-	// чтобы updateSpatialEntity мог получить правильный радиус
+	// ИСПРАВЛЕНИЕ ЕДИНИЦ ИЗМЕРЕНИЯ: теперь все ECS компоненты в тайлах
 	world.AddSize(entity, core.Size{
-		Radius:      constants.TilesToPixels(config.CollisionRadius),
-		AttackRange: constants.TilesToPixels(config.AttackRange),
+		Radius:      config.CollisionRadius,
+		AttackRange: config.AttackRange,
 	})
 
-	// Добавляем базовые компоненты
-	world.AddPosition(entity, core.Position{X: x, Y: y})
-	world.AddVelocity(entity, core.Velocity{X: 0, Y: 0})
+	// Добавляем базовые компоненты (ЭЛЕГАНТНАЯ МАТЕМАТИКА)
+	world.AddPosition(entity, core.NewPosition(x, y))
+	world.AddVelocity(entity, core.NewVelocity(0, 0))
 	world.AddHealth(entity, core.Health{Current: config.MaxHealth, Max: config.MaxHealth})
 
-	// Используем константы начального голода вместо магических чисел
+	// РЕФАКТОРИНГ OCP: Используем Factory Pattern вместо switch для начального голода
 	animalType := getAnimalTypeFromConfig(config)
-	var initialHunger float32
-	switch animalType {
-	case core.TypeRabbit:
-		initialHunger = RabbitInitialSatiation
-	case core.TypeWolf:
-		initialHunger = WolfInitialSatiation
-	default:
-		initialHunger = DefaultInitialSatiation
-	}
-	world.AddSatiation(entity, core.Satiation{Value: initialHunger})
+	initialSatiation := GetInitialSatiationForAnimal(animalType)
+	world.AddSatiation(entity, core.Satiation{Value: initialSatiation})
 
 	// Добавляем AnimalConfig компонент
 	world.AddAnimalConfig(entity, config)

@@ -65,6 +65,7 @@ func TestSatiationDisplayE2E(t *testing.T) {
 		}
 
 		// Проверяем что позиция смещена вверх (над животным)
+		// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32 для сравнения
 		expectedDisplayY := expectedPos.Y - 30 // Текст должен быть над животным
 		if info.X != expectedPos.X || info.Y != expectedDisplayY {
 			t.Errorf("❌ Неверная позиция для животного %d: ожидали (%.1f, %.1f), получили (%.1f, %.1f)",
@@ -136,6 +137,7 @@ func (hds *SatiationDisplaySystem) GetDisplayInfo(world *core.World) []Satiation
 		satiation, hasSatiation := world.GetSatiation(entity)
 
 		if hasPos && hasSatiation {
+			// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 			info := SatiationDisplayInfo{
 				EntityID:      entity,
 				X:             pos.X,

@@ -68,7 +68,7 @@ func (ssms *SatiationSpeedModifierSystem) updateSpeedBasedOnSatiation(
 	}
 	// Здоровые животные (100% хитов) не получают штрафа
 
-	// Обновляем текущую скорость
+	// Обновляем текущую скорость (ТИПОБЕЗОПАСНО)
 	speed.Current = speed.Base * speedMultiplier
 	world.SetSpeed(entity, speed)
 }

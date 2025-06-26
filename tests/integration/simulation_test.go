@@ -6,6 +6,7 @@ import (
 
 	"github.com/aiseeq/savanna/config"
 	"github.com/aiseeq/savanna/internal/adapters"
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/simulation"
@@ -95,6 +96,7 @@ func TestBasicSimulation(t *testing.T) {
 
 	// Проверяем что заяц сдвинулся более чем на 0.5 пикселя от начальной позиции
 	// (уменьшили порог, так как за полсекунды движение может быть меньше)
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32 для calculateDistance
 	distanceMoved := calculateDistance(pos1.X, pos1.Y, initialPos.X, initialPos.Y)
 	if distanceMoved < 0.5 {
 		t.Errorf("Rabbit1 should have moved more than 0.5 pixels from initial position. Initial: (%.1f,%.1f), Final: (%.1f,%.1f), Distance: %.2f",
@@ -331,20 +333,22 @@ func TestBoundaryConstraints(t *testing.T) {
 	pos, _ := world.GetPosition(rabbit)
 	size, _ := world.GetSize(rabbit)
 
-	if pos.X-size.Radius < 0 {
+	// Проверяем границы
+	radiusPixels := constants.TilesToPixels(size.Radius)
+	if pos.X-radiusPixels < 0 {
 		t.Errorf("Rabbit went outside left boundary: pos.X=%f, radius=%f", pos.X, size.Radius)
 	}
 
-	if pos.Y-size.Radius < 0 {
+	if pos.Y-radiusPixels < 0 {
 		t.Errorf("Rabbit went outside top boundary: pos.Y=%f, radius=%f", pos.Y, size.Radius)
 	}
 
-	if pos.X+size.Radius > TestWorldSize {
+	if pos.X+radiusPixels > TestWorldSize {
 		t.Errorf("Rabbit went outside right boundary: pos.X=%f, radius=%f, world=%f",
 			pos.X, size.Radius, TestWorldSize)
 	}
 
-	if pos.Y+size.Radius > TestWorldSize {
+	if pos.Y+radiusPixels > TestWorldSize {
 		t.Errorf("Rabbit went outside bottom boundary: pos.Y=%f, radius=%f, world=%f",
 			pos.Y, size.Radius, TestWorldSize)
 	}

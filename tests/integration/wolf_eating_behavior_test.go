@@ -197,6 +197,7 @@ func TestWolfEatingBehaviorImproved(t *testing.T) {
 
 	// ТЕСТ 2: Проверяем что волк не "телепортировался" к трупу
 	finalWolfPos, _ := world.GetPosition(wolf)
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32 для вычислений
 	distanceTraveled := ((finalWolfPos.X-wolfStartX)*(finalWolfPos.X-wolfStartX) +
 		(finalWolfPos.Y-wolfStartY)*(finalWolfPos.Y-wolfStartY))
 

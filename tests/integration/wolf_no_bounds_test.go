@@ -19,8 +19,8 @@ func (sms *SimpleMovementSystem) Update(world *core.World, deltaTime float32) {
 		pos, _ := world.GetPosition(entity)
 		vel, _ := world.GetVelocity(entity)
 
-		pos.X += vel.X * deltaTime
-		pos.Y += vel.Y * deltaTime
+		pos.X += vel.X * deltaTime * 32.0
+		pos.Y += vel.Y * deltaTime * 32.0
 
 		world.SetPosition(entity, pos)
 	})
@@ -54,6 +54,7 @@ func TestWolfWithoutBoundaryInterference(t *testing.T) {
 
 	for i := 0; i < 120; i++ { // 2 секунды
 		// Фиксируем зайца на месте перед обновлением
+		// Фиксируем зайца на месте
 		world.SetPosition(rabbit, core.Position{X: 800, Y: 800})
 		world.SetVelocity(rabbit, core.Velocity{X: 0, Y: 0})
 		world.SetSpeed(rabbit, core.Speed{Base: 0, Current: 0})
@@ -68,16 +69,19 @@ func TestWolfWithoutBoundaryInterference(t *testing.T) {
 		rabbitPos, _ := world.GetPosition(rabbit)
 		wolfVel, _ := world.GetVelocity(wolf)
 
+		// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32 для вычислений
 		dx := wolfPos.X - rabbitPos.X
 		dy := wolfPos.Y - rabbitPos.Y
 		distance := math.Sqrt(float64(dx*dx + dy*dy))
 
 		if i%20 == 0 {
+			// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics типы для логирования
 			t.Logf("%.1fс: волк (%.1f,%.1f) vel(%.1f,%.1f) | дистанция %.1f",
 				float32(i)/60.0, wolfPos.X, wolfPos.Y, wolfVel.X, wolfVel.Y, distance)
 		}
 
 		// Проверяем перепрыгивание
+		// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32 для сравнения
 		if wolfPos.X > 810 && i > 30 { // Если волк далеко за зайцем
 			t.Errorf("ПЕРЕПРЫГИВАНИЕ: Волк (%.1f,%.1f) ушел далеко за неподвижного зайца (800,800) на тике %d",
 				wolfPos.X, wolfPos.Y, i)
@@ -86,6 +90,7 @@ func TestWolfWithoutBoundaryInterference(t *testing.T) {
 		}
 
 		// Если волк остановился рядом с зайцем - успех
+		// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.TilesPerSecond в float32 для вычислений
 		if distance < 2.0 && math.Abs(float64(wolfVel.X)) < 1.0 && math.Abs(float64(wolfVel.Y)) < 1.0 {
 			t.Logf("УСПЕХ: Волк остановился рядом с зайцем на дистанции %.1f", distance)
 			return

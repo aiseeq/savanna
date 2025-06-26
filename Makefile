@@ -43,14 +43,16 @@ run-visual-test: build ## Запустить визуальный тестовы
 
 test: ## Все тесты с виртуальным дисплеем
 	@echo "🧪 Запуск всех тестов с виртуальным дисплеем..."
-	xvfb-run -a go test ./...
+	@xvfb-run -a go test ./... || (echo "❌ Тесты провалились! Exit code: $$?"; exit 1)
+	@echo "✅ Все тесты прошли успешно!"
 
 test-advanced: ## Все продвинутые тесты (property, contract, behavioral, chaos)
 	@echo "🧪 Запуск продвинутых тестов с виртуальным дисплеем..."
-	xvfb-run -a go test ./tests/property/... -v
-	xvfb-run -a go test ./tests/contract/... -v
-	xvfb-run -a go test ./tests/behavioral/... -v
-	xvfb-run -a go test ./tests/chaos/... -v
+	@xvfb-run -a go test ./tests/property/... -v || (echo "❌ Property тесты провалились!"; exit 1)
+	@xvfb-run -a go test ./tests/contract/... -v || (echo "❌ Contract тесты провалились!"; exit 1)
+	@xvfb-run -a go test ./tests/behavioral/... -v || (echo "❌ Behavioral тесты провалились!"; exit 1)
+	@xvfb-run -a go test ./tests/chaos/... -v || (echo "❌ Chaos тесты провалились!"; exit 1)
+	@echo "✅ Все продвинутые тесты прошли успешно!"
 
 
 test-gui: ## E2E тесты с виртуальным дисплеем
@@ -61,19 +63,24 @@ test-all: test test-advanced test-gui ## Все тесты включая GUI
 
 test-unit: ## Только unit тесты (без виртуального дисплея)
 	@echo "🧪 Запуск unit тестов..."
-	go test ./tests/unit/... -v
+	@go test ./tests/unit/... -v || (echo "❌ Unit тесты провалились! Exit code: $$?"; exit 1)
+	@echo "✅ Unit тесты прошли успешно!"
 
 test-property: ## Property-based тесты
-	go test ./tests/property/... -v
+	@go test ./tests/property/... -v || (echo "❌ Property тесты провалились! Exit code: $$?"; exit 1)
+	@echo "✅ Property тесты прошли успешно!"
 
 test-contract: ## Contract тесты
-	go test ./tests/contract/... -v
+	@go test ./tests/contract/... -v || (echo "❌ Contract тесты провалились! Exit code: $$?"; exit 1)
+	@echo "✅ Contract тесты прошли успешно!"
 
 test-behavioral: ## Behavioral тесты (Given-When-Then)
-	go test ./tests/behavioral/... -v
+	@go test ./tests/behavioral/... -v || (echo "❌ Behavioral тесты провалились! Exit code: $$?"; exit 1)
+	@echo "✅ Behavioral тесты прошли успешно!"
 
 test-chaos: ## Chaos Engineering тесты
-	go test ./tests/chaos/... -v
+	@go test ./tests/chaos/... -v || (echo "❌ Chaos тесты провалились! Exit code: $$?"; exit 1)
+	@echo "✅ Chaos тесты прошли успешно!"
 
 test-mutation: ## Mutation testing (проверка качества тестов)
 	@echo "🧬 Запуск Mutation Testing..."

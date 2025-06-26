@@ -89,6 +89,7 @@ func TestWolfAttackBehavior(t *testing.T) {
 		t.Logf("Финальная позиция волка: (%.1f, %.1f)", wolfPos.X, wolfPos.Y)
 
 		// Проверяем что волк сдвинулся в сторону зайца
+		// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 		if wolfPos.X <= wolfX {
 			t.Errorf("❌ Волк не сдвинулся вправо к зайцу: начальная %.1f, финальная %.1f", wolfX, wolfPos.X)
 		}
@@ -101,6 +102,7 @@ func TestWolfAttackBehavior(t *testing.T) {
 		t.Logf("Финальная позиция зайца: (%.1f, %.1f)", rabbitPos.X, rabbitPos.Y)
 
 		// Если заяц жив, он должен был убежать от волка (сдвинуться вправо)
+		// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 		if rabbitPos.X <= rabbitX {
 			t.Errorf("❌ Заяц не убежал от волка: начальная %.1f, финальная %.1f", rabbitX, rabbitPos.X)
 		}

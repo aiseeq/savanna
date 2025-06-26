@@ -24,7 +24,7 @@ func TestComponentPosition(t *testing.T) {
 	}
 
 	// Добавляем компонент
-	pos := core.Position{X: 10, Y: 20} //nolint:gomnd // Тестовые координаты
+	pos := core.NewPosition(10, 20) //nolint:gomnd // Тестовые координаты
 	if !world.AddPosition(entity, pos) {
 		t.Error("AddPosition should succeed")
 	}
@@ -44,7 +44,7 @@ func TestComponentPosition(t *testing.T) {
 	}
 
 	// Изменяем позицию
-	newPos := core.Position{X: 30, Y: 40} //nolint:gomnd // Тестовые координаты
+	newPos := core.NewPosition(30, 40) //nolint:gomnd // Тестовые координаты
 	if !world.SetPosition(entity, newPos) {
 		t.Error("SetPosition should succeed")
 	}
@@ -72,8 +72,8 @@ func TestComponentMultiple(t *testing.T) {
 	entity := world.CreateEntity()
 
 	// Добавляем несколько компонентов
-	world.AddPosition(entity, core.Position{X: 5, Y: 5})         //nolint:gomnd // Тестовые значения
-	world.AddVelocity(entity, core.Velocity{X: 1, Y: 1})         //nolint:gomnd // Тестовые значения
+	world.AddPosition(entity, core.NewPosition(5, 5))            //nolint:gomnd // Тестовые значения
+	world.AddVelocity(entity, core.NewVelocity(1, 1))            //nolint:gomnd // Тестовые значения
 	world.AddHealth(entity, core.Health{Current: 100, Max: 100}) //nolint:gomnd // Тестовые значения
 
 	// Проверяем наличие компонентов
@@ -98,6 +98,7 @@ func TestComponentMultiple(t *testing.T) {
 	expectedVelX := float32(1)
 	expectedHealth := int16(100)
 
+	// Проверяем значения компонентов
 	if pos.X != expectedX || vel.X != expectedVelX || health.Current != expectedHealth {
 		t.Error("Component values should match what was set")
 	}

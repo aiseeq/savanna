@@ -27,7 +27,7 @@ func TestTileBasedSizes(t *testing.T) {
 
 	// Заяц должен иметь радиус 0.5 тайла (конвертируем из пикселей)
 	expectedRabbitRadius := float32(0.5)
-	actualRabbitRadiusInTiles := constants.PixelsToTiles(rabbitSize.Radius)
+	actualRabbitRadiusInTiles := rabbitSize.Radius
 	if actualRabbitRadiusInTiles != expectedRabbitRadius {
 		t.Errorf("Радиус зайца: ожидался %.2f тайла, получен %.2f",
 			expectedRabbitRadius, actualRabbitRadiusInTiles)
@@ -41,7 +41,7 @@ func TestTileBasedSizes(t *testing.T) {
 
 	// Волк должен иметь радиус 0.75 тайла (конвертируем из пикселей)
 	expectedWolfRadius := float32(0.75)
-	actualWolfRadiusInTiles := constants.PixelsToTiles(wolfSize.Radius)
+	actualWolfRadiusInTiles := wolfSize.Radius
 	if actualWolfRadiusInTiles != expectedWolfRadius {
 		t.Errorf("Радиус волка: ожидался %.2f тайла, получен %.2f",
 			expectedWolfRadius, actualWolfRadiusInTiles)
@@ -106,9 +106,9 @@ func TestTileBasedSizes(t *testing.T) {
 
 	t.Logf("✅ Все размеры корректно переведены в тайлы:")
 	t.Logf("   Заяц: радиус %.2f тайла, видение %.2f тайла, скорость %.2f тайла/сек",
-		constants.PixelsToTiles(rabbitSize.Radius), rabbitBehavior.VisionRange, rabbitSpeed.Base)
+		rabbitSize.Radius, rabbitBehavior.VisionRange, rabbitSpeed.Base)
 	t.Logf("   Волк: радиус %.2f тайла, видение %.2f тайла, скорость %.2f тайла/сек",
-		constants.PixelsToTiles(wolfSize.Radius), wolfBehavior.VisionRange, wolfSpeed.Base)
+		wolfSize.Radius, wolfBehavior.VisionRange, wolfSpeed.Base)
 	t.Logf("   Атака волка: %.2f тайла", constants.PixelsToTiles(wolfSize.AttackRange))
 }
 

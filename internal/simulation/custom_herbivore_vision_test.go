@@ -40,10 +40,13 @@ func TestCustomHerbivoreVision_LargeVisionRange(t *testing.T) {
 	standardConfig, _ := world.GetAnimalConfig(standardRabbit)
 	standardVisionRange := standardConfig.VisionRange
 
+	// ИСПРАВЛЕНИЕ: Делаем стандартного зайца голодным (ниже порога 60%)
+	world.SetSatiation(standardRabbit, core.Satiation{Value: 50.0}) // Ниже порога для поиска травы
+
 	// Создаем кастомное травоядное с увеличенным в 2 раза радиусом зрения
 	customHerbivore := world.CreateEntity()
 
-	// Устанавливаем позицию (в пикселях)
+	// Устанавливаем позицию
 	world.AddPosition(customHerbivore, core.Position{X: centerX, Y: centerY})
 
 	// Устанавливаем тип животного
@@ -79,7 +82,7 @@ func TestCustomHerbivoreVision_LargeVisionRange(t *testing.T) {
 		SearchSpeed:        customConfig.SearchSpeed,
 		WanderingSpeed:     customConfig.WanderingSpeed,
 		ContentSpeed:       customConfig.ContentSpeed,
-		VisionRange:        customConfig.VisionRange, // Важно: увеличенный радиус
+		VisionRange:        customConfig.VisionRange, // Важно: увеличенный радиус (ТИПОБЕЗОПАСНОСТЬ)
 		MinDirectionTime:   customConfig.MinDirectionTime,
 		MaxDirectionTime:   customConfig.MaxDirectionTime,
 	})
@@ -108,7 +111,7 @@ func TestCustomHerbivoreVision_LargeVisionRange(t *testing.T) {
 		t.Errorf("Custom herbivore with large vision range (%.2f) should find grass and start eating",
 			customConfig.VisionRange)
 
-		// Дополнительная диагностика
+		// Дополнительная диагностика (ТИПОБЕЗОПАСНОСТЬ)
 		pos, _ := world.GetPosition(customHerbivore)
 		hunger, _ := world.GetSatiation(customHerbivore)
 		t.Logf("Custom herbivore position: (%.2f, %.2f)", pos.X, pos.Y)
@@ -216,7 +219,7 @@ func TestCustomHerbivoreVision_VisionRangeValidation(t *testing.T) {
 				SearchSpeed:        customConfig.SearchSpeed,
 				WanderingSpeed:     customConfig.WanderingSpeed,
 				ContentSpeed:       customConfig.ContentSpeed,
-				VisionRange:        customConfig.VisionRange,
+				VisionRange:        customConfig.VisionRange, // ТИПОБЕЗОПАСНОСТЬ
 				MinDirectionTime:   customConfig.MinDirectionTime,
 				MaxDirectionTime:   customConfig.MaxDirectionTime,
 			})

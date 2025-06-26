@@ -94,11 +94,14 @@ func TestAttackStateAutoCreation(t *testing.T) {
 
 			wolfSize, _ := world.GetSize(wolf)
 			rabbitSize, _ := world.GetSize(rabbit)
-			maxAttackDistance := wolfSize.AttackRange + rabbitSize.Radius
-			t.Logf("  Максимальная дальность атаки: %.1f пикселей", maxAttackDistance)
+			maxAttackDistanceTiles := wolfSize.AttackRange + rabbitSize.Radius // в тайлах
+			maxAttackDistancePixels := maxAttackDistanceTiles * 32             // конвертируем в пиксели (1 тайл = 32 пикселя)
+			t.Logf("  Максимальная дальность атаки: %.1f тайла = %.1f пикселей", maxAttackDistanceTiles, maxAttackDistancePixels)
 
-			if distance > maxAttackDistance*maxAttackDistance {
-				t.Logf("  ПРИЧИНА: Заяц слишком далеко для атаки")
+			// Проверяем расстояние для атаки
+			maxDistanceSquared := maxAttackDistancePixels * maxAttackDistancePixels
+			if distance > maxDistanceSquared {
+				t.Logf("  ПРИЧИНА: Заяц слишком далеко для атаки (%.1f > %.1f)", distance, maxDistanceSquared)
 			}
 		}
 	}

@@ -28,7 +28,7 @@ func TestMinimalCore(t *testing.T) {
 	t.Logf("✅ Entity created: %d", entity)
 
 	// Test position component
-	pos := core.Position{X: 10.5, Y: 20.3}
+	pos := core.NewPosition(10.5, 20.3)
 	world.AddPosition(entity, pos)
 
 	retrievedPos, ok := world.GetPosition(entity)
@@ -41,7 +41,7 @@ func TestMinimalCore(t *testing.T) {
 	}
 
 	// Test velocity component
-	vel := core.Velocity{X: 5.0, Y: -3.0}
+	vel := core.NewVelocity(5.0, -3.0)
 	world.AddVelocity(entity, vel)
 
 	retrievedVel, ok := world.GetVelocity(entity)

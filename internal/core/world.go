@@ -3,7 +3,6 @@ package core
 import (
 	"math/rand"
 
-	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/physics"
 )
 
@@ -129,12 +128,12 @@ func (w *World) updateSpatialEntity(entity EntityID, x, y float32) {
 		radius = size.Radius
 	}
 
-	// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Конвертируем координаты в тайлы для spatial grid
+	// ИСПРАВЛЕНИЕ ЕДИНИЦ ИЗМЕРЕНИЯ: координаты уже в тайлах
 	posInTiles := physics.Vec2{
-		X: constants.PixelsToTiles(x),
-		Y: constants.PixelsToTiles(y),
+		X: x,
+		Y: y,
 	}
-	radiusInTiles := constants.SizeRadiusToTiles(radius)
+	radiusInTiles := radius
 
 	w.worldState.GetSpatialProvider().UpdateEntity(uint32(entity), posInTiles, radiusInTiles)
 }
@@ -147,8 +146,14 @@ func (w *World) removeSpatialEntity(entity EntityID) {
 
 // querySpatialRadius возвращает сущности в радиусе
 // Скрывает сложность доступа к SpatialProvider через WorldState (LoD)
+// ИСПРАВЛЕНИЕ ЕДИНИЦ ИЗМЕРЕНИЯ: координаты уже в тайлах
 func (w *World) querySpatialRadius(x, y, radius float32) []EntityID {
-	entries := w.worldState.GetSpatialProvider().QueryRadius(physics.Vec2{X: x, Y: y}, radius)
+	// Spatial система работает в тайлах, конвертации не нужны
+	xInTiles := x
+	yInTiles := y
+	radiusInTiles := radius
+
+	entries := w.worldState.GetSpatialProvider().QueryRadius(physics.Vec2{X: xInTiles, Y: yInTiles}, radiusInTiles)
 
 	// Конвертируем SpatialEntry в EntityID
 	result := make([]EntityID, len(entries))

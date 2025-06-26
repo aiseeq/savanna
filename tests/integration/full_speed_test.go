@@ -30,6 +30,7 @@ func TestFullSystemSpeedBehavior(t *testing.T) {
 	fmt.Printf("Current speed: %.3f тайлов/сек\n", speed.Current)
 	fmt.Printf("Hunger: %.1f%% (threshold: %.1f%%)\n", hunger.Value, config.SatiationThreshold)
 	fmt.Printf("Search speed multiplier: %.1f\n", config.SearchSpeed)
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.TilesPerSecond в float32 для операций
 	fmt.Printf("Expected search speed: %.3f тайлов/сек\n", config.BaseSpeed*config.SearchSpeed)
 	fmt.Printf("Expected search speed in pixels: %.1f пикс/сек\n", config.BaseSpeed*config.SearchSpeed*32)
 
@@ -128,6 +129,7 @@ func TestWolfSpeedComparison(t *testing.T) {
 	fmt.Printf("Current speed: %.3f тайлов/сек\n", speed.Current)
 	fmt.Printf("Hunger: %.1f%% (threshold: %.1f%%)\n", hunger.Value, config.SatiationThreshold)
 	fmt.Printf("Wandering speed multiplier: %.1f\n", config.WanderingSpeed)
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.TilesPerSecond в float32 для операций
 	fmt.Printf("Expected wandering speed: %.3f тайлов/сек\n", config.BaseSpeed*config.WanderingSpeed)
 	fmt.Printf("Expected wandering speed in pixels: %.1f пикс/сек\n", config.BaseSpeed*config.WanderingSpeed*32)
 

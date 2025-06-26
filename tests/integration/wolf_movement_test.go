@@ -48,8 +48,12 @@ func TestWolfMovement(t *testing.T) {
 
 			// Проверяем есть ли заяц в поле зрения
 			rabbitPos, _ := world.GetPosition(rabbit)
-			distance := float32(math.Sqrt(float64((pos.X-rabbitPos.X)*(pos.X-rabbitPos.X) + (pos.Y-rabbitPos.Y)*(pos.Y-rabbitPos.Y))))
+			// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
+			dx := pos.X - rabbitPos.X
+			dy := pos.Y - rabbitPos.Y
+			distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
 
+			// ТИПОБЕЗОПАСНОСТЬ: конвертируем типы для логирования
 			t.Logf("Кадр %d: Волк pos=(%.1f,%.1f) vel=(%.3f,%.3f) hunger=%.1f speed=%.3f baseSpeed=%.3f",
 				frame, pos.X, pos.Y, vel.X, vel.Y, hunger.Value, speed.Current, speed.Base)
 			t.Logf("  Behavior: SearchSpeed=%.3f SatiationThreshold=%.1f VisionRange=%.1f",
@@ -64,10 +68,12 @@ func TestWolfMovement(t *testing.T) {
 	finalPos, _ := world.GetPosition(wolf)
 	finalVel, _ := world.GetVelocity(wolf)
 
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем типы для логирования
 	t.Logf("Финальная позиция волка: (%.1f, %.1f)", finalPos.X, finalPos.Y)
 	t.Logf("Финальная скорость волка: (%.1f, %.1f)", finalVel.X, finalVel.Y)
 
 	// Основной тест: волк должен двигаться (даже медленно)
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 	deltaX := finalPos.X - initialPos.X
 	deltaY := finalPos.Y - initialPos.Y
 	moved := (deltaX*deltaX + deltaY*deltaY) > 1.0 // Переместился больше чем на 1 пиксель
@@ -80,6 +86,7 @@ func TestWolfMovement(t *testing.T) {
 	}
 
 	// Дополнительная проверка: волк должен иметь ненулевую скорость
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.TilesPerSecond в float32
 	hasVelocity := (finalVel.X*finalVel.X + finalVel.Y*finalVel.Y) > 0.1
 	if !hasVelocity {
 		t.Error("ПРОБЛЕМА: Волк имеет нулевую скорость!")

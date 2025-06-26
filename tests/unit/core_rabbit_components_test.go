@@ -40,12 +40,12 @@ func TestCoreRabbitComponents(t *testing.T) {
 	}
 
 	// Add all components (use Add* methods like in real code)
-	if !world.AddPosition(rabbit, core.Position{X: 16, Y: 16}) {
+	if !world.AddPosition(rabbit, core.NewPosition(16, 16)) {
 		t.Fatalf("Failed to add position component for entity %d", rabbit)
 	}
 
 	// Try Add* methods for other components based on CreateAnimal pattern
-	world.AddVelocity(rabbit, core.Velocity{X: 0, Y: 0})
+	world.AddVelocity(rabbit, core.NewVelocity(0, 0))
 	world.AddSatiation(rabbit, core.Satiation{Value: 80.0}) // Make it hungry enough (< 90% threshold)
 	world.AddAnimalType(rabbit, core.TypeRabbit)
 	world.AddHealth(rabbit, core.Health{Current: 100, Max: 100})
@@ -54,6 +54,7 @@ func TestCoreRabbitComponents(t *testing.T) {
 	t.Logf("Initial state:")
 	pos, _ := world.GetPosition(rabbit)
 	hunger, _ := world.GetSatiation(rabbit)
+	// Получаем траву на позиции зайца
 	grassAmount := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 	t.Logf("  Rabbit position: (%.1f, %.1f)", pos.X, pos.Y)
 	t.Logf("  Rabbit hunger: %.1f%%", hunger.Value)
@@ -126,11 +127,14 @@ func TestCoreRabbitComponents(t *testing.T) {
 	}
 
 	// Test 4: Vegetation system grass consumption
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 	initialGrass := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
 	// Manually consume some grass (simulating eating)
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 	vegetationSystem.ConsumeGrassAt(pos.X, pos.Y, 5.0)
 
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 	finalGrass := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 	if finalGrass >= initialGrass {
 		t.Errorf("❌ Vegetation system grass consumption failed")

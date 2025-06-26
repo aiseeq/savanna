@@ -34,6 +34,7 @@ func TestDebugCollisionDetection(t *testing.T) {
 
 	// Тестируем поиск кандидатов
 	searchRadiusPixels := size1.Radius * 1.1 // SearchRadiusMultiplier
+	// Конвертируем радиус поиска в тайлы
 	searchRadiusTiles := constants.SizeRadiusToTiles(searchRadiusPixels)
 	posInTiles := physics.Vec2{
 		X: constants.PixelsToTiles(pos1.X),

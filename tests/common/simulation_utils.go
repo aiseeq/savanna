@@ -204,6 +204,7 @@ func GetEntityDistance(world *core.World, entity1, entity2 core.EntityID) float3
 		return -1 // Ошибка
 	}
 
+	// ЭЛЕГАНТНАЯ МАТЕМАТИКА: получаем координаты через новые методы
 	dx := pos1.X - pos2.X
 	dy := pos1.Y - pos2.Y
 	return dx*dx + dy*dy // Квадрат расстояния для быстрого сравнения
@@ -242,7 +243,7 @@ func LogEntityState(t *testing.T, world *core.World, entity core.EntityID, entit
 		return
 	}
 
-	// Позиция
+	// Позиция (ТИПОБЕЗОПАСНОСТЬ)
 	if pos, has := world.GetPosition(entity); has {
 		t.Logf("%s %d: позиция (%.1f, %.1f)", entityName, entity, pos.X, pos.Y)
 	}

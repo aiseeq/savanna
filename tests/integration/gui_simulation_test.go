@@ -73,6 +73,7 @@ func TestGUILikeSimulation(t *testing.T) {
 				hunger, _ := world.GetSatiation(rabbit)
 
 				// Проверяем выход за границы
+				// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32 для сравнения
 				if pos.X < 0 || pos.X > config.WorldWidth || pos.Y < 0 || pos.Y > config.WorldHeight {
 					boundaryViolations++
 					t.Errorf("ГРАНИЦА: Заяц %d вышел за границы! Позиция: (%.1f, %.1f)",

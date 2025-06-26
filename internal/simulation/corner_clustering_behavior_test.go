@@ -83,6 +83,7 @@ func TestCornerClusteringBehavior_RabbitEscapesFromCorner(t *testing.T) {
 	cornerZoneX := worldWidthPixels * cornerThreshold  // 10% от ширины в пикселях
 	cornerZoneY := worldHeightPixels * cornerThreshold // 10% от высоты в пикселях
 
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32 для сравнений
 	inLeftCorner := finalPos.X < cornerZoneX
 	inRightCorner := finalPos.X > worldWidthPixels-cornerZoneX
 	inTopCorner := finalPos.Y < cornerZoneY
@@ -97,15 +98,16 @@ func TestCornerClusteringBehavior_RabbitEscapesFromCorner(t *testing.T) {
 			cornerZoneX, worldWidthPixels-cornerZoneX, cornerZoneY, worldHeightPixels-cornerZoneY)
 	}
 
-	// Дополнительная проверка: заяц должен двигаться от начальной позиции
-	distanceMoved := math.Sqrt(float64((finalPos.X-initialPos.X)*(finalPos.X-initialPos.X) +
-		(finalPos.Y-initialPos.Y)*(finalPos.Y-initialPos.Y)))
+	// Дополнительная проверка: заяц должен двигаться от начальной позиции (ТИПОБЕЗОПАСНОСТЬ)
+	dx := finalPos.X - initialPos.X
+	dy := finalPos.Y - initialPos.Y
+	distanceMoved := math.Sqrt(float64(dx*dx + dy*dy))
 
 	if distanceMoved < 2.0 {
 		t.Errorf("Rabbit moved only %.2f units, expected significant movement", distanceMoved)
 	}
 
-	// Проверяем что заяц не прижался к границе
+	// Проверяем что заяц не прижался к границе (ТИПОБЕЗОПАСНОСТЬ)
 	const edgeThresholdTiles = 1.0 // 1 тайл от края
 	edgeThresholdPixels := constants.TilesToPixels(edgeThresholdTiles)
 	nearLeftEdge := finalPos.X < edgeThresholdPixels
@@ -276,6 +278,7 @@ func TestCornerClusteringBehavior_MultipleRabbitsAvoidCorners(t *testing.T) {
 	for i, rabbit := range rabbits {
 		finalPos, _ := world.GetPosition(rabbit)
 
+		// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32 для сравнений
 		inLeftCorner := finalPos.X < cornerZoneX
 		inRightCorner := finalPos.X > worldWidth-cornerZoneX
 		inTopCorner := finalPos.Y < cornerZoneY

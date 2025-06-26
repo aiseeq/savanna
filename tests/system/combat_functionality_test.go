@@ -130,6 +130,7 @@ func logWolfPositions(t *testing.T, world *core.World, wolves, rabbits []core.En
 		minDistanceToRabbit := float32(999999) //nolint:gomnd // Большое число для поиска минимума
 		for _, rabbit := range rabbits {
 			rabbitPos, _ := world.GetPosition(rabbit)
+			// ТИПОБЕЗОПАСНОСТЬ: позиции уже float32
 			dx := wolfPos.X - rabbitPos.X
 			dy := wolfPos.Y - rabbitPos.Y
 			distance := dx*dx + dy*dy
@@ -380,6 +381,7 @@ func isWolfAttackingForTest(world *core.World, wolf core.EntityID) bool {
 		return false
 	}
 
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 	nearestRabbit, foundRabbit := world.FindNearestByType(pos.X, pos.Y, 15.0, core.TypeRabbit)
 	if !foundRabbit {
 		return false
@@ -394,7 +396,10 @@ func isWolfAttackingForTest(world *core.World, wolf core.EntityID) bool {
 		return false
 	}
 
-	distance := (pos.X-rabbitPos.X)*(pos.X-rabbitPos.X) + (pos.Y-rabbitPos.Y)*(pos.Y-rabbitPos.Y)
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32 для вычислений
+	dx := pos.X - rabbitPos.X
+	dy := pos.Y - rabbitPos.Y
+	distance := dx*dx + dy*dy
 	return distance <= 13.0*13.0 // Используем текущий радиус
 }
 
