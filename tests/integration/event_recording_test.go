@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/aiseeq/savanna/internal/gamestate"
+	testing_mocks "github.com/aiseeq/savanna/tests/mocks"
 )
 
 // TestScrollBehaviorRecording тестирует скролл через запись-воспроизведение
@@ -60,7 +61,7 @@ func TestScrollBehaviorRecording(t *testing.T) {
 	}
 
 	// Воспроизводим скрипт
-	mockProvider := gamestate.NewMockInputProvider(scrollScript)
+	mockProvider := testing_mocks.NewMockInputProvider(scrollScript)
 
 	for i := 0; i < len(scrollScript); i++ {
 		events := mockProvider.PollEvents()
@@ -180,7 +181,7 @@ func TestComplexScrollScenario(t *testing.T) {
 	}
 
 	gs := gamestate.NewGameState(config)
-	mockProvider := gamestate.NewMockInputProvider(scenario)
+	mockProvider := testing_mocks.NewMockInputProvider(scenario)
 
 	// Воспроизводим сценарий
 	for i := 0; i < len(scenario); i++ {

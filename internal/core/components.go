@@ -1,5 +1,7 @@
 package core
 
+import "math"
+
 // Базовые компоненты для симуляции экосистемы
 
 // Position позиция сущности в мире
@@ -299,3 +301,92 @@ var (
 		MaskAnimalType, MaskSize, MaskSpeed, MaskAnimalConfig,
 	)
 )
+
+// === КОНСТРУКТОРЫ ===
+
+// NewPosition создает новую позицию
+func NewPosition(x, y float32) Position {
+	return Position{X: x, Y: y}
+}
+
+// NewVelocity создает новую скорость
+func NewVelocity(x, y float32) Velocity {
+	return Velocity{X: x, Y: y}
+}
+
+// === МЕТОДЫ POSITION ===
+
+// DistanceTo вычисляет расстояние до другой позиции
+func (p Position) DistanceTo(other Position) float32 {
+	dx := p.X - other.X
+	dy := p.Y - other.Y
+	return float32(math.Sqrt(float64(dx*dx + dy*dy)))
+}
+
+// DistanceSquaredTo вычисляет квадрат расстояния до другой позиции (быстрее для сравнений)
+func (p Position) DistanceSquaredTo(other Position) float32 {
+	dx := p.X - other.X
+	dy := p.Y - other.Y
+	return dx*dx + dy*dy
+}
+
+// Add складывает позицию с вектором
+func (p Position) Add(v Velocity) Position {
+	return Position{X: p.X + v.X, Y: p.Y + v.Y}
+}
+
+// Sub вычитает другую позицию, возвращая вектор
+func (p Position) Sub(other Position) Velocity {
+	return Velocity{X: p.X - other.X, Y: p.Y - other.Y}
+}
+
+// === МЕТОДЫ VELOCITY ===
+
+// Length вычисляет длину вектора скорости
+func (v Velocity) Length() float32 {
+	return float32(math.Sqrt(float64(v.X*v.X + v.Y*v.Y)))
+}
+
+// LengthSquared вычисляет квадрат длины вектора (быстрее для сравнений)
+func (v Velocity) LengthSquared() float32 {
+	return v.X*v.X + v.Y*v.Y
+}
+
+// Normalize нормализует вектор до единичной длины
+func (v Velocity) Normalize() Velocity {
+	length := v.Length()
+	if length == 0 {
+		return Velocity{X: 1, Y: 0} // Возвращаем правый вектор для нулевого
+	}
+	return Velocity{X: v.X / length, Y: v.Y / length}
+}
+
+// Scale масштабирует вектор на скаляр
+func (v Velocity) Scale(factor float32) Velocity {
+	return Velocity{X: v.X * factor, Y: v.Y * factor}
+}
+
+// Add складывает два вектора
+func (v Velocity) Add(other Velocity) Velocity {
+	return Velocity{X: v.X + other.X, Y: v.Y + other.Y}
+}
+
+// Sub вычитает другой вектор
+func (v Velocity) Sub(other Velocity) Velocity {
+	return Velocity{X: v.X - other.X, Y: v.Y - other.Y}
+}
+
+// Dot вычисляет скалярное произведение
+func (v Velocity) Dot(other Velocity) float32 {
+	return v.X*other.X + v.Y*other.Y
+}
+
+// Rotate поворачивает вектор на угол в радианах
+func (v Velocity) Rotate(angle float32) Velocity {
+	cos := float32(math.Cos(float64(angle)))
+	sin := float32(math.Sin(float64(angle)))
+	return Velocity{
+		X: v.X*cos - v.Y*sin,
+		Y: v.X*sin + v.Y*cos,
+	}
+}

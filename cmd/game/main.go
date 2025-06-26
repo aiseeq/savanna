@@ -20,6 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"github.com/aiseeq/savanna/config"
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
 	"github.com/aiseeq/savanna/internal/rendering"
@@ -208,7 +209,7 @@ func (g *Game) drawText(screen *ebiten.Image, textStr string, x, y float64, font
 // Ранее размеры дублировались между game_balance.go и GUI кодом
 func (g *Game) getAnimalRadius(entity core.EntityID, world *core.World) float32 {
 	if size, ok := world.GetSize(entity); ok {
-		return size.Radius
+		return size.Radius // ТИПОБЕЗОПАСНОСТЬ: радиус уже float32
 	}
 	return simulation.DefaultAnimalRadius // Фолбэк из централизованных констант
 }
@@ -411,7 +412,7 @@ func (g *Game) drawAnimalDebugInfo(screen *ebiten.Image, world *core.World) {
 			return
 		}
 
-		// Преобразуем в экранные координаты с учётом камеры
+		// Преобразуем в экранные координаты с учётом камеры (ЭЛЕГАНТНАЯ МАТЕМАТИКА)
 		screenX, screenY := g.camera.WorldToScreen(pos.X, pos.Y)
 
 		// Проверяем видимость
@@ -425,18 +426,18 @@ func (g *Game) drawAnimalDebugInfo(screen *ebiten.Image, world *core.World) {
 		var visionMultiplier float32 = 5.0 // По умолчанию
 
 		if size, hasSize := world.GetSize(entity); hasSize {
-			radius = size.Radius
+			radius = size.Radius // ТИПОБЕЗОПАСНОСТЬ: радиус уже float32
 		}
 
 		// Определяем правильный множитель зрения по типу животного
 		if animalType, hasType := world.GetAnimalType(entity); hasType {
 			switch animalType {
 			case core.TypeRabbit:
-				visionMultiplier = 6.0 // RabbitVisionMultiplier из game_balance.go (обновлено)
+				visionMultiplier = simulation.RabbitVisionMultiplier // ИСПРАВЛЕНО: Используем константу вместо захардкоженного значения
 			case core.TypeWolf:
-				visionMultiplier = 6.7 // WolfVisionMultiplier из game_balance.go (обновлено)
+				visionMultiplier = simulation.WolfVisionMultiplier // ИСПРАВЛЕНО: Используем константу вместо захардкоженного значения
 			default:
-				visionMultiplier = 8.0 // DefaultVisionMultiplier (обновлено)
+				visionMultiplier = simulation.DefaultVisionMultiplier // ИСПРАВЛЕНО: Используем константу вместо захардкоженного значения
 			}
 		}
 
@@ -520,8 +521,26 @@ func (g *Game) drawFPS(screen *ebiten.Image) {
 	}
 }
 
+// CommandLineArgs структура для аргументов командной строки
+type CommandLineArgs struct {
+	Seed        int64
+	PProf       bool
+	VisualTest  bool
+	Screenshots int
+	Interval    int
+	Headless    bool
+	Speed       float64
+}
+
 func main() {
-	// ПРОФИЛИРОВАНИЕ: Запускаем pprof сервер для анализа производительности
+	setupProfiling()
+	args := parseCommandLineArgs()
+	game := createGameInstance(args)
+	startGame(game, args)
+}
+
+// setupProfiling настраивает профилирование производительности
+func setupProfiling() {
 	go func() {
 		log.Println("Запуск pprof сервера на http://localhost:6060")
 		log.Println("Для профиля CPU: go tool pprof http://localhost:6060/debug/pprof/profile")
@@ -530,169 +549,177 @@ func main() {
 			log.Printf("Ошибка pprof сервера: %v", err)
 		}
 	}()
+}
 
-	// Парсим аргументы командной строки
-	var seedFlag = flag.Int64(
-		"seed", 0,
-		"Seed для детерминированной симуляции (если не указан, используется текущее время)",
-	)
-	var pprofFlag = flag.Bool(
-		"pprof", false,
-		"Включить профилирование производительности на порту 6060",
-	)
-	var visualTestFlag = flag.Bool(
-		"visual-test", false,
-		"Запустить автоматический визуальный тест (10 скриншотов каждую секунду)",
-	)
-	var screenshotsFlag = flag.Int(
-		"screenshots", 10,
-		"Количество скриншотов для визуального теста",
-	)
-	var intervalFlag = flag.Int(
-		"interval", 60,
-		"Интервал между скриншотами в тиках (60 = 1 секунда)",
-	)
-	var headlessFlag = flag.Bool(
-		"headless", false,
-		"Запустить в headless режиме (без GUI, только симуляция)",
-	)
-	var speedFlag = flag.Float64(
-		"speed", 1.0,
-		"Множитель скорости симуляции (2.0 = в 2 раза быстрее, 0.5 = в 2 раза медленнее)",
-	)
+// parseCommandLineArgs парсит и возвращает аргументы командной строки
+func parseCommandLineArgs() CommandLineArgs {
+	var seedFlag = flag.Int64("seed", 0, "Seed для детерминированной симуляции")
+	var pprofFlag = flag.Bool("pprof", false, "Включить профилирование производительности")
+	var visualTestFlag = flag.Bool("visual-test", false, "Запустить автоматический визуальный тест")
+	var screenshotsFlag = flag.Int("screenshots", 10, "Количество скриншотов для визуального теста")
+	var intervalFlag = flag.Int("interval", 60, "Интервал между скриншотами в тиках")
+	var headlessFlag = flag.Bool("headless", false, "Запустить в headless режиме")
+	var speedFlag = flag.Float64("speed", 1.0, "Множитель скорости симуляции")
+
 	flag.Parse()
 
 	if *pprofFlag {
 		log.Println("Профилирование включено. Доступно на http://localhost:6060/debug/pprof/")
 	}
 
-	// Устанавливаем seed
-	var seed int64
-	if *seedFlag != 0 {
-		seed = *seedFlag
-		fmt.Printf("Используется заданный seed: %d\n", seed)
-	} else {
-		seed = time.Now().UnixNano()
-		fmt.Printf("Используется случайный seed: %d\n", seed)
+	return CommandLineArgs{
+		Seed:        determineSeed(*seedFlag),
+		PProf:       *pprofFlag,
+		VisualTest:  *visualTestFlag,
+		Screenshots: *screenshotsFlag,
+		Interval:    *intervalFlag,
+		Headless:    *headlessFlag,
+		Speed:       *speedFlag,
+	}
+}
+
+// determineSeed определяет seed для симуляции
+func determineSeed(seedFlag int64) int64 {
+	if seedFlag != 0 {
+		fmt.Printf("Используется заданный seed: %d\n", seedFlag)
+		return seedFlag
 	}
 
+	seed := time.Now().UnixNano()
+	fmt.Printf("Используется случайный seed: %d\n", seed)
+	return seed
+}
+
+// createGameInstance создает экземпляр игры с необходимыми компонентами
+func createGameInstance(args CommandLineArgs) *Game {
 	fmt.Println("Запуск GUI версии симулятора экосистемы саванны...")
 
-	// Создаём конфигурацию и ландшафт
+	terrain := createGameWorld(args.Seed)
+	gameWorld := NewGameWorld(terrain.Width, terrain.Height, args.Seed, terrain)
+	gameWorld.PopulateWorld(config.LoadDefaultConfig())
+
+	camera := setupCamera(terrain)
+	screenshotDir := setupVisualTest(args)
+
+	spriteRenderer := NewSpriteRenderer()
+	isometricRenderer := createIsometricRenderer(spriteRenderer)
+
+	return &Game{
+		gameWorld:         gameWorld,
+		timeManager:       NewTimeManager(),
+		spriteRenderer:    spriteRenderer,
+		fontManager:       createFontManager(),
+		isometricRenderer: isometricRenderer,
+		camera:            camera,
+		terrain:           terrain,
+		debugMode:         false,
+
+		// Настройки визуального теста
+		visualTestMode:     args.VisualTest,
+		screenshotCount:    0,
+		maxScreenshots:     args.Screenshots,
+		screenshotInterval: args.Interval,
+		lastScreenshotTick: 0,
+		screenshotDir:      screenshotDir,
+		tickCounter:        0,
+		headlessMode:       args.Headless,
+	}
+}
+
+// createGameWorld создает игровой мир и ландшафт
+func createGameWorld(seed int64) *generator.Terrain {
 	cfg := config.LoadDefaultConfig()
 	cfg.World.Seed = seed
 	terrainGen := generator.NewTerrainGenerator(cfg)
-	// Генерируем прямоугольную карту для изометрической проекции (50x38 тайлов)
-	terrain := terrainGen.GenerateRectangular(50, 38)
+	return terrainGen.GenerateRectangular(50, 38)
+}
 
-	// ИСПРАВЛЕНИЕ: Размеры мира в тайлах для изометрической проекции
-	worldWidthTiles := terrain.Width   // 50 тайлов
-	worldHeightTiles := terrain.Height // 38 тайлов
-	gameWorld := NewGameWorld(worldWidthTiles, worldHeightTiles, seed, terrain)
-	timeManager := NewTimeManager()
+// setupCamera настраивает камеру для изометрической проекции
+func setupCamera(terrain *generator.Terrain) *rendering.Camera {
+	camera := rendering.NewCamera(float32(terrain.Width), float32(terrain.Height))
+	camera.SetZoom(1.0)
 
-	// Заполняем мир животными
-	gameWorld.PopulateWorld(cfg)
+	// Центрируем камеру на центре карты
+	mapCenterTileX := float32(terrain.Width) / 2.0
+	mapCenterTileY := float32(terrain.Height) / 2.0
 
-	// Создаём рендерер спрайтов
-	spriteRenderer := NewSpriteRenderer()
+	centerScreenX := (mapCenterTileX - mapCenterTileY) * 32 / 2
+	centerScreenY := (mapCenterTileX + mapCenterTileY) * 16 / 2
 
-	// Создаём менеджер шрифтов
+	cameraX := centerScreenX - float32(constants.HalfWindowWidth)
+	cameraY := centerScreenY - float32(constants.HalfWindowHeight)
+	camera.SetPosition(cameraX, cameraY)
+
+	return camera
+}
+
+// createFontManager создает и настраивает менеджер шрифтов
+func createFontManager() *FontManager {
 	fontManager := NewFontManager()
 	if err := fontManager.LoadFonts(); err != nil {
 		log.Printf("Предупреждение: не удалось загрузить пользовательские шрифты: %v", err)
 		log.Printf("Будет использован дефолтный шрифт")
 	}
+	return fontManager
+}
 
-	// Создаём новую изометрическую систему отрисовки
+// createIsometricRenderer создает и настраивает изометрический рендерер
+func createIsometricRenderer(spriteRenderer *SpriteRenderer) *rendering.IsometricRenderer {
 	isometricRenderer := rendering.NewIsometricRenderer()
-	camera := rendering.NewCamera(float32(terrain.Width), float32(terrain.Height))
-	camera.SetZoom(1.0) // Стандартный zoom 1x (как требуется)
-
-	// ИСПРАВЛЕНИЕ: Центрируем камеру правильно на центре карты
-	mapCenterTileX := float32(terrain.Width) / 2.0
-	mapCenterTileY := float32(terrain.Height) / 2.0
-
-	// Изометрическая проекция центра карты в экранные координаты
-	centerScreenX := (mapCenterTileX - mapCenterTileY) * 32 / 2 // TileWidth = 32
-	centerScreenY := (mapCenterTileX + mapCenterTileY) * 16 / 2 // TileHeight = 16
-
-	// Экран 1024x768, центр в (512, 384)
-	// Камера должна сместиться так, чтобы centerScreenX,centerScreenY стали 512,384
-	cameraX := centerScreenX - 512
-	cameraY := centerScreenY - 384
-	camera.SetPosition(cameraX, cameraY)
-
-	// ИСПРАВЛЕНИЕ: Подключаем спрайтовый рендерер к изометрическому
 	isometricRenderer.SetSpriteRenderer(spriteRenderer)
+	return isometricRenderer
+}
 
-	// Подготовка для визуального теста
-	var screenshotDir string
-	if *visualTestFlag {
-		screenshotDir = "visual_analysis"
-
-		// Очищаем папку перед запуском теста
-		if _, err := os.Stat(screenshotDir); err == nil {
-			log.Printf("🧹 Очищаем папку %s", screenshotDir)
-			err := os.RemoveAll(screenshotDir)
-			if err != nil {
-				log.Fatalf("❌ Не удалось очистить папку %s: %v", screenshotDir, err)
-			}
-		}
-
-		// Создаем свежую папку
-		err := os.MkdirAll(screenshotDir, 0755)
-		if err != nil {
-			log.Fatalf("❌ Не удалось создать директорию для скриншотов: %v", err)
-		}
-		log.Printf("📁 Скриншоты будут сохранены в: %s", screenshotDir)
-		log.Printf("📸 Будет создано %d скриншотов с интервалом %d тиков",
-			*screenshotsFlag, *intervalFlag)
+// setupVisualTest настраивает директорию для визуального тестирования
+func setupVisualTest(args CommandLineArgs) string {
+	if !args.VisualTest {
+		return ""
 	}
 
-	// Создаём игру с менеджерами
-	game := &Game{
-		gameWorld:         gameWorld,
-		timeManager:       timeManager,
-		spriteRenderer:    spriteRenderer,
-		fontManager:       fontManager,
-		isometricRenderer: isometricRenderer,
-		camera:            camera,
-		terrain:           terrain,
-		debugMode:         false, // По умолчанию выключен
+	screenshotDir := "visual_analysis"
 
-		// Настройки визуального теста
-		visualTestMode:     *visualTestFlag,
-		screenshotCount:    0,
-		maxScreenshots:     *screenshotsFlag,
-		screenshotInterval: *intervalFlag,
-		lastScreenshotTick: 0,
-		screenshotDir:      screenshotDir,
-		tickCounter:        0,
-		headlessMode:       *headlessFlag, // Headless только если явно указан флаг
+	// Очищаем папку перед запуском теста
+	if _, err := os.Stat(screenshotDir); err == nil {
+		log.Printf("🧹 Очищаем папку %s", screenshotDir)
+		if err := os.RemoveAll(screenshotDir); err != nil {
+			log.Fatalf("❌ Не удалось очистить папку %s: %v", screenshotDir, err)
+		}
 	}
 
-	// Выбираем режим запуска
-	if *headlessFlag {
-		// Headless режим
+	// Создаем свежую папку
+	if err := os.MkdirAll(screenshotDir, 0755); err != nil {
+		log.Fatalf("❌ Не удалось создать директорию для скриншотов: %v", err)
+	}
+
+	log.Printf("📁 Скриншоты будут сохранены в: %s", screenshotDir)
+	log.Printf("📸 Будет создано %d скриншотов с интервалом %d тиков", args.Screenshots, args.Interval)
+
+	return screenshotDir
+}
+
+// startGame запускает игру в выбранном режиме
+func startGame(game *Game, args CommandLineArgs) {
+	if args.Headless {
 		log.Println("🤖 Запуск в headless режиме...")
-		if err := runHeadlessMode(game, *speedFlag); err != nil {
+		if err := runHeadlessMode(game, args.Speed); err != nil {
 			log.Fatal(err)
 		}
 	} else {
-		// Настройки окна для GUI режима
-		ebiten.SetWindowSize(1024, 768)
-		ebiten.SetWindowTitle("Savanna Ecosystem Simulator")
-		ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
-		ebiten.SetVsyncEnabled(true)
-		ebiten.SetScreenClearedEveryFrame(true)
-		ebiten.SetTPS(60) // Явное ограничение TPS до 60
-
-		// Запускаем игру
+		setupGUIWindow()
 		if err := ebiten.RunGame(game); err != nil {
 			log.Fatal(err)
 		}
 	}
+}
+
+// setupGUIWindow настраивает окно для GUI режима
+func setupGUIWindow() {
+	ebiten.SetWindowSize(constants.DefaultWindowWidth, constants.DefaultWindowHeight)
+	ebiten.SetWindowTitle("Savanna Ecosystem Simulator")
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+	ebiten.SetVsyncEnabled(true)
+	ebiten.SetScreenClearedEveryFrame(true)
+	ebiten.SetTPS(60)
 }
 
 // runHeadlessMode запускает игру в режиме без GUI для визуального тестирования
@@ -727,7 +754,7 @@ func (g *Game) takeDebugScreenshot() {
 	g.debugMode = true
 
 	// Создаем изображение размером с экран
-	screen := ebiten.NewImage(1024, 768)
+	screen := ebiten.NewImage(constants.DefaultWindowWidth, constants.DefaultWindowHeight)
 
 	// Рендерим кадр с дебаг-информацией
 	g.Draw(screen)
@@ -775,7 +802,7 @@ func (g *Game) takeVisualTestScreenshot() {
 	}
 
 	// GUI режим - создаем скриншот
-	screen := ebiten.NewImage(1024, 768)
+	screen := ebiten.NewImage(constants.DefaultWindowWidth, constants.DefaultWindowHeight)
 	g.Draw(screen)
 
 	filename := fmt.Sprintf("screenshot_%02d_sec_%d.png",
@@ -891,7 +918,7 @@ func (g *Game) createVisualTestReport() {
 ДАТА: %s
 ДЛИТЕЛЬНОСТЬ: %d секунд (%d скриншотов)
 РАЗМЕР МИРА: 40x40 тайлов
-РАЗМЕР ОКНА: 1024x768 пикселей
+РАЗМЕР ОКНА: %dx%d пикселей
 
 ФИНАЛЬНАЯ СТАТИСТИКА:
 --------------------
@@ -907,6 +934,7 @@ func (g *Game) createVisualTestReport() {
 `,
 		time.Now().Format("2006-01-02 15:04:05"),
 		g.maxScreenshots, g.maxScreenshots,
+		constants.DefaultWindowWidth, constants.DefaultWindowHeight,
 		stats.AliveRabbits, stats.TotalRabbits,
 		float32(stats.AliveRabbits)/max(float32(stats.TotalRabbits), 1)*100,
 		stats.AliveWolves, stats.TotalWolves,

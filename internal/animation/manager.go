@@ -94,7 +94,8 @@ func (am *AnimationManager) updateFacingDirection(world *core.World, entity core
 	}
 
 	// Обновляем направление взгляда только если животное движется
-	if velocity.X*velocity.X+velocity.Y*velocity.Y > SpeedThresholds.Idle {
+	velocityMagnitudeSquared := velocity.X*velocity.X + velocity.Y*velocity.Y
+	if velocityMagnitudeSquared > SpeedThresholds.Idle {
 		anim.FacingRight = velocity.X >= 0
 	}
 }

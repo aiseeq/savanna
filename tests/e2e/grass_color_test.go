@@ -129,6 +129,7 @@ found:
 			config, _ := world.GetAnimalConfig(rabbit)
 
 			// Проверяем что система поиска травы может найти траву
+			// ТИПОБЕЗОПАСНОСТЬ: позиции уже float32
 			_, _, foundGrass := vegetationSystem.FindNearestGrass(pos.X, pos.Y, 30.0, 10.0)
 
 			t.Logf("Через %d сек: трава=%.1f единиц, голод=%.1f%%, ест=%v", (tick+1)/60, currentGrass, hunger.Value, isEating)

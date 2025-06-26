@@ -1,6 +1,10 @@
 package animation
 
-import "github.com/aiseeq/savanna/internal/core"
+import (
+	"math"
+
+	"github.com/aiseeq/savanna/internal/core"
+)
 
 // AnimationResolver разрешает типы анимаций для животных
 type AnimationResolver struct{}
@@ -44,11 +48,12 @@ func (ar *AnimationResolver) resolveWolfAnimationType(world *core.World, entity 
 		return AnimIdle
 	}
 
-	speed := velocity.X*velocity.X + velocity.Y*velocity.Y
+	// Вычисляем квадрат скорости
+	speedSquared := velocity.X*velocity.X + velocity.Y*velocity.Y
 
-	if speed < SpeedThresholds.Idle {
+	if speedSquared < SpeedThresholds.Idle {
 		return AnimIdle
-	} else if speed < SpeedThresholds.WolfWalk {
+	} else if speedSquared < SpeedThresholds.WolfWalk {
 		return AnimWalk
 	} else {
 		return AnimRun
@@ -73,11 +78,12 @@ func (ar *AnimationResolver) resolveRabbitAnimationType(world *core.World, entit
 		return AnimIdle
 	}
 
-	speed := velocity.X*velocity.X + velocity.Y*velocity.Y
+	// Вычисляем квадрат скорости
+	speedSquared := velocity.X*velocity.X + velocity.Y*velocity.Y
 
-	if speed < SpeedThresholds.Idle {
+	if speedSquared < SpeedThresholds.Idle {
 		return AnimIdle
-	} else if speed < SpeedThresholds.RabbitWalk {
+	} else if speedSquared < SpeedThresholds.RabbitWalk {
 		return AnimWalk
 	} else {
 		return AnimRun
@@ -110,8 +116,11 @@ func (ar *AnimationResolver) isWolfAttacking(world *core.World, wolf core.Entity
 		return false
 	}
 
-	distance := (pos.X-rabbitPos.X)*(pos.X-rabbitPos.X) + (pos.Y-rabbitPos.Y)*(pos.Y-rabbitPos.Y)
-	return distance <= AttackThresholds.WolfAttackDistance*AttackThresholds.WolfAttackDistance
+	// Вычисляем расстояние
+	dx := pos.X - rabbitPos.X
+	dy := pos.Y - rabbitPos.Y
+	distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
+	return distance <= AttackThresholds.WolfAttackDistance
 }
 
 // Константы порогов скорости для анимаций (устраняет магические числа)

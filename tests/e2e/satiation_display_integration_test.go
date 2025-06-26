@@ -122,6 +122,7 @@ func (mg *MockGame) GetSatiationDisplaysForAllAnimals() []SatiationDisplayInfo {
 
 		if hasPos && hasSatiation {
 			// Имитируем логику из реальной игры
+			// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 			display := SatiationDisplayInfo{
 				EntityID:      entity,
 				X:             pos.X,

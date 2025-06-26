@@ -59,6 +59,7 @@ func BenchmarkComponentAdd(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		entity := entities[i]
+		// ТИПОБЕЗОПАСНОСТЬ: создаем physics.Pixels из float32
 		world.AddPosition(entity, core.Position{X: float32(i), Y: float32(i)})
 	}
 }
@@ -72,6 +73,7 @@ func BenchmarkComponentGet(b *testing.B) {
 	entities := make([]core.EntityID, 1000)
 	for i := 0; i < 1000; i++ {
 		entity := world.CreateEntity()
+		// ТИПОБЕЗОПАСНОСТЬ: создаем physics.Pixels из float32
 		world.AddPosition(entity, core.Position{X: float32(i), Y: float32(i)})
 		entities[i] = entity
 	}
@@ -94,6 +96,7 @@ func BenchmarkComponentHas(b *testing.B) {
 	for i := 0; i < 1000; i++ {
 		entity := world.CreateEntity()
 		if i%2 == 0 {
+			// ТИПОБЕЗОПАСНОСТЬ: создаем physics.Pixels из float32
 			world.AddPosition(entity, core.Position{X: float32(i), Y: float32(i)})
 		}
 		entities[i] = entity
@@ -115,6 +118,7 @@ func BenchmarkForEachWith(b *testing.B) {
 	// Создаем 1000 сущностей с разными компонентами
 	for i := 0; i < 1000; i++ {
 		entity := world.CreateEntity()
+		// ТИПОБЕЗОПАСНОСТЬ: создаем physics.Pixels из float32
 		world.AddPosition(entity, core.Position{X: float32(i), Y: float32(i)})
 
 		if i%2 == 0 {
@@ -144,8 +148,9 @@ func BenchmarkQuery1000Entities(b *testing.B) {
 	// Создаем 1000 сущностей
 	for i := 0; i < 1000; i++ {
 		entity := world.CreateEntity()
+		// ТИПОБЕЗОПАСНОСТЬ: создаем типобезопасные типы
 		world.AddPosition(entity, core.Position{X: float32(i % 100), Y: float32(i / 100)})
-		world.AddVelocity(entity, core.Velocity{X: 1, Y: 0})
+		world.AddVelocity(entity, core.Velocity{X: 1.0, Y: 0.0})
 
 		if i%10 == 0 {
 			world.AddAnimalType(entity, core.TypeRabbit)
@@ -172,8 +177,9 @@ func BenchmarkSpatialQuery(b *testing.B) {
 		x := float32(i%100) * 10
 		y := float32(i/100) * 10
 
+		// ТИПОБЕЗОПАСНОСТЬ: создаем типобезопасные типы
 		world.AddPosition(entity, core.Position{X: x, Y: y})
-		world.AddSize(entity, core.Size{Radius: 5, AttackRange: 0})
+		world.AddSize(entity, core.Size{Radius: 5.0, AttackRange: 0.0})
 		world.AddAnimalType(entity, core.TypeRabbit)
 	}
 
@@ -193,6 +199,7 @@ func BenchmarkMovementSystem(b *testing.B) {
 	// Создаем 1000 движущихся сущностей
 	for i := 0; i < 1000; i++ {
 		entity := world.CreateEntity()
+		// ТИПОБЕЗОПАСНОСТЬ: создаем типобезопасные типы
 		world.AddPosition(entity, core.Position{X: float32(i % 100), Y: float32(i / 100)})
 		world.AddVelocity(entity, core.Velocity{X: float32(i%10 - 5), Y: float32(i%7 - 3)})
 	}
@@ -208,8 +215,9 @@ func BenchmarkMovementSystem(b *testing.B) {
 			vel, _ := world.GetVelocity(entity)
 
 			// Обновляем позицию
-			pos.X += vel.X * deltaTime
-			pos.Y += vel.Y * deltaTime
+			// Простое обновление с float32
+			pos.X = pos.X + vel.X*deltaTime*32.0 // 32 пикселя = 1 тайл
+			pos.Y = pos.Y + vel.Y*deltaTime*32.0
 
 			// Ограничиваем границами мира
 			if pos.X < 0 {
@@ -228,6 +236,7 @@ func BenchmarkMovementSystem(b *testing.B) {
 				vel.Y = -vel.Y
 			}
 
+			// Обновляем компоненты в мире
 			world.SetPosition(entity, pos)
 			world.SetVelocity(entity, vel)
 		})
@@ -242,6 +251,7 @@ func BenchmarkFullGameLoop(b *testing.B) {
 	// Создаем экосистему: 800 зайцев и 200 волков
 	for i := 0; i < 800; i++ {
 		entity := world.CreateEntity()
+		// ТИПОБЕЗОПАСНОСТЬ: создаем типобезопасные позиции
 		world.AddPosition(entity, core.Position{
 			X: float32(world.GetRNG().Intn(1000)),
 			Y: float32(world.GetRNG().Intn(1000)),
@@ -250,12 +260,14 @@ func BenchmarkFullGameLoop(b *testing.B) {
 		world.AddHealth(entity, core.Health{Current: 50, Max: 50})
 		world.AddSatiation(entity, core.Satiation{Value: 80})
 		world.AddAnimalType(entity, core.TypeRabbit)
-		world.AddSize(entity, core.Size{Radius: 5, AttackRange: 0})
+		// ТИПОБЕЗОПАСНОСТЬ: создаем типобезопасные размеры
+		world.AddSize(entity, core.Size{Radius: 5.0, AttackRange: 0.0})
 		world.AddSpeed(entity, core.Speed{Base: 20, Current: 20})
 	}
 
 	for i := 0; i < 200; i++ {
 		entity := world.CreateEntity()
+		// ТИПОБЕЗОПАСНОСТЬ: создаем типобезопасные позиции
 		world.AddPosition(entity, core.Position{
 			X: float32(world.GetRNG().Intn(1000)),
 			Y: float32(world.GetRNG().Intn(1000)),
@@ -281,8 +293,9 @@ func BenchmarkFullGameLoop(b *testing.B) {
 			pos, _ := world.GetPosition(entity)
 			vel, _ := world.GetVelocity(entity)
 
-			pos.X += vel.X * deltaTime
-			pos.Y += vel.Y * deltaTime
+			// Простое обновление позиции
+			pos.X = pos.X + vel.X*deltaTime*32.0 // 32 пикселя = 1 тайл
+			pos.Y = pos.Y + vel.Y*deltaTime*32.0
 
 			world.SetPosition(entity, pos)
 		})

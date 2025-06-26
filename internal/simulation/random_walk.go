@@ -34,10 +34,9 @@ func (rwu *RandomWalkUtility) GetRandomWalkVelocity(
 		// Случайная скорость (используем константы из game_balance.go)
 		speedMultiplier := RandomSpeedMinMultiplier + rng.Float64()*(RandomSpeedMaxMultiplier-RandomSpeedMinMultiplier)
 
-		vel := core.Velocity{
-			X: float32(math.Cos(angle)) * maxSpeed * float32(speedMultiplier),
-			Y: float32(math.Sin(angle)) * maxSpeed * float32(speedMultiplier),
-		}
+		velX := float32(math.Cos(angle)) * maxSpeed * float32(speedMultiplier)
+		velY := float32(math.Sin(angle)) * maxSpeed * float32(speedMultiplier)
+		vel := core.NewVelocity(velX, velY)
 
 		// Устанавливаем новый таймер в поведении
 		newTime := behavior.MinDirectionTime + float32(rng.Float64())*(behavior.MaxDirectionTime-behavior.MinDirectionTime)
@@ -53,7 +52,7 @@ func (rwu *RandomWalkUtility) GetRandomWalkVelocity(
 		return vel
 	}
 
-	return core.Velocity{X: 0, Y: 0}
+	return core.NewVelocity(0, 0)
 }
 
 // Глобальный экземпляр утилиты для использования во всех стратегиях

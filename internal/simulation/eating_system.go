@@ -3,6 +3,7 @@ package simulation
 import (
 	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/aiseeq/savanna/internal/core"
+	"github.com/aiseeq/savanna/internal/vec2"
 )
 
 // EatingSystem отвечает ТОЛЬКО за поедание трупов хищниками (устраняет нарушение SRP)
@@ -73,14 +74,15 @@ func (es *EatingSystem) findCorpseToEat(world *core.World, predator core.EntityI
 			return
 		}
 
-		dx := predatorPos.X - corpsePos.X
-		dy := predatorPos.Y - corpsePos.Y
-		distance := dx*dx + dy*dy
+		// ЭЛЕГАНТНАЯ МАТЕМАТИКА: расстояние через векторы
+		predatorVec := vec2.Vec2{X: predatorPos.X, Y: predatorPos.Y}
+		corpseVec := vec2.Vec2{X: corpsePos.X, Y: corpsePos.Y}
+		distanceSquared := predatorVec.DistanceSquared(corpseVec)
 
 		// ИСПРАВЛЕНИЕ: Конвертируем EatingRange из тайлов в пиксели
 		eatingRangePixels := EatingRange * float32(constants.TileSizePixels)
-		if distance < closestDistance && distance <= eatingRangePixels*eatingRangePixels {
-			closestDistance = distance
+		if distanceSquared < closestDistance && distanceSquared <= eatingRangePixels*eatingRangePixels {
+			closestDistance = distanceSquared
 			closestCorpse = corpse
 		}
 	})

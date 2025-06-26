@@ -51,7 +51,7 @@ func (ges *GrassEatingSystem) Update(world *core.World, deltaTime float32) {
 			return
 		}
 
-		// Проверяем что рядом есть трава
+		// Проверяем что рядом есть трава (ТИПОБЕЗОПАСНО)
 		grassAmount := ges.vegetation.GetGrassAt(pos.X, pos.Y)
 		if grassAmount < MinGrassAmountToFind {
 			// Нет травы - убираем состояние поедания
@@ -114,7 +114,7 @@ func (ges *GrassEatingSystem) processGrassEatingTick(
 	// Количество травы съедаемое за один кадр анимации (как у волка - дискретно)
 	grassPerTick := float32(GrassPerEatingTick) // 1.0 единица травы за кадр анимации
 
-	// Съедаем траву
+	// Съедаем траву (ТИПОБЕЗОПАСНО)
 	consumedGrass := ges.vegetation.ConsumeGrassAt(pos.X, pos.Y, grassPerTick)
 	if consumedGrass <= 0 {
 		// Нет травы - заканчиваем поедание

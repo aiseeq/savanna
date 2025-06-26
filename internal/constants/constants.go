@@ -68,10 +68,6 @@ const (
 	// Константы шрифтов
 	DefaultFontSize = 14 // Размер шрифта по умолчанию
 
-	// Константы тестов
-	TestWorldTileSize = 10    // Размер тестового мира в тайлах
-	TestGrassAmount   = 100.0 // Количество травы в тестах
-
 	// Константы эффектов
 	DamageFlashIntensityMultiplier = 5.0 // Множитель интенсивности вспышки урона (белый эффект)
 )
@@ -117,4 +113,32 @@ func SizeRadiusToTiles(pixelRadius float32) float32 {
 // SizeAttackRangeToTiles конвертирует радиус атаки из Size компонента (пиксели) в тайлы
 func SizeAttackRangeToTiles(pixelAttackRange float32) float32 {
 	return pixelAttackRange / TileSizePixels
+}
+
+// ===== HELPER ФУНКЦИИ ДЛЯ УСТРАНЕНИЯ ДУБЛИРОВАНИЯ КОДА =====
+// Эти функции устраняют нарушения DRY принципа в movement.go и других файлах
+
+// Vec2ToPixels конвертирует 2D вектор из тайлов в пиксели
+func Vec2ToPixels(x, y float32) (float32, float32) {
+	return TilesToPixels(x), TilesToPixels(y)
+}
+
+// Vec2ToTiles конвертирует 2D вектор из пикселей в тайлы
+func Vec2ToTiles(x, y float32) (float32, float32) {
+	return PixelsToTiles(x), PixelsToTiles(y)
+}
+
+// VelocityToPixels конвертирует скорость из тайлов/сек в пиксели/сек
+func VelocityToPixels(velX, velY float32) (float32, float32) {
+	return TilesToPixels(velX), TilesToPixels(velY)
+}
+
+// PositionToTiles конвертирует позицию из пикселей в тайлы
+func PositionToTiles(posX, posY float32) (float32, float32) {
+	return PixelsToTiles(posX), PixelsToTiles(posY)
+}
+
+// WorldBoundsToPixels конвертирует размеры мира из тайлов в пиксели
+func WorldBoundsToPixels(worldWidth, worldHeight float32) (float32, float32) {
+	return TilesToPixels(worldWidth), TilesToPixels(worldHeight)
 }

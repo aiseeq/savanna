@@ -141,6 +141,7 @@ func TestRabbitWorldBounds(t *testing.T) {
 				t.Logf("Кадр %d: Заяц %s pos=(%.1f,%.1f)", frame, rabbitNames[i], pos.X, pos.Y)
 
 				// КРИТИЧЕСКИЙ ТЕСТ: Проверяем границы
+				// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32 для сравнения
 				if pos.X < 0 || pos.X > config.WorldWidth || pos.Y < 0 || pos.Y > config.WorldHeight {
 					t.Errorf("КРИТИЧЕСКАЯ ОШИБКА: Заяц %s вышел за границы мира! Позиция: (%.1f, %.1f), границы: (0,0)-(%.0f,%.0f)",
 						rabbitNames[i], pos.X, pos.Y, config.WorldWidth, config.WorldHeight)

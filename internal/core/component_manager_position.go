@@ -16,7 +16,7 @@ func (cm *ComponentManager) AddPosition(entity EntityID, position Position) {
 // GetPosition возвращает компонент Position сущности
 func (cm *ComponentManager) GetPosition(entity EntityID) (Position, bool) {
 	if !cm.HasComponent(entity, MaskPosition) {
-		return Position{}, false
+		return NewPosition(0, 0), false
 	}
 	return cm.positions[entity], true
 }
@@ -39,7 +39,7 @@ func (cm *ComponentManager) RemovePosition(entity EntityID) bool {
 	index := uint(entity) / constants.BitsPerUint64
 	bit := uint(entity) % constants.BitsPerUint64
 	cm.hasPosition[index] &= ^(1 << bit)
-	cm.positions[entity] = Position{} // Очистка данных
+	cm.positions[entity] = NewPosition(0, 0) // Очистка данных
 
 	return true
 }
@@ -58,7 +58,7 @@ func (cm *ComponentManager) AddVelocity(entity EntityID, velocity Velocity) {
 // GetVelocity возвращает компонент Velocity сущности
 func (cm *ComponentManager) GetVelocity(entity EntityID) (Velocity, bool) {
 	if !cm.HasComponent(entity, MaskVelocity) {
-		return Velocity{}, false
+		return NewVelocity(0, 0), false
 	}
 	return cm.velocities[entity], true
 }
@@ -81,7 +81,7 @@ func (cm *ComponentManager) RemoveVelocity(entity EntityID) bool {
 	index := uint(entity) / constants.BitsPerUint64
 	bit := uint(entity) % constants.BitsPerUint64
 	cm.hasVelocity[index] &= ^(1 << bit)
-	cm.velocities[entity] = Velocity{} // Очистка данных
+	cm.velocities[entity] = NewVelocity(0, 0) // Очистка данных
 
 	return true
 }

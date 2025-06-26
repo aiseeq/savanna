@@ -227,7 +227,7 @@ func (fs *FeedingSystem) manageGrassEating(world core.SimulationAccess, entity c
 	// Проверка скорости не нужна - BehaviorSystem уже устанавливает скорость 0 для еды
 	// MovementSystem проверяет EatingState и останавливает движение
 
-	// Проверяем есть ли рядом трава для начала поедания
+	// Проверяем есть ли рядом трава для начала поедания (ТИПОБЕЗОПАСНО)
 	grassAmount := fs.vegetation.GetGrassAt(pos.X, pos.Y)
 	if grassAmount >= MinGrassAmountToFind {
 		// Создаём состояние поедания для анимации (Target = 0 означает поедание травы)

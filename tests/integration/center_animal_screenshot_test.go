@@ -107,6 +107,7 @@ func TestCenterAnimalScreenshot(t *testing.T) {
 	world.ForEachWith(core.MaskPosition|core.MaskAnimalType, func(entity core.EntityID) {
 		if !foundAnimal {
 			if pos, hasPos := world.GetPosition(entity); hasPos {
+				// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 				screenX, screenY := camera.WorldToScreen(pos.X, pos.Y)
 
 				// Центр экрана 1024x768
@@ -160,6 +161,7 @@ func centerCameraOnFirstAnimal(camera *rendering.Camera, world *core.World) {
 
 		// Преобразуем мировые координаты животного в экранные БЕЗ камеры
 		// Используем базовую изометрическую проекцию
+		// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32 для вычислений
 		baseScreenX := (targetPos.X - targetPos.Y) * 32 / 2 // TileWidth = 32
 		baseScreenY := (targetPos.X + targetPos.Y) * 16 / 2 // TileHeight = 16
 
@@ -174,6 +176,7 @@ func centerCameraOnFirstAnimal(camera *rendering.Camera, world *core.World) {
 		camera.SetPosition(cameraX, cameraY)
 
 		// Проверяем результат
+		// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 		resultScreenX, resultScreenY := camera.WorldToScreen(targetPos.X, targetPos.Y)
 
 		// Получаем информацию о животном

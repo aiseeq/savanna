@@ -1,6 +1,7 @@
 package rendering
 
 import (
+	"github.com/aiseeq/savanna/internal/constants"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -36,8 +37,8 @@ func NewCamera(worldWidth, worldHeight float32) *Camera {
 
 	// Смещение камеры для центрирования (камера смотрит на центр мира)
 	// При разрешении 1024x768 центр экрана будет в (512, 384)
-	cameraX := centerScreenX - 512 // Половина ширины экрана
-	cameraY := centerScreenY - 384 // Половина высоты экрана
+	cameraX := centerScreenX - float32(constants.HalfWindowWidth)
+	cameraY := centerScreenY - float32(constants.HalfWindowHeight)
 
 	return &Camera{
 		X:           cameraX,

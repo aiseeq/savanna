@@ -90,6 +90,7 @@ found:
 
 	pos, _ := world.GetPosition(rabbit)
 	hunger, _ := world.GetSatiation(rabbit)
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 	grassAmount := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
 	t.Logf("Начальное состояние:")
@@ -133,6 +134,7 @@ found:
 		// Проверяем состояние каждые 10 тиков для детального отслеживания
 		if tick%10 == 0 {
 			currentHunger, _ := world.GetSatiation(rabbit)
+			// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 			currentGrass := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 			anim, _ := world.GetAnimation(rabbit)
 			eatingState, _ := world.GetEatingState(rabbit)
@@ -171,6 +173,7 @@ found:
 
 	// Если мы дошли сюда, заяц не насытился за отведённое время
 	finalHunger, _ := world.GetSatiation(rabbit)
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 	finalGrass := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
 	t.Errorf("❌ Заяц не насытился за %d тиков", maxTicks)

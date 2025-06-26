@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aiseeq/savanna/internal/gamestate"
+	testing_mocks "github.com/aiseeq/savanna/tests/mocks"
 )
 
 // TestGameStateCreation проверяет создание игрового состояния
@@ -126,7 +127,7 @@ func TestRenderInstructionGeneration(t *testing.T) {
 
 // TestMockRenderer проверяет работу mock рендерера
 func TestMockRenderer(t *testing.T) {
-	mockRenderer := gamestate.NewMockRenderer(800, 600)
+	mockRenderer := testing_mocks.NewMockRenderer(800, 600)
 
 	// Тестируем вызовы рендерера
 	mockRenderer.DrawSprite("rabbit", 0, 100, 200, color.RGBA{255, 255, 255, 255}, true, 1.0)
@@ -184,7 +185,7 @@ func TestEventRecording(t *testing.T) {
 	}
 
 	// Создаем mock провайдер из записанных событий
-	mockProvider := gamestate.NewMockInputProvider(recordedEvents)
+	mockProvider := testing_mocks.NewMockInputProvider(recordedEvents)
 
 	// Воспроизводим события
 	config := &gamestate.GameConfig{
@@ -224,7 +225,7 @@ func TestFullRenderingPipeline(t *testing.T) {
 	gs := gamestate.NewGameState(config)
 
 	// Создаем mock рендер движок
-	mockEngine := gamestate.NewMockRenderEngine(800, 600)
+	mockEngine := testing_mocks.NewMockRenderEngine(800, 600)
 
 	// Создаем рендерер
 	gameRenderer := gamestate.NewGameRenderer(mockEngine)
@@ -233,7 +234,7 @@ func TestFullRenderingPipeline(t *testing.T) {
 	gameRenderer.RenderFrame(gs)
 
 	// Проверяем, что рендерер был вызван
-	mockRenderer := mockEngine.Renderer.(*gamestate.MockRenderer)
+	mockRenderer := mockEngine.Renderer.(*testing_mocks.MockRenderer)
 
 	if mockRenderer.PresentCalls != 1 {
 		t.Errorf("Expected 1 Present call, got %d", mockRenderer.PresentCalls)

@@ -10,6 +10,7 @@ import (
 
 	"github.com/aiseeq/savanna/internal/core"
 	"github.com/aiseeq/savanna/internal/generator"
+	"github.com/aiseeq/savanna/internal/physics"
 )
 
 // Константы изометрической проекции
@@ -268,7 +269,7 @@ func (r *IsometricRenderer) renderAnimals(screen *ebiten.Image, world *core.Worl
 		if pos, hasPos := world.GetPosition(entity); hasPos {
 			animals = append(animals, AnimalRenderInfo{
 				entity: entity,
-				y:      pos.Y,
+				y:      pos.Y, // ТИПОБЕЗОПАСНОСТЬ: координаты уже float32
 			})
 		}
 	})
@@ -292,13 +293,12 @@ func (r *IsometricRenderer) renderAnimal(screen *ebiten.Image, world *core.World
 		return
 	}
 
-	// ИСПРАВЛЕНИЕ: Конвертируем позицию из пикселей в тайлы перед преобразованием
-	// pos.X и pos.Y хранятся в пикселях, но camera.WorldToScreen ожидает тайлы
-	tileX := pos.X / TileWidth
-	tileY := pos.Y / TileWidth // Используем TileWidth для обеих осей (физическая ширина тайла = 1.0)
+	// Преобразуем позицию из пикселей в тайлы для камеры
+	pixelPos := physics.PixelPosition{X: physics.NewPixels(pos.X), Y: physics.NewPixels(pos.Y)}
+	tilePos := pixelPos.ToTiles()
 
 	// Преобразуем в экранные координаты с учётом камеры
-	screenX, screenY := camera.WorldToScreen(tileX, tileY)
+	screenX, screenY := camera.WorldToScreen(tilePos.X.Float32(), tilePos.Y.Float32())
 
 	// DEBUG: Отладочный вывод удален для предотвращения спама в консоли
 
@@ -330,10 +330,10 @@ func (r *IsometricRenderer) renderAnimal(screen *ebiten.Image, world *core.World
 		animalColor = color.RGBA{R: 255, G: 255, B: 255, A: 255} // Белый если тип неизвестен
 	}
 
-	// Получаем размер животного
+	// Получаем размер животного (ТИПОБЕЗОПАСНО)
 	radius := float32(8) // Значение по умолчанию
 	if size, hasSize := world.GetSize(entity); hasSize {
-		radius = size.Radius
+		radius = size.Radius // Радиус уже float32
 	}
 
 	// Рисуем животное как круг
@@ -395,9 +395,9 @@ func (r *IsometricRenderer) drawPhysicalSizeDebug(screen *ebiten.Image, world *c
 		return
 	}
 
-	// ИСПРАВЛЕНИЕ: size.Radius уже в ПИКСЕЛЯХ, не в тайлах!
-	radiusPixelsWorld := size.Radius                           // Уже в пикселях мирового пространства
-	radiusPixelsScreen := radiusPixelsWorld * camera.GetZoom() // Применяем только зум камеры
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем радиус из тайлов в пиксели мирового пространства
+	radiusPixelsWorld := size.Radius * 32                      // Конвертируем тайлы в пиксели (1 тайл = 32 пикселя)
+	radiusPixelsScreen := radiusPixelsWorld * camera.GetZoom() // Применяем зум камеры
 
 	// В изометрической проекции круг становится эллипсом
 	// Соотношение осей определяется соотношением TileWidth:TileHeight = 32:16 = 2:1

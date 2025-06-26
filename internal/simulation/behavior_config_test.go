@@ -83,7 +83,7 @@ func TestBehaviorSystem_UsesAnimalConfig(t *testing.T) {
 		SearchSpeed:        customConfig.SearchSpeed,
 		WanderingSpeed:     customConfig.WanderingSpeed,
 		ContentSpeed:       customConfig.ContentSpeed,
-		VisionRange:        customConfig.VisionRange,
+		VisionRange:        customConfig.VisionRange, // ТИПОБЕЗОПАСНОСТЬ
 		MinDirectionTime:   customConfig.MinDirectionTime,
 		MaxDirectionTime:   customConfig.MaxDirectionTime,
 	})
@@ -98,7 +98,7 @@ func TestBehaviorSystem_UsesAnimalConfig(t *testing.T) {
 	// Проверяем что скорость изменилась (животное начало двигаться)
 	finalVel, _ := world.GetVelocity(entity)
 
-	// Животное должно начать двигаться (искать траву)
+	// Животное должно начать двигаться (искать траву) (ТИПОБЕЗОПАСНОСТЬ)
 	if finalVel.X == initialVel.X && finalVel.Y == initialVel.Y {
 		t.Error("Hungry animal should start moving to search for food")
 	}
@@ -161,7 +161,7 @@ func TestBehaviorSystem_AnimalConfigVsHardcodedValues(t *testing.T) {
 		t.Fatal("Standard wolf should have AnimalConfig component")
 	}
 
-	// Проверяем что значения из AnimalConfig соответствуют game_balance.go
+	// Проверяем что значения из AnimalConfig соответствуют game_balance.go (ТИПОБЕЗОПАСНОСТЬ)
 	if standardConfig.BaseSpeed != RabbitBaseSpeed {
 		t.Errorf("Rabbit base speed from AnimalConfig (%f) should match game_balance.go (%f)",
 			standardConfig.BaseSpeed, RabbitBaseSpeed)
@@ -253,7 +253,7 @@ func TestBehaviorSystem_NoHardcodedAnimalTypes(t *testing.T) {
 		SearchSpeed:        herbivoreConfig.SearchSpeed,
 		WanderingSpeed:     herbivoreConfig.WanderingSpeed,
 		ContentSpeed:       herbivoreConfig.ContentSpeed,
-		VisionRange:        herbivoreConfig.VisionRange,
+		VisionRange:        herbivoreConfig.VisionRange, // ТИПОБЕЗОПАСНОСТЬ
 		MinDirectionTime:   herbivoreConfig.MinDirectionTime,
 		MaxDirectionTime:   herbivoreConfig.MaxDirectionTime,
 	})
@@ -265,7 +265,7 @@ func TestBehaviorSystem_NoHardcodedAnimalTypes(t *testing.T) {
 	// Проверяем что животное ведёт себя как травоядное несмотря на неизвестный тип
 	finalVel, _ := world.GetVelocity(unknownHerbivore)
 
-	// Голодное травоядное должно начать двигаться
+	// Голодное травоядное должно начать двигаться (ТИПОБЕЗОПАСНОСТЬ)
 	if finalVel.X == 0 && finalVel.Y == 0 {
 		t.Error("Unknown herbivore should behave like herbivore and start moving when hungry")
 	}

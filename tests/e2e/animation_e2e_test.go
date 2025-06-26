@@ -339,6 +339,7 @@ func isWolfAttackingForE2E(world *core.World, wolf core.EntityID) bool {
 		return false
 	}
 
+	// ТИПОБЕЗОПАСНОСТЬ: позиции уже float32
 	nearestRabbit, foundRabbit := world.FindNearestByType(pos.X, pos.Y, 15.0, core.TypeRabbit)
 	if !foundRabbit {
 		return false

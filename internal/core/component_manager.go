@@ -150,8 +150,8 @@ func (cm *ComponentManager) ClearAllComponents(entity EntityID) {
 	cm.hasAnimalConfig[index] &= clearMask
 
 	// Очищаем данные компонентов (обнуляем для предотвращения утечек памяти)
-	cm.positions[entity] = Position{}
-	cm.velocities[entity] = Velocity{}
+	cm.positions[entity] = NewPosition(0, 0)
+	cm.velocities[entity] = NewVelocity(0, 0)
 	cm.healths[entity] = Health{}
 	cm.satiations[entity] = Satiation{}
 	cm.types[entity] = AnimalType(0)

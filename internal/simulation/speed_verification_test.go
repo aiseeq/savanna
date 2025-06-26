@@ -42,6 +42,7 @@ func TestSpeedVerification_OneTilePerSecond(t *testing.T) {
 	expectedDistancePixels := float32(32.0) // 1 тайл = 32 пикселя
 	tolerance := float32(0.1)               // Допуск для погрешностей плавающей точки
 
+	// Проверяем движение по X
 	if distanceX < expectedDistancePixels-tolerance || distanceX > expectedDistancePixels+tolerance {
 		t.Errorf("Animal with 1.0 tile/sec speed should move exactly %f pixels in 1 second, but moved %f pixels",
 			expectedDistancePixels, distanceX)
@@ -167,6 +168,7 @@ func TestSpeedVerification_MovementSystemIntegration(t *testing.T) {
 	expectedDistance := float32(RabbitBaseSpeed * constants.TileSizePixels)
 	tolerance := float32(0.1)
 
+	// Проверяем движение
 	if distanceX < expectedDistance-tolerance || distanceX > expectedDistance+tolerance {
 		t.Errorf("Rabbit with base speed %f tiles/sec should move %f pixels, but moved %f",
 			RabbitBaseSpeed, expectedDistance, distanceX)

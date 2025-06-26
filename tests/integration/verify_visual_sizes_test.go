@@ -32,8 +32,8 @@ func TestVisualSizeVerification(t *testing.T) {
 	t.Logf("Центр карты: (%.1f, %.1f) тайлов", centerX, centerY)
 	t.Logf("")
 	// ИСПРАВЛЕНИЕ: Конвертируем размеры из пикселей в тайлы для отображения
-	rabbitRadiusTiles := constants.PixelsToTiles(rabbitSize.Radius)
-	wolfRadiusTiles := constants.PixelsToTiles(wolfSize.Radius)
+	rabbitRadiusTiles := rabbitSize.Radius
+	wolfRadiusTiles := wolfSize.Radius
 	wolfAttackRangeTiles := constants.PixelsToTiles(wolfSize.AttackRange)
 
 	t.Logf("🐰 Заяц (ID:%d) на позиции (%.1f, %.1f):", rabbit, centerX-2, centerY)

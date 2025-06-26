@@ -108,6 +108,7 @@ func TestRealRabbitFeedingBugE2E(t *testing.T) {
 	t.Logf("\n=== Проверяем доступные системы для восстановления голода ===")
 
 	// Попробуем найти системы поедания травы
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 	grassAmount := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
 	t.Logf("Начальное состояние:")
@@ -154,6 +155,7 @@ func TestRealRabbitFeedingBugE2E(t *testing.T) {
 		// ТЕСТ: проверяем анимацию каждые 3 тика, особенно в момент завершения кадра (15 тиков)
 		if tick%3 == 2 {
 			currentHunger, _ := world.GetSatiation(rabbit)
+			// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 			currentGrass := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
 			// Детальная отладка анимации и GrassEatingSystem
@@ -211,6 +213,7 @@ func TestRealRabbitFeedingBugE2E(t *testing.T) {
 
 	// Анализируем результаты
 	finalHunger, _ := world.GetSatiation(rabbit)
+	// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 	finalGrass := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 
 	t.Logf("\n=== АНАЛИЗ РЕЗУЛЬТАТОВ ===")

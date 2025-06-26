@@ -67,6 +67,7 @@ func TestCornerClusteringBehavior(t *testing.T) {
 	// Функция для определения близости к углу
 	isInCorner := func(pos core.Position, worldSize float32, cornerThreshold float32) bool {
 		margin := cornerThreshold
+		// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32 для сравнения
 		nearLeft := pos.X < margin
 		nearRight := pos.X > worldSize-margin
 		nearTop := pos.Y < margin
@@ -77,6 +78,7 @@ func TestCornerClusteringBehavior(t *testing.T) {
 
 	// Функция для расчета расстояния до ближайшего края
 	distanceToEdge := func(pos core.Position, worldSize float32) float32 {
+		// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32 для вычислений
 		distToLeft := pos.X
 		distToRight := worldSize - pos.X
 		distToTop := pos.Y
@@ -326,6 +328,7 @@ func TestCornerClusteringBehavior(t *testing.T) {
 			nearestCorner := ""
 
 			for j, cornerPos := range cornerPositions {
+				// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32 для вычислений
 				dx := pos.X - cornerPos[0]
 				dy := pos.Y - cornerPos[1]
 				dist := float32(math.Sqrt(float64(dx*dx + dy*dy)))
@@ -363,6 +366,7 @@ func TestCornerClusteringBehavior(t *testing.T) {
 				if velMagnitudePrev > 5 && velMagnitudeCurr > 5 {
 					// Вычисляем угол между векторами скорости
 					dotProduct := prev.Velocity.X*curr.Velocity.X + prev.Velocity.Y*curr.Velocity.Y
+					// Вычисляем косинус угла
 					cosAngle := dotProduct / (velMagnitudePrev * velMagnitudeCurr)
 
 					// Если угол близок к 180 градусов (отражение)
@@ -443,6 +447,7 @@ func TestBoundaryReflectionMechanics(t *testing.T) {
 			vel, _ := world.GetVelocity(rabbit)
 
 			// Проверяем не вышел ли за границы
+			// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32 для сравнения
 			if pos.X < 0 || pos.X > worldSize || pos.Y < 0 || pos.Y > worldSize {
 				t.Errorf("ОШИБКА: Заяц %s вышел за границы! pos=(%.1f,%.1f)", directions[i], pos.X, pos.Y)
 			}
@@ -454,21 +459,25 @@ func TestBoundaryReflectionMechanics(t *testing.T) {
 
 			switch i {
 			case 0: // Левая граница
+				// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 				if pos.X <= margin {
 					atBoundary = true
 					boundaryType = "левой"
 				}
 			case 1: // Правая граница
+				// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 				if pos.X >= worldSize-margin {
 					atBoundary = true
 					boundaryType = "правой"
 				}
 			case 2: // Верхняя граница
+				// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 				if pos.Y <= margin {
 					atBoundary = true
 					boundaryType = "верхней"
 				}
 			case 3: // Нижняя граница
+				// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 				if pos.Y >= worldSize-margin {
 					atBoundary = true
 					boundaryType = "нижней"

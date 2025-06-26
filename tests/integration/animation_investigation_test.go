@@ -105,6 +105,7 @@ func TestAnimationInvestigation(t *testing.T) {
 	t.Logf("\n--- Начальное состояние ---")
 	pos, _ := world.GetPosition(rabbit)
 	satiation, _ := world.GetSatiation(rabbit)
+	// ТИПОБЕЗОПАСНОСТЬ: позиции уже float32
 	grassAmount := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 	behavior, _ := world.GetBehavior(rabbit)
 
@@ -132,6 +133,7 @@ func TestAnimationInvestigation(t *testing.T) {
 		anim, _ := world.GetAnimation(rabbit)
 		var vel core.Velocity
 		isEatingBefore := world.HasComponent(rabbit, core.MaskEatingState)
+		// ТИПОБЕЗОПАСНОСТЬ: позиции уже float32
 		grassBefore := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 		animTypeBefore := animation.AnimationType(anim.CurrentAnim)
 
@@ -156,6 +158,7 @@ func TestAnimationInvestigation(t *testing.T) {
 		vel, _ = world.GetVelocity(rabbit)
 		anim, _ = world.GetAnimation(rabbit)
 		isEatingAfter := world.HasComponent(rabbit, core.MaskEatingState)
+		// ТИПОБЕЗОПАСНОСТЬ: конвертируем physics.Pixels в float32
 		grassAfter := vegetationSystem.GetGrassAt(pos.X, pos.Y)
 		speed := vel.X*vel.X + vel.Y*vel.Y
 		animTypeAfterSystems := animation.AnimationType(anim.CurrentAnim)
